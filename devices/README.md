@@ -22,8 +22,9 @@ Current families:
 
 Adding a **board to an existing family**: a `boards/<board>.conf` + a dispatcher case
 arm + (if its controller differs) an inputplumber yaml/map with the board's dt-model
-`matches:` — plus, on arm-efi SoCs, a menuentry in the SoC grub.cfg. Bump the BSP
-(and bootloader) pkgrels. No new packages, no new image.
+`matches:` — plus, on arm-efi SoCs, a menuentry in the SoC grub.cfg and the board in the
+BSP's board-select script (pocknix-sm8250-board-select). Bump the BSP (and bootloader)
+pkgrels. No new packages, no new image.
 
 ## What a family target must provide
 
@@ -58,7 +59,11 @@ mapping), and a `packages/soc/pocknix-bootloader-<soc>/` — on arm-efi SoCs the
 kit copied to the SD boot FAT (see pocknix-bootloader-sm8550). Each SoC gets its own pacman repo tree
 (`build/localrepo/<soc>`, published at `POCKNIX_REPO_URL/<soc>`): the tuned packages
 (mesa, gamescope, mangohud, fex-emu) share pkgnames across SoCs with different
-binaries, so the repos must not mix.
+binaries, so the repos must not mix. They build for every SoC already (`socs` = `all`);
+a SoC-specific kernel config or a local patch delta goes in `kernel/<soc>/` (see
+kernel/README.md). `make check` validates every family: required files, board keys,
+dispatcher reachability and cmdline drift. A new tree is never published until its first
+`make stage`/`make publish`; stage-check skips it for the other SoCs until then.
 
 ## Boot styles (`BOOTLOADER` in profile.conf)
 
@@ -123,10 +128,11 @@ on an arm-efi board's internal storage.)
 3. InputPlumber: extend the family yaml's `matches:` if the board shares the family
    controller, or add a new model-gated yaml + capability map if it differs.
 4. UCM if the sound card name differs; udev quirks as needed. arm-efi: add the board's
-   grub.cfg menuentry.
+   grub.cfg menuentry and its arm in the BSP's board-select script.
    Dual-screen board: the `POCKNIX_PANEL2_*`/`POCKNIX_TOUCH*` keys plus a udev rule
    ignoring the second touchscreen unless `/run/pocknix/second-screen` exists (see
    the sm8550 BSP's Thor rule); gamescope blanks the second panel by itself.
-5. Bump pkgrels; `make build DEVICE=<soc>` — no shared file should need editing; if one
-   does, the boundary has a hole: fix the boundary, not the device.
+5. `make check` (board keys, dispatcher, cmdline); bump pkgrels; `make build DEVICE=<soc>`.
+   No shared file should need editing; if one does, the boundary has a hole: fix the
+   boundary, not the device.
 6. On-device checklist: pocknix-notes dev/device-smoke-checklist.md.
