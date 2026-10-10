@@ -35,8 +35,6 @@ devices/<soc>/
                                   #   SD_FAT_LABEL / SD_BOOT_PARTNAME / ROOT_LABEL (bootloader contract),
                                   #   KERNEL_CMDLINE_* (ONE cmdline for the family), FW_SRC_REL,
                                   #   DEVICE_HOSTNAME, DEVICE_BSP_PKG / DEVICE_META_PKG / KERNEL_PKG
-  packages.list                   # [pocknix] packages installed for this family (usually
-                                  #   just the metapackage; may add ALARM names too)
   packages/
     pocknix-bsp-<soc>/            # the family BSP: device.conf dispatcher + boards/,
                                   #   input maps (dt-model gated), udev quirks, audio UCM,
