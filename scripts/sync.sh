@@ -49,6 +49,28 @@ rsync -a          "${ROCKNIX_DEVICE_DIR}/linux/linux.aarch64.conf"   "${KERNEL_D
 rsync -a          "${ROCKNIX_DEVICE_DIR}/config/kernel-firmware.dat" "${KERNEL_DIR}/config/"
 rsync -a --delete "${ROCKNIX_DEVICE_DIR}/bootloader/"               "${KERNEL_DIR}/bootloader/"
 
+# --- local delta: restore what the rsync --delete above removed or overwrote ---------
+# kernel/<soc>/sync-keep lists our edits and additions (git is the source of truth for their
+# content); a 1000+ patch the sync deleted is ours by convention. An edited upstream file is
+# restored with a note: if ROCKNIX changed it on purpose, merge their change by hand.
+kernel_rel="${KERNEL_DIR#"${POCKNIX_ROOT}"/}"
+restore=()
+if [ -f "${KERNEL_DIR}/sync-keep" ]; then
+  while IFS= read -r p; do
+    case "${p}" in ''|'#'*) continue ;; -*) rm -f "${KERNEL_DIR}/${p#-}" ;; *) restore+=("${p}") ;; esac
+  done < "${KERNEL_DIR}/sync-keep"
+fi
+while IFS= read -r f; do
+  [ -e "${POCKNIX_ROOT}/${f}" ] || restore+=("${f#"${kernel_rel}"/}")
+done < <(git -C "${POCKNIX_ROOT}" ls-files "${kernel_rel}/patches/20-${SOC}/1[0-9][0-9][0-9]-*")
+for p in "${restore[@]}"; do
+  if [ -e "${KERNEL_DIR}/${p}" ] && ! git -C "${POCKNIX_ROOT}" diff --quiet HEAD -- "${kernel_rel}/${p}"; then
+    warn "  kept our ${p}; upstream's copy differs (merge any intended change by hand)"
+  fi
+  git -C "${POCKNIX_ROOT}" checkout HEAD -- "${kernel_rel}/${p}"
+done
+[ "${#restore[@]}" -eq 0 ] || log "  restored ${#restore[@]} local-delta files from git"
+
 # --- gitignored build-time material -> vendor/ -----------------------------
 dst="${VENDOR_DIR}/rocknix-${SOC}"
 log "  reference scripts + firmware overlay -> vendor/ (gitignored)"
