@@ -111,6 +111,7 @@ fixup_trace_events() {
 configure() {
   log "configuring kernel (.config from linux.aarch64.conf; no embedded initramfs)"
   sed -e "s|@DEVICENAME@|${DEVICE_HOSTNAME}|g" \
+      -e "s|^CONFIG_DEFAULT_HOSTNAME=.*|CONFIG_DEFAULT_HOSTNAME=\"${DEVICE_HOSTNAME}\"|" \
       -e 's|@INITRAMFS_SOURCE@||g' \
       "${KERNEL_DIR}/config/linux.aarch64.conf" > "${KSRC}/.config"
 
