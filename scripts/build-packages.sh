@@ -373,9 +373,9 @@ main() {
       [ "${devsoc}" = "${SOC}" ] || continue
     ;; esac
     case "${pkgdir}" in */packages/soc/*)
-      [ -f "${pkgdir}/socs" ] || die "${name}: packages/soc/ package with no socs file — declare its SoC(s), one space-separated line"
+      [ -f "${pkgdir}/socs" ] || die "${name}: packages/soc/ package with no socs file — declare its SoC(s), one space-separated line, or all"
       read -r pkgsocs < "${pkgdir}/socs"
-      case " ${pkgsocs} " in *" ${SOC} "*) ;; *) continue ;; esac
+      case " ${pkgsocs} " in " all "|*" ${SOC} "*) ;; *) continue ;; esac
     ;; esac
     force=0
     [ "${POCKNIX_FORCE_REBUILD:-0}" = "1" ] && force=1

@@ -39,6 +39,8 @@ for p in "${POCKNIX_ROOT}"/packages/soc/*/; do
   fi
   read -r _socs < "${p}/socs"
   bad=0
+  # "all" = every kernel/<soc>, so a new SoC needs no socs edits; it never mixes with names.
+  if [ "${_socs}" = all ]; then note "soc pkg: ${n}" "socs: all"; continue; fi
   for s in ${_socs}; do
     [ -d "${POCKNIX_ROOT}/kernel/${s}" ] || { note "soc pkg: ${n}" "unknown SoC '${s}' in socs"; fail=1; bad=1; }
   done
