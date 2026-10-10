@@ -93,7 +93,7 @@ Sourced by shared session scripts (`pocknix-steam`, `pocknix-desktop-rotate`,
 | `POCKNIX_PANEL_OUTPUT` | pocknix-steam, pocknix-desktop-rotate | DRM connector of the main panel (`DSI-2`); gamescope `--prefer-output`, the desktop seed's output. Absent = single panel, first DSI |
 | `POCKNIX_PANEL2_OUTPUT`, `POCKNIX_PANEL2_W/H`, `POCKNIX_DESKTOP2_SCALE` | pocknix-desktop-rotate | second panel (dual-screen boards): enabled, rotated like the main one, scaled, placed below it |
 | `POCKNIX_TOUCH_NAME` / `POCKNIX_TOUCH2_NAME` | pocknix-desktop, pocknix-second-screen | evdev names of the main/second touchscreen: kwin maps each to its output (kcminputrc); the second is libinput-ignored outside the desktop session (udev rule in the board BSP + pocknix-second-screen) |
-| `POCKNIX_BIG_CORES` | pocknix-play | taskset big-core mask for emulator pinning |
+| `POCKNIX_BIG_CORES` | pocknix-play, pocknix-steam-env, pocknix-rt-ladder | cores games and emulators are pinned to; the cores left out are the small cores irq work goes to (on a SoC with no little cluster, leave two mids out) |
 | `POCKNIX_BOOT_STYLE` | pocknix-install/uninstall-internal | qcom-abl (default) or arm-efi: selects the internal-install boot-file handling (arm-efi pins grub.cfg + fstab to internal PARTUUIDs) |
 | `POCKNIX_INTERNAL_DISK` | pocknix-install/uninstall-internal, installer-gui | internal disk (default /dev/sda) |
 | `POCKNIX_BOOT_GPT_NAME/_FAT_LABEL`, `POCKNIX_ROOT_LABEL` | pocknix-install/uninstall-internal | internal-install boot contract |
