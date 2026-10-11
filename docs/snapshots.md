@@ -94,10 +94,3 @@ no longer boots and you can't get a shell:
 3. Boot. The old kernel now runs with the newer modules - degraded (Wi-Fi/audio may be
    missing) but alive. Run `sudo pocknix-rollback` on the device to make kernel and rootfs
    coherent again.
-
-## Existing (ext4) installs
-
-Images built before the btrfs switch stay ext4 and keep updating normally - the hooks and
-the QAM rollback UI detect the filesystem and disable themselves. There is no in-place
-migration: back up saves, reflash a current image, restore. New SD images and any internal
-install made *from* a btrfs SD get the full snapshot layout.

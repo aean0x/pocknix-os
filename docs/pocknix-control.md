@@ -180,5 +180,3 @@ Notes:
 - The QAM always rolls back the **last** update only. To go further back, or if game mode
   itself is broken, use **Pocknix Tools** in desktop mode (*Roll back the last update...*) or the terminal -
   see [snapshots.md](snapshots.md) for those and for how it all works underneath.
-- Older pocknix installs (before the snapshot feature) do not show the Rollback section at
-  all; a reflash with a current image is what enables it.
