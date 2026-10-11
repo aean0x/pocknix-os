@@ -4,21 +4,10 @@ EMU_DROP="${HOME}/Emulation/emulators"
 EMU_NAMES="armsx2 eden ryujinx rpcs3 vita3k xemu dolphin cemu azahar ppsspp"
 
 # Heavy emulators pin to the board's game cores: scx_lavd otherwise parks the critical thread
-# on a little core (chop + audio crackle). A board without the key gets every core above the
-# lowest capacity, never a guessed mask that is a little core on another SoC.
-big_cores() {
-  local cores
-  cores="$(for f in /usr/lib/pocknix/device.conf /etc/pocknix/device.conf; do
-    [ -r "${f}" ] && . "${f}"
-  done; printf '%s' "${POCKNIX_BIG_CORES:-}")"
-  if [ -z "${cores}" ]; then
-    cores="$(for c in /sys/devices/system/cpu/cpu[0-9]*; do
-      echo "${c##*cpu} $(cat "${c}/cpu_capacity" 2>/dev/null)"
-    done | sort -k2n | awk 'NR == 1 { min = $2 } { a = a t $1; t = "," }
-      $2 != min { l = l s $1; s = "," } END { print (l != "" ? l : a) }')"
-  fi
-  printf '%s' "${cores}"
-}
+# on a little core (chop + audio crackle). Unlike the game pin, a board without the key still
+# pins, to the cores cores.sh guesses from capacity.
+. /usr/lib/pocknix/cores.sh
+big_cores() { pocknix_big_cores guess; }
 
 emu_path_names() {  # $1 name -> the binary names a normal install would put on PATH
   case "$1" in

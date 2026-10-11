@@ -39,12 +39,12 @@ source=('pocknix-sleep' 'sdam-debug-pre' 'sdam-debug-post'
         '60-pocknix-sdl-xb360.conf' 'pocknix-sdl-xb360.sh'
         'pocknix-rt-ladder' 'pocknix-rt-ladder.service' 'rtkit-limits.conf'
         '60-pocknix-deck.conf'
-        'pocknix-cmdline-sync' '91-pocknix-cmdline.hook')
+        'pocknix-cmdline-sync' '91-pocknix-cmdline.hook' 'cores.sh')
 sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
-            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
   install -Dm755 "${srcdir}/pocknix-sleep" \
@@ -126,6 +126,7 @@ package() {
   install -Dm644 "${srcdir}/org.pocknix.Perf.service" "${pkgdir}/usr/share/dbus-1/system-services/org.pocknix.Perf.service"
   install -Dm644 "${srcdir}/org.pocknix.Perf.conf" "${pkgdir}/usr/share/dbus-1/system.d/org.pocknix.Perf.conf"
 
+  install -Dm644 "${srcdir}/cores.sh" "${pkgdir}/usr/lib/pocknix/cores.sh"
   install -Dm755 "${srcdir}/pocknix-rt-ladder" "${pkgdir}/usr/lib/pocknix/pocknix-rt-ladder"
   install -Dm644 "${srcdir}/pocknix-rt-ladder.service" "${pkgdir}/usr/lib/systemd/system/pocknix-rt-ladder.service"
   ln -sf "../pocknix-rt-ladder.service" "${pkgdir}/usr/lib/systemd/system/multi-user.target.wants/pocknix-rt-ladder.service"
