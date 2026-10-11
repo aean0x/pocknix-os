@@ -110,4 +110,4 @@ while read -r n age; do
   n_fresh=$((n_fresh + 1))
 done < <(printf '%s\n' "${fresh}" | LC_ALL=C sort)
 [ "${n_fresh}" -gt 0 ] || ok "nothing fresh"
-[ "${n_fresh}" -eq 0 ] || warn "${n_fresh} fresh package(s): skim them; hold back via the last-good repo (maintainer-guide known-bad)"
+[ "${n_fresh}" -eq 0 ] || warn "${n_fresh} fresh package(s): skim them; hold back via the last-good repo"

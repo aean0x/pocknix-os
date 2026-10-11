@@ -176,8 +176,7 @@ done
 # must carry the ALARM copies too or a pinned build dies at "target not found".
 # Cache presence alone can NOT identify them — pacman caches file:// installs
 # too, so once a [pocknix] package lands in a chroot as a makepkg dep its own
-# file appears here (seen: pocknix-base pulled into the manifest, then failing
-# its mirror fetch). The sync dbs are the discriminator: only a version that an
+# file appears here. The sync dbs are the discriminator: only a version that an
 # ALARM repo actually carries is base material.
 for src in "${sources[@]}"; do
   for f in "${src}"/var/cache/pacman/pkg/*.pkg.tar.*; do
@@ -235,8 +234,9 @@ belongs in the image instead, add it to base.list (ALARM bootstrap) or to a
 layer metapackage's depends= (packages/shared/pocknix-*), then re-run."
 
 # --- layer completeness ------------------------------------------------------
-# A layer's ALARM deps reach the base only because every build installs all four
-# layers; an image that drops one (#48) would silently strip them from the snapshot.
+# A layer's ALARM deps reach the base only if the image installs that layer or
+# base-extras.list hosts them; a layer the build left out (POCKNIX_EMULATION) would
+# otherwise silently lose its deps from the snapshot.
 layer_missing=""
 for _meta in "${PACKAGES_DIR}"/shared/pocknix-core/PKGBUILD \
              "${PACKAGES_DIR}"/shared/pocknix-*-full/PKGBUILD; do
