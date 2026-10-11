@@ -50,6 +50,18 @@ for p in "${POCKNIX_ROOT}"/packages/shared/*/socs; do
   [ -e "${p}" ] || continue
   note "shared pkg: $(basename "$(dirname "${p}")")" "has a socs file (shared builds are SoC-blind — move it to packages/soc/ or delete the file)"; fail=1
 done
+
+# A package we author ships under the repo's license; repackaged third-party content keeps
+# its upstream license and names it in a comment on the license= line.
+_lic=""
+while IFS= read -r _f; do
+  _l="$(grep -n '^license=' "${POCKNIX_ROOT}/${_f}" | head -1)"
+  case "${_l#*:}" in "license=('GPL-2.0-or-later')"|*"#"*) continue ;; esac
+  _lic="${_lic} ${_f}:${_l%%:*}"
+done < <(git -C "${POCKNIX_ROOT}" grep -l -F 'url="https://github.com/shuuri-labs/pocknix-os"' \
+           -- 'packages/shared/*/PKGBUILD' 'packages/soc/*/PKGBUILD' 'devices/*/PKGBUILD')
+if [ -z "${_lic}" ]; then note "package licenses" "ok"
+else note "package licenses" "not GPL-2.0-or-later and no '# <third-party>' note:${_lic}"; fail=1; fi
 for f in config/pocknix.conf config/pacman.conf.in config/packages/base.list \
          "devices/${DEVICE}/profile.conf" "kernel/${SOC}/kernel.conf"; do
   [ -f "${POCKNIX_ROOT}/${f}" ] && note "file: ${f}" "ok" || { note "file: ${f}" "MISSING"; fail=1; }

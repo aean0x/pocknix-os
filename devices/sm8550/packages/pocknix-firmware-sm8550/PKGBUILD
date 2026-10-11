@@ -8,7 +8,7 @@ pkgrel=2
 pkgdesc="SM8550 family vendor firmware overrides (ath12k wifi + VPU), immune to linux-firmware updates"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
-license=('custom:qcom-firmware')
+license=('custom:qcom-firmware')   # Qualcomm vendor blobs
 # firmware blobs must ship byte-identical; some parse as ELF and strip would alter them
 options=('!strip')
 source=('paths')

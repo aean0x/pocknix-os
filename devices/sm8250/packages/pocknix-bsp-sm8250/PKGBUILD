@@ -20,7 +20,7 @@ pkgrel=20
 pkgdesc="pocknix board support: SM8250 family (RP5, RP Flip 2) — runtime board dispatch, input maps, audio UCM, wake quirks"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
-license=('GPL2')
+license=('GPL-2.0-or-later')
 # swh-plugins: the LADSPA fast lookahead limiter used by the speaker loudness
 # filter-chain (60-pocknix-speaker-loudness.conf).
 depends=('pocknix-bsp-common' 'swh-plugins')

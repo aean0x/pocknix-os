@@ -7,7 +7,9 @@ Copyright (C) 2026 shuuri-labs and the pocknix-os contributors.
 
 "Original work" covers everything authored for this project: the build harness (`scripts/`,
 `Makefile`, `config/`), device profiles (`devices/`), the rootfs overlay (`overlay/`),
-all `pocknix-*` packages, PKGBUILDs, and patches written for pocknix-os.
+all `pocknix-*` packages, PKGBUILDs, and patches written for pocknix-os. Each package we
+author declares `GPL-2.0-or-later` in its PKGBUILD; packages that repackage third-party
+content (firmware, the kernel, bootloaders, upstream builds) declare the upstream license.
 
 ## Why GPL-2.0-or-later
 

@@ -6,7 +6,7 @@ pkgrel=1
 pkgdesc="pocknix desktop flavour: Plasma (desktop shell)"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
-license=('GPL2')
+license=('GPL-2.0-or-later')
 depends=('pocknix-desktop>=0.1.0-30'   # first picker that offers the plasma session
          'pocknix-desktop-kde'
          'plasma-desktop'               # the org.kde.plasma.desktop shell; plasma.desktop alone is not enough

@@ -248,6 +248,10 @@ check it, which is the single biggest reason a PR stalls.
 - **Patch series**: numbered files in the package directory, added to `source=()` with
   matching checksums, applying cleanly against the pinned base. If you touch a component
   with a row in `PATCHES.md`, update that row.
+- **License**: a package you author for pocknix-os declares `license=('GPL-2.0-or-later')`.
+  One that repackages third-party content keeps the upstream license and names it in a
+  comment on the same line (`license=('zlib')   # Valve's DXVK build, repackaged`). `make check`
+  enforces both.
 - **New dependencies** should come from the Arch Linux ARM repos or `[pocknix]`. Flag anything
   large - image size matters on a handheld.
 - **A new package name needs a `depends=` edge** from the layer metapackage that owns it

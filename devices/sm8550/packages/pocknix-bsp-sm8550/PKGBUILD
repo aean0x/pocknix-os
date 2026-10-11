@@ -4,7 +4,7 @@ pkgrel=14
 pkgdesc="pocknix board support: SM8550 family (RP6, Nova, Odin 2 family, Thor) — runtime board dispatch, input maps, suspend quirks, audio UCM, dual-screen touch policy"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
-license=('GPL2')
+license=('GPL-2.0-or-later')
 # The firmware reaches the fleet through this edge: -Syu never installs a new name alone.
 depends=('pocknix-bsp-common' 'pocknix-firmware-sm8550')
 # One BSP per device (wrong-device guard); replaces= migrates the retired per-device BSPs.
