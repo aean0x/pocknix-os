@@ -64,14 +64,21 @@ fetch_source() {
 }
 
 # kernel/common goes last: its patches sit on top of SoC-dir prerequisites
-# (1062 needs the SoC dir's 0504).
+# (1062 needs the SoC dir's 0504). kernel/<soc>/common-skip lists common patches a
+# SoC leaves out because they don't apply or aren't validated there; SoC-specific
+# behaviour belongs gated inside the patch, the skip list is the fallback.
 apply_patches() {
-  local d p n
+  local d p n skip=""
+  [ -f "${KERNEL_DIR}/common-skip" ] && \
+    skip="$(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' "${KERNEL_DIR}/common-skip")"
   for d in "${KERNEL_DIR}"/patches/*/ "${POCKNIX_ROOT}/kernel/common/patches/"; do
     [ -d "${d}" ] || continue
     n=0
     for p in "${d}"*.patch; do
       [ -f "${p}" ] || continue
+      if [ "${d}" = "${POCKNIX_ROOT}/kernel/common/patches/" ] && grep -qxF "${p##*/}" <<<"${skip}"; then
+        log "  skipped ${p##*/} (${SOC} common-skip)"; continue
+      fi
       patch -p1 -d "${KSRC}" < "${p}" >/dev/null || die "patch failed to apply: ${p}"
       n=$((n+1))
     done
