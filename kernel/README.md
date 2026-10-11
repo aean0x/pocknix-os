@@ -33,7 +33,7 @@ kernel/
 ## Build = pinned source + patches in order + config
 
 `scripts/build-kernel.sh` extracts the pinned source, applies `patches/*/` in sort order and
-then `kernel/common/patches/`, installs `dts/`, writes `config/linux.aarch64.conf` plus our
+then `kernel/common/patches/`, installs `dts/`, seeds `.config` from `kernel/<soc>/config/linux.aarch64.conf`, applies our
 config deltas, and packages the result for the SoC's `BOOTLOADER` (`qcom-abl`: Android boot
 image; `arm-efi`: raw Image + dtbs for GRUB). The numbered dirs follow ROCKNIX's own apply
 order (mainline, then the version dir, then the device dir): device patches can depend on

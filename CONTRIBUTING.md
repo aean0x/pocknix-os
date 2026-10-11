@@ -59,6 +59,7 @@ Especially welcome:
 | `config/` | Global build config: `pocknix.conf`, base package lists (`config/packages/`), per-SoC tuning (`config/tuning/`). |
 | `docs/` | User-facing guides. |
 | `.github/` | Issue and PR templates, the CI workflow. |
+| `build/` | Build output (gitignored): rootfs, images, `localrepo/<soc>` and `localrepo/shared`. |
 | `vendor/` | **Do not edit.** Regenerated wholesale by `make sync` from ROCKNIX. |
 
 Three rules that catch most first-time contributors:
@@ -291,8 +292,11 @@ works against the locked base.
 - **Code comments: 2 to 4 lines, and only the WHY.** Status, plan, and validation narrative do
   not belong in comments or commit bodies.
 - **CI must be green.** The `lint` job runs `bash -n` over every script and `PKGBUILD`,
-  resolves each device profile chain, and checks that every `kernel-cmdline` file still
-  matches its `profile.conf`. It is fast; there is no excuse for a red PR.
+  resolves each device profile chain, checks that every `kernel-cmdline` file still
+  matches its `profile.conf`, and checks the docs against the tree (`scripts/check-docs.sh`:
+  every path and `make` target they name exists, layout blocks match their dirs, structural
+  READMEs carry no versions or counts; a line that must keep one carries
+  `docs-check: allow`). A doc that describes what you changed moves in the same PR. It is fast; there is no excuse for a red PR.
 - **No unrelated reformatting.** It makes the real change unreviewable.
 
 ## AI assistance

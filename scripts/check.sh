@@ -70,7 +70,7 @@ note "device" "${DEVICE} (${DEVICE_PRETTY:-?}) on ${SOC}"
 
 # --- scripts executable ----------------------------------------------------
 for s in sync.sh bootstrap.sh build-image.sh build-kernel.sh build-packages.sh \
-         build-sd-image.sh stage-repo.sh stage-check.sh publish-repo.sh install.sh check.sh; do
+         build-sd-image.sh stage-repo.sh stage-check.sh publish-repo.sh install.sh check.sh check-docs.sh; do
   [ -x "${POCKNIX_ROOT}/scripts/${s}" ] && note "exec: scripts/${s}" "ok" || { note "exec: scripts/${s}" "not +x"; fail=1; }
 done
 
@@ -149,39 +149,9 @@ for _s in "${POCKNIX_ROOT}"/kernel/*/common-skip; do
 done
 if [ -z "${_stale}" ]; then note "kernel common-skip" "ok"; else note "kernel common-skip" "not in kernel/common/patches:${_stale}"; fail=1; fi
 
-# kernel/README.md's layout block must name what kernel/<soc>/ holds: a new entry fails until it
-# is documented, and a non-optional entry no SoC has (a rename) fails until the README follows.
-_klayout="$(awk '/^```/{f=!f; next} f && /^    [^ ]/' "${POCKNIX_ROOT}/kernel/README.md")"
-_kdoc="$(printf '%s\n' "${_klayout}" | awk '{print $1}' | sed 's:/$::')"
-_kreq="$(printf '%s\n' "${_klayout}" | grep -v '(optional)' | awk '{print $1}' | sed 's:/$::')"
-_khave=""
-for _k in "${POCKNIX_ROOT}"/kernel/*/kernel.conf; do
-  _d="${_k%/kernel.conf}"; _soc="$(basename "${_d}")"
-  for _e in "${_d}"/* "${_d}"/patches/*; do
-    [ -e "${_e}" ] || continue
-    _e="${_e#"${_d}"/}"; [ "${_e}" = patches ] && continue
-    _khave="${_khave}${_e//${_soc}/<soc>}"$'\n'
-  done
-done
-_kbad=""
-for _e in $(printf '%s' "${_khave}" | sort -u); do
-  printf '%s\n' "${_kdoc}" | grep -qxF "${_e}" || _kbad="${_kbad} undocumented:${_e}"
-done
-for _e in ${_kreq}; do
-  printf '%s' "${_khave}" | grep -qxF "${_e}" || _kbad="${_kbad} stale:${_e}"
-done
-[ -d "${POCKNIX_ROOT}/kernel/common/patches" ] || _kbad="${_kbad} missing:kernel/common/patches"
-if [ -z "${_kbad}" ]; then note "kernel/README.md layout" "ok"; else note "kernel/README.md layout" "${_kbad# }"; fail=1; fi
-
-# Every key a board sets is part of the runtime contract, so it must be in the README table.
-_undoc=""
-for _key in $(cat "${POCKNIX_ROOT}"/devices/*/packages/pocknix-bsp-*/boards/*.conf \
-                  "${POCKNIX_ROOT}"/devices/*/packages/pocknix-bsp-*/device.conf 2>/dev/null |
-              grep -oE '^[[:space:]]*POCKNIX_[A-Z0-9_]+=' | tr -d ' =' | sort -u); do
-  grep -q "\`${_key}\`" "${POCKNIX_ROOT}/devices/README.md" || _undoc="${_undoc} ${_key}"
-done
-if [ -z "${_undoc}" ]; then note "board keys documented" "ok"
-else note "board keys documented" "not in devices/README.md:${_undoc}"; fail=1; fi
+# Docs name only what the tree has; structural READMEs follow their dirs and keep no versions.
+if "${POCKNIX_ROOT}/scripts/check-docs.sh"; then note "docs match the tree" "ok"
+else note "docs match the tree" "see the lines above"; fail=1; fi
 
 # --- kernel enablement present? (committed; refreshable via sync) -----------
 _npatch=$(find "${KERNEL_DIR}/patches" "${POCKNIX_ROOT}/kernel/common/patches" -name '*.patch' 2>/dev/null | wc -l | tr -d ' ')
