@@ -1,5 +1,4 @@
-# Opt-in until desktop Plasma and the base share one Plasma version. Build with ./nodeps:
-# makepkg -s would drag all of KDE/Qt into the chroot for a data package.
+# Build with ./nodeps: makepkg -s would drag all of KDE/Qt into the chroot for a data package.
 pkgname=pocknix-desktop-plasma
 pkgver=0.1.0
 pkgrel=1
