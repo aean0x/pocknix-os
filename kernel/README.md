@@ -62,7 +62,7 @@ make sync DEVICE=<soc>                                          # per SoC, then 
 ```
 
 `make sync` copies the ROCKNIX dirs over the synced paths with `--delete` (comparing by
-content), never touching `kernel/common/` or the per-SoC files without a `<- make sync` mark
+content; `config/` takes the two upstream files without `--delete`), never touching `kernel/common/` or the per-SoC files without a `<- make sync` mark
 above. It then restores our delta from git: each `sync-keep` line is `path` (our edit of an
 upstream file), `+path` (our own file) or `-path` (an upstream file we delete), and every 1000+
 patch of ours the sync removed comes back on its own. Each warning it prints is a merge to do

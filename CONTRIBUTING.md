@@ -5,14 +5,13 @@ hardware, so the most valuable thing a PR can bring is **evidence it works on a 
 and **instructions that let me reproduce that on mine**.
 
 Questions, ideas, or "is this worth doing?" chats: the
-[pocknix Discord](https://discord.gg/mSSNKQg9m) or a GitHub issue. For anything large
+[pocknix Discord](https://discord.gg/jEpwudj4Fx) or a GitHub issue. For anything large
 (a new device family, a new session, a kernel bump, a new packaging approach), open an issue
 first so we can agree the shape before you spend the time.
 
 Especially welcome:
 
-- **Emulator configs** that you have dialled in on a device (see the "Not all pre-baked
-  emulator configs have been validated yet" note in the README).
+- **Emulator configs** that you have dialled in on a device.
 - **Device support and testing** for hardware I do not own (AYN Odin 2 family, Thor, Nova).
 - **Pocknix Control features and fixes.**
 - **Docs corrections** - these need no hardware and no build.
@@ -49,21 +48,25 @@ Especially welcome:
 
 | Path | What lives there |
 |---|---|
-| `packages/<pkg>/` | Package sources, `PKGBUILD`s, patch series. Most contributions land here. |
+| `packages/shared/<pkg>/` | SoC-neutral packages, built once for every device. Most contributions land here. |
+| `packages/soc/<pkg>/` | Packages built per SoC family (GPU stack, emulators, kernels); a `socs` file names the families or says `all`. |
+| `packages/attic/<pkg>/` | Retired recipes, kept for reference and never built. |
 | `devices/<soc>/` | Per-SoC-family and per-board facts: `profile.conf`, the device metapackage, BSP package, InputPlumber configs. See `devices/README.md`. |
 | `kernel/<soc>/` | Committed kernel inputs: pinned version, patch series, config, dts. See `kernel/README.md`. |
+| `kernel/common/patches/` | Our SoC-neutral kernel patches, applied to every SoC. |
 | `scripts/` | The build harness (`build-*.sh`, `lib.sh`, `stage-repo.sh`, ...). |
 | `overlay/` | Files baked into the image rootfs at build time. |
-| `config/` | Global build config. |
+| `config/` | Global build config: `pocknix.conf`, base package lists (`config/packages/`), per-SoC tuning (`config/tuning/`). |
 | `docs/` | User-facing guides. |
+| `.github/` | Issue and PR templates, the CI workflow. |
 | `vendor/` | **Do not edit.** Regenerated wholesale by `make sync` from ROCKNIX. |
 
 Three rules that catch most first-time contributors:
 
-- **Kernel config changes go in the delta block in `scripts/build-kernel.sh`**, not in
-  `kernel/<soc>/config` - that file is a synced ROCKNIX snapshot and `make sync` overwrites it.
-  The deltas are applied on top of it, with hard asserts for options that must survive
-  `olddefconfig`.
+- **Kernel config changes go in a delta**, not in `kernel/<soc>/config` - that file is a
+  synced ROCKNIX snapshot and `make sync` overwrites it. Use the delta block in
+  `scripts/build-kernel.sh` for every SoC, or `kernel/<soc>/config-delta` (plus
+  `config-assert` for options that must survive `olddefconfig`) for one.
 - **Anything in `overlay/` or the image scripts only reaches people who reflash.** It does not
   ship through `pacman -Syu`. If a fix needs to reach existing installs, it belongs in a
   package with a bumped `pkgrel`. If it genuinely cannot, say so in the PR.
@@ -90,7 +93,7 @@ make help       # every target
 **Pocknix Control frontend** (any host with Node, no aarch64 needed):
 
 ```bash
-cd packages/pocknix-decky/pocknix-control
+cd packages/shared/pocknix-decky/pocknix-control
 npm ci
 npm run build         # regenerates dist/index.js - this IS committed, see Package rules
 npx tsc --noEmit      # must be clean
@@ -100,7 +103,7 @@ npx tsc --noEmit      # must be clean
 Silicon or an ARM cloud box both work):
 
 ```bash
-sudo make packages PKG="pocknix-decky"    # -> build/localrepo/<pkg>-*.pkg.tar.xz
+sudo make packages PKG="pocknix-decky"    # -> build/localrepo/shared/ (per-SoC packages: build/localrepo/<soc>/)
 ```
 
 **A full image** (same aarch64 Linux host with root; the kernel build is 1-2 hours):
@@ -117,11 +120,12 @@ releases go through the maintainer's staged publish flow.
 ## Testing on a device
 
 The normal loop is **build the package, copy it over, `pacman -U`, exercise it**. You do not
-need to reflash an image for a package change.
+need to reflash an image for a package change. SSH is off by default: turn it on in Pocknix
+Tools, or build your image with `SD_SSH=on`.
 
 ```bash
 # on the build host
-scp build/localrepo/pocknix-decky-*.pkg.tar.* root@<device-ip>:/tmp/
+scp build/localrepo/shared/pocknix-decky-*.pkg.tar.* root@<device-ip>:/tmp/
 
 # on the device (default password for root and deck is 'pocknix')
 pacman -U /tmp/pocknix-decky-*.pkg.tar.*
@@ -215,10 +219,10 @@ Concretely:
 ## How to test
 
     sudo make packages PKG="pocknix-decky"
-    scp build/localrepo/pocknix-decky-*.pkg.tar.* root@device:/tmp/
+    scp build/localrepo/shared/pocknix-decky-*.pkg.tar.* root@device:/tmp/
     ssh root@device 'pacman -U /tmp/pocknix-decky-*.pkg.tar.* && reboot'
 
-1. Boot to game mode, open the QAM, Pocknix Control -> Lighting.
+1. Boot to game mode, open the QAM, Pocknix Control -> Controller -> Stick Lights.
 2. Move the Brightness slider to ~10%. Expected: the rings dim smoothly and stay the
    chosen hue. Before this change the bottom third of the slider was nearly dead and
    0% lost the colour permanently.
@@ -237,13 +241,13 @@ check it, which is the single biggest reason a PR stalls.
   an upstream version change, and reset `pkgrel=1` when you do.
 - **Never republish an existing package filename with different contents.** In practice this
   means: always bump, never quietly rebuild.
-- **Committed build output must be reproducible.** `packages/pocknix-decky/pocknix-control/dist/`
+- **Committed build output must be reproducible.** `packages/shared/pocknix-decky/pocknix-control/dist/`
   is committed and I rebuild it from your sources during review; it should come out
   byte-identical with the pinned toolchain (`npm ci && npm run build`), and `npx tsc --noEmit`
   should be clean. Commit `dist/index.js` and `dist/index.js.map` alongside the `src/` change.
 - **Patch series**: numbered files in the package directory, added to `source=()` with
   matching checksums, applying cleanly against the pinned base. If you touch a component
-  listed in `PATCHES.md` (gamescope, mesa, mangohud, FEX, the kernels, GRUB), update its row.
+  with a row in `PATCHES.md`, update that row.
 - **New dependencies** should come from the Arch Linux ARM repos or `[pocknix]`. Flag anything
   large - image size matters on a handheld.
 - **A new package name needs a `depends=` edge** from the layer metapackage that owns it
