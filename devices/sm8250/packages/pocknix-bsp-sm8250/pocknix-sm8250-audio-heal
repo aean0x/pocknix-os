@@ -9,21 +9,19 @@
 # loses the race each boot (lpass pinctrl once, va_macro another time; both seen
 # live on the RP5). Heal: once the adsp remoteproc is running, reload the modular
 # LPASS drivers whose devices are still unbound until the RetroidPocket card
-# appears. Requires the macros built =m (build-kernel.sh sm8250 config delta).
+# appears. Requires the macros built =m (kernel/sm8250/config-delta).
 card_up() { grep -q RetroidPocket /proc/asound/cards 2>/dev/null; }
 bound()   { [ -e "/sys/bus/platform/devices/$1/driver" ]; }
 reload()  { modprobe -r "$1" 2>/dev/null; modprobe "$1" 2>/dev/null; }
 
-# Plant the validated mixer gains once the card exists. Nothing on Arch runs
+# Plant the hardware mixer gains once the card exists. Nothing on Arch runs
 # the UCM BootSequence (alsaucm boot), and PipeWire runs soft-mixer on this
-# card (51-pocknix-softmixer.conf) so it never touches the hardware mixer —
-# this is the ONE place the hardware gains are set. Values validated by ear
-# on the RP5 (2026-07-16): speakers at the clean-gain ceiling (the perceived
-# loudness on top comes from the PipeWire limiter, 60-pocknix-speaker-
-# loudness.conf); headphones +6dB analog (max) +18dB digital, clean on loud
-# content. 8.5V is the wsa881x boost maximum — drop to "7.500 V" first if
-# speaker longevity ever becomes a concern. -D hw:0 bypasses the UCM ctl
-# remap layer (name lookups fail on the default device once the remap is up).
+# card (51-pocknix-softmixer.conf) so it never touches the hardware mixer:
+# this is the ONE place the hardware gains are set. Speakers sit at the
+# clean-gain ceiling (the loudness on top comes from the PipeWire limiter,
+# 60-pocknix-speaker-loudness.conf); 8.5V is the wsa881x boost maximum.
+# -D hw:0 bypasses the UCM ctl remap layer (name lookups fail on the default
+# device once the remap is up).
 apply_gains() {
   set_c() { amixer -D hw:0 cset "name=\"$1\"" "$2" >/dev/null 2>&1 || echo "audio-heal: cset '$1' failed" >&2; }
   # speakers: WSA path

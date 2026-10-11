@@ -5,20 +5,17 @@
 #
 # The gamepad is a serial MCU on uart16 driven by the in-kernel
 # retroid-pocket-gamepad driver (kernel/sm8250/patches 0008), phys
-# "retroid-pocket-gamepad/input0" (vid 2020 pid 3001). Ported from ROCKNIX's
-# 01-retroid-controller.yaml with two pocknix changes:
+# "retroid-pocket-gamepad/input0" (vid 2020 pid 3001).
 #   * matches: gated on the devicetree model (the sm8250 image serves every
-#     board on the SoC — ROCKNIX's SM8550 02-ayn-controller.yaml pattern).
-#   * capability_map retroid_rp5: ROCKNIX's shared retroid_mcu map minus the
-#     back-paddle entries — the RP5 is paddle-free (user-confirmed);
-#     ROCKNIX's map carries paddles for other Retroid boards that have them.
+#     board on the SoC).
+#   * capability_map retroid_rp5: paddle-free, the RP5 has no back paddles.
 #
 # Volume keys are NOT grabbed here: vol-up sits on gpio-keys and vol-down on
 # the PMIC resin node (DTS), neither is a source device, so pocknix-volumed
 # sees them directly (no re-emit dance like the RP6's gpio-keys grab).
 #
 # Target = `deck` (Steam Deck controller) so Steam Input gets a first-class
-# Steam-native pad, same as the other pocknix devices (ROCKNIX targets ds5).
+# Steam-native pad, same as the other pocknix devices.
 version: 1
 kind: CompositeDevice
 name: Retroid Pocket 5

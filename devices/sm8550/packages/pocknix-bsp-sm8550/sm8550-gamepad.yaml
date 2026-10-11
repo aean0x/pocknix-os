@@ -1,16 +1,14 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ShadowBlip/InputPlumber/main/rootfs/usr/share/inputplumber/schema/capability_map_v2.json
 # InputPlumber capability map for the SM8550 family (RSInput "AYN Odin2 Gamepad"):
-# Retroid Pocket 6 (+TOP-DPAD) and AYN Odin 2 / Mini / Portal all share the same
-# RSInput MCU + gpio-keys wiring, so ONE map serves the family (the retired
-# per-device maps were byte-identical apart from their ids).
-# Adapted from armada's ayn_mcu map (which matches the RP6 + AYN Odin family on the same
-# rsinput-gamepad/input0 source). Why we need it (vs InputPlumber's auto-detect):
+# Retroid Pocket 6 (+TOP-DPAD), Nova and AYN Odin 2 / Mini / Portal share the same
+# RSInput MCU + gpio-keys wiring, so ONE map serves the family.
+# Why we need it (vs InputPlumber's auto-detect):
 #   * X/Y are inverted at the driver — source BTN_NORTH is physically X (West), BTN_WEST is
 #     physically Y (North). The two swap entries below fix that.
 #   * the d-pad (BTN_DPAD_*) wasn't reaching the target without an explicit mapping.
 #   * BTN_MODE -> Guide, BTN_BACK -> QuickAccess (the RP6 "..." button).
 # The back paddles emit BTN_Z (left) / BTN_C (right) on the separate gpio-keys/input0 node,
-# which 01-rsinput-rp6.yaml now composes into this device; they map to LeftPaddle1/RightPaddle1
+# which 01-rsinput-controller.yaml composes into this device; they map to LeftPaddle1/RightPaddle1
 # (the Deck's L4/L5 back buttons). That node also carries the volume-up rocker: InputPlumber
 # grabs the source exclusively, so KEY_VOLUMEUP is re-emitted on the keyboard target below to
 # keep the physical volume-up button working. Gyro is unavailable (no IIO/IMU on this build).

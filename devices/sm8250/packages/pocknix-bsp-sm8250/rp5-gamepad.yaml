@@ -1,10 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ShadowBlip/InputPlumber/main/rootfs/usr/share/inputplumber/schema/capability_map_v2.json
-# Capability map for the RP5's retroid-pocket-gamepad MCU (paddle-free,
-# user-confirmed). Ported from ROCKNIX's shared retroid_mcu map MINUS the
-# LeftPaddle1/RightPaddle1 entries (their map also serves Retroid boards that
-# have paddles). BTN_BACK -> QuickAccess (Steam QAM; ROCKNIX had KeyF1 for
-# their UI), BTN_MODE -> Guide. The Flip 2 used to share this map but has no
-# back button — it forks it as rpflip2-gamepad.yaml (Guide+A QAM chord).
+# Capability map for the RP5's retroid-pocket-gamepad MCU (paddle-free).
+# BTN_BACK -> QuickAccess (Steam QAM), BTN_MODE -> Guide. The Flip 2 has no
+# back button and forks this map as rpflip2-gamepad.yaml (Guide+A QAM chord).
 # Schema version number
 version: 2
 
@@ -89,9 +86,8 @@ mapping:
       gamepad:
         button: Select
 
-  # pocknix delta vs ROCKNIX's retroid_mcu: BTN_BACK is the QAM button, not F1.
-  # ROCKNIX maps it to KeyF1 for their own UI; on the deck target QuickAccess
-  # opens Steam's Quick Access Menu (same as the RP6 map's "..." button).
+  # BTN_BACK is the QAM button: on the deck target QuickAccess opens Steam's
+  # Quick Access Menu (same as the RP6 map's "..." button).
   - name: Quick Access Button
     source_events:
       - evdev:
