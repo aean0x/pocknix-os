@@ -252,8 +252,12 @@ configure() {
   # Per-SoC deltas and assertions live beside kernel.conf, where make sync leaves them alone.
   local delta="${KERNEL_DIR}/config-delta" assert="${KERNEL_DIR}/config-assert"
   if [ -f "${delta}" ]; then
-    local -a dargs
-    read -r -a dargs <<< "$(grep -v -e '^#' -e '^[[:space:]]*$' "${delta}" | tr '\n' ' ')"
+    local -a dargs=() words
+    local line
+    while IFS= read -r line; do
+      read -r -a words <<< "${line%%#*}"
+      [ "${#words[@]}" -eq 0 ] || dargs+=("${words[@]}")
+    done < "${delta}"
     [ "${#dargs[@]}" -eq 0 ] || "${KSRC}/scripts/config" --file "${KSRC}/.config" "${dargs[@]}"
   fi
 
@@ -280,9 +284,9 @@ configure() {
     || die "kernel config: CONFIG_BTRFS_FS did not resolve to =y (btrfs root would be unmountable — no initramfs)"
 
   if [ -f "${assert}" ]; then
-    for sym in $(grep -v -e '^#' -e '^[[:space:]]*$' "${assert}"); do
+    for sym in $(sed 's/#.*//' "${assert}"); do
       grep -q "^CONFIG_${sym}=y" "${KSRC}/.config" \
-        || die "kernel config: CONFIG_${sym} did not resolve to =y (listed in ${assert#"${POCKNIX_ROOT}"/})"
+        || die "kernel config: CONFIG_${sym} did not resolve to =y (listed in kernel/${SOC}/config-assert)"
     done
   fi
 }
