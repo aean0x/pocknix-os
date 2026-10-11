@@ -10,7 +10,7 @@ url="https://www.mesa3d.org/"
 license=("MIT AND BSD-3-Clause AND SGI-B-2.0")
 depends=(expat glibc libdrm libdisplay-info libx11 libxcb libxshmfence spirv-tools
          systemd-libs vulkan-icd-loader wayland xcb-util-keysyms zlib zstd)
-# glslang: 26.2 folded freedreno into the BVH shader set, so glslangValidator is now a hard
+# glslang: newer mesa folds freedreno into the BVH shader set, so glslangValidator is a hard
 # requirement of any build with vulkan-drivers=freedreno.
 makedepends=(meson ninja python-mako python-packaging python-yaml python-ply glslang
              expat libdrm libglvnd libdisplay-info spirv-tools systemd-libs vulkan-icd-loader
@@ -99,7 +99,7 @@ package() {
     meson install -C "build-${v}" --destdir "${stage}" --no-rebuild
     dir="${pkgdir}/usr/share/pocknix/vk-arm/${v}"
     install -Dm755 "${stage}/usr/lib/libvulkan_freedreno.so" "${dir}/libvulkan_freedreno.so"
-    # ICD manifest name has varied across releases (freedreno_icd.aarch64.json at 26.2) — glob it.
+    # ICD manifest name has varied across releases, hence the glob.
     sed -E "s|\"library_path\": *\"[^\"]*\"|\"library_path\": \"/usr/share/pocknix/vk-arm/${v}/libvulkan_freedreno.so\"|" \
       "${stage}"/usr/share/vulkan/icd.d/freedreno_icd*.json > "${dir}/icd.json"
     chmod 0644 "${dir}/icd.json"

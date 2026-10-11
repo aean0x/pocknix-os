@@ -1,8 +1,7 @@
 # mangohud — Vulkan/GL overlay + the mangoapp binary gamescope --mangoapp spawns.
-# Pinned to v0.8.3: mangoapp is tightly coupled to gamescope's version, and 0.8.4 gave an
-# overlay that runs and reads its config but never composites. Subprojects come from meson
-# wraps, so the build chroot needs network. Patch files stay flat in the package dir —
-# makepkg strips local source entries to their basename.
+# mangoapp is tightly coupled to gamescope's version: bump the two together. Subprojects come
+# from meson wraps, so the build chroot needs network. Patch files stay flat in the package
+# dir: makepkg strips local source entries to their basename.
 pkgname=mangohud
 pkgver=0.8.3
 pkgrel=6
