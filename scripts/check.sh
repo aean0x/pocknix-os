@@ -137,6 +137,30 @@ for _s in "${POCKNIX_ROOT}"/kernel/*/common-skip; do
 done
 if [ -z "${_stale}" ]; then note "kernel common-skip" "ok"; else note "kernel common-skip" "not in kernel/common/patches:${_stale}"; fail=1; fi
 
+# kernel/README.md's layout block must name what kernel/<soc>/ holds: a new entry fails until it
+# is documented, and a non-optional entry no SoC has (a rename) fails until the README follows.
+_klayout="$(awk '/^```/{f=!f; next} f && /^    [^ ]/' "${POCKNIX_ROOT}/kernel/README.md")"
+_kdoc="$(printf '%s\n' "${_klayout}" | awk '{print $1}' | sed 's:/$::')"
+_kreq="$(printf '%s\n' "${_klayout}" | grep -v '(optional)' | awk '{print $1}' | sed 's:/$::')"
+_khave=""
+for _k in "${POCKNIX_ROOT}"/kernel/*/kernel.conf; do
+  _d="${_k%/kernel.conf}"; _soc="$(basename "${_d}")"
+  for _e in "${_d}"/* "${_d}"/patches/*; do
+    [ -e "${_e}" ] || continue
+    _e="${_e#"${_d}"/}"; [ "${_e}" = patches ] && continue
+    _khave="${_khave}${_e//${_soc}/<soc>}"$'\n'
+  done
+done
+_kbad=""
+for _e in $(printf '%s' "${_khave}" | sort -u); do
+  printf '%s\n' "${_kdoc}" | grep -qxF "${_e}" || _kbad="${_kbad} undocumented:${_e}"
+done
+for _e in ${_kreq}; do
+  printf '%s' "${_khave}" | grep -qxF "${_e}" || _kbad="${_kbad} stale:${_e}"
+done
+[ -d "${POCKNIX_ROOT}/kernel/common/patches" ] || _kbad="${_kbad} missing:kernel/common/patches"
+if [ -z "${_kbad}" ]; then note "kernel/README.md layout" "ok"; else note "kernel/README.md layout" "${_kbad# }"; fail=1; fi
+
 # Every key a board sets is part of the runtime contract, so it must be in the README table.
 _undoc=""
 for _key in $(cat "${POCKNIX_ROOT}"/devices/*/packages/pocknix-bsp-*/boards/*.conf \
