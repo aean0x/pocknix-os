@@ -7,6 +7,7 @@
 #
 #   stock kernel.org linux-${KERNEL_VERSION}   (pinned in kernel/${SOC}/kernel.conf)
 #     + patch stack in numeric subdir order: kernel/${SOC}/patches/*/
+#     + the SoC-neutral patches every SoC carries: kernel/common/patches/
 #     + the SoC tree's device trees (kernel/${SOC}/dts) with ensured Makefile entries
 #     + the SoC config (kernel/${SOC}/config/linux.aarch64.conf)
 #   -> make Image dtbs modules
@@ -62,9 +63,11 @@ fetch_source() {
   tar -C "${KBUILD}" -xf "${tb}"
 }
 
+# kernel/common goes last: its patches sit on top of SoC-dir prerequisites
+# (1062 needs the SoC dir's 0504).
 apply_patches() {
   local d p n
-  for d in "${KERNEL_DIR}"/patches/*/; do
+  for d in "${KERNEL_DIR}"/patches/*/ "${POCKNIX_ROOT}/kernel/common/patches/"; do
     [ -d "${d}" ] || continue
     n=0
     for p in "${d}"*.patch; do
@@ -72,7 +75,8 @@ apply_patches() {
       patch -p1 -d "${KSRC}" < "${p}" >/dev/null || die "patch failed to apply: ${p}"
       n=$((n+1))
     done
-    log "applied $(basename "${d}"): ${n} patches"
+    d="${d%/}"
+    log "applied ${d#"${POCKNIX_ROOT}"/kernel/}: ${n} patches"
   done
 }
 

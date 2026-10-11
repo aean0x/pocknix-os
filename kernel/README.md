@@ -59,16 +59,19 @@ patch stack, never the pin.
 
 | Path | What | Apply order |
 |---|---|---|
-| `patches/10-mainline/` | ROCKNIX generic backports (input-polldev, pwm, adc-keys, BT RTL8733BU) — 4 | 1st (before device) |
-| `patches/20-sm8550/` | SM8550 / RP6 device patches — 73: suspend/resume set, RP6 panel, RSInput gamepad, TSENS uplow-wake fix, audio, thermal, SD UHS, etc. | 2nd |
-| `patches/30-version/` | Generic version-specific patches (msm resource cleanup, initramfs warn, rust build fix) — 3 | 3rd (after device) |
+| `patches/10-mainline/` | ROCKNIX generic backports (pwm, adc-keys, BT RTL8733BU) | 1st |
+| `patches/20-version/` | ROCKNIX patches for the kernel version, every SoC (msm resource cleanup, initramfs warn) | 2nd |
+| `patches/30-sm8550/` | SM8550 device patches: ROCKNIX's plus our 1000+ (suspend set, RP6 panel, RSInput gamepad, SD UHS) | 3rd |
+| `../common/patches/` | Our SoC-neutral patches, applied to every SoC; `make sync` never writes there | last |
 | `dts/qcom/` | RP6 device tree (`qcs8550-retroidpocket-rp6.dts` + shared `.dtsi`s) | — |
 | `config/linux.aarch64.conf` | Kernel config | — |
 | `config/kernel-firmware.dat` | List of firmware files to pull from `linux-firmware` (blobs NOT vendored) | — |
 | `bootloader/` | qcom-abl boot-image packaging reference | — |
 
-The numeric subdir prefixes encode ROCKNIX's `mainline -> ${DEVICE} -> <version>` patch-dir
-order (version dir named in kernel.conf); the build script applies them in sorted order.
+The numeric subdir prefixes encode ROCKNIX's `mainline -> <version> -> ${DEVICE}` patch-dir
+order (scripts/unpack; version dir named in kernel.conf); the build script applies them in
+sorted order, then `kernel/common/patches/`. A patch whose code runs on any SoC and that is
+ours (not synced) belongs in `kernel/common/patches/`, numbered 1000+ like the per-SoC ones.
 
 ## What is NOT here (fetched at build, Phase 1)
 
