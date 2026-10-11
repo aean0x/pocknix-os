@@ -33,7 +33,7 @@ kernel/
 ## Build = pinned source + patches in order + config
 
 `scripts/build-kernel.sh` extracts the pinned source, applies `patches/*/` in sort order and
-then `kernel/common/patches/`, installs `dts/`, writes `config/linux.aarch64.conf` plus our
+then `kernel/common/patches/`, installs `dts/`, seeds `.config` from `kernel/<soc>/config/linux.aarch64.conf`, applies our
 config deltas, and packages the result for the SoC's `BOOTLOADER` (`qcom-abl`: Android boot
 image; `arm-efi`: raw Image + dtbs for GRUB). The numbered dirs follow ROCKNIX's own apply
 order (mainline, then the version dir, then the device dir): device patches can depend on
@@ -62,7 +62,7 @@ make sync DEVICE=<soc>                                          # per SoC, then 
 ```
 
 `make sync` copies the ROCKNIX dirs over the synced paths with `--delete` (comparing by
-content), never touching `kernel/common/` or the per-SoC files without a `<- make sync` mark
+content; `config/` takes the two upstream files without `--delete`), never touching `kernel/common/` or the per-SoC files without a `<- make sync` mark
 above. It then restores our delta from git: each `sync-keep` line is `path` (our edit of an
 upstream file), `+path` (our own file) or `-path` (an upstream file we delete), and every 1000+
 patch of ours the sync removed comes back on its own. Each warning it prints is a merge to do

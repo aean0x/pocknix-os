@@ -6,7 +6,7 @@ pkgrel=69
 pkgdesc="Native ARM64 Steam Big Picture (gamescope) for the RP6 — installer + launcher"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
-license=('GPL2')
+license=('GPL-2.0-or-later')
 # wget/unzip/curl/tar/xorg-server-xvfb are build-time-only, but pocknix-steam-install runs inside
 # the image bake in THIS rootfs, so they must stay depends. The remaining oddities are dlopen deps
 # the ARM client needs and nothing on a from-scratch ALARM base pulls in; see dev/steam.md.

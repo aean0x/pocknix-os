@@ -8,7 +8,7 @@ pkgrel=2
 pkgdesc="Pocknix OS branding: plymouth boot theme, Plasma splash, wallpaper"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
-license=('GPL2')
+license=('GPL-2.0-or-later')
 depends=('bash')
 install='pocknix-branding.install'
 # The plymouth theme is DERIVED from the stock spinner at build time rather than committed:

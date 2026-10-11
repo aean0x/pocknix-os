@@ -10,7 +10,7 @@ pkgrel=10
 pkgdesc="pocknix device metapackage: SM8550 family (Retroid Pocket 6, AYN Odin 2 family)"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
-license=('GPL2')
+license=('GPL-2.0-or-later')
 depends=('pocknix-bsp-sm8550'
          'linux-pocknix-sm8550'
          'pocknix-bootloader-sm8550'

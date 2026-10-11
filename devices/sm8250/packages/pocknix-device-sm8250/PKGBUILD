@@ -9,7 +9,7 @@ pkgrel=8
 pkgdesc="pocknix device metapackage: SM8250 family (RP5, RP Flip 2)"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
-license=('GPL2')
+license=('GPL-2.0-or-later')
 depends=('pocknix-bsp-sm8250'
          'linux-pocknix-sm8250'
          'pocknix-bootloader-sm8250'

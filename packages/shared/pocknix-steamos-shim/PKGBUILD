@@ -7,7 +7,7 @@ pkgrel=7
 pkgdesc="SteamOS update/branch/timezone/format helper stubs for the Steam Deck UI on a non-SteamOS base (until real OTA)"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
-license=('GPL2')
+license=('GPL-2.0-or-later')
 # The format shims pkexec /usr/lib/hwsupport/format-device.sh, shipped by pocknix-sdcard-automount.
 depends=('pocknix-sdcard-automount' 'polkit')
 source=('steamos-update' 'steamos-select-branch' 'steamos-set-timezone'
