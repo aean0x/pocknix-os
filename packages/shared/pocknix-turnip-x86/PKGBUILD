@@ -1,7 +1,7 @@
 # pocknix-turnip-x86 — archived x86_64 Turnip builds the "Mesa Version" tweak points
 # VK_DRIVER_FILES at. FEX resolves rootfs-first, so these .so bytes are inert; what this
-# package actually provides is the host-side catalog the wrapper and Decky dropdown enumerate.
-# Series start at 25.2: older ones predate Arch's per-driver x86_64 split.
+# package actually provides is the host-side catalog pocknix-game-launch and the Decky
+# dropdown enumerate. Series start at 25.2: older ones predate Arch's per-driver x86_64 split.
 pkgname=pocknix-turnip-x86
 pkgver=20261009
 pkgrel=1
