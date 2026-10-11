@@ -59,6 +59,7 @@ Especially welcome:
 | `config/` | Global build config: `pocknix.conf`, base package lists (`config/packages/`), per-SoC tuning (`config/tuning/`). |
 | `docs/` | User-facing guides. |
 | `.github/` | Issue and PR templates, the CI workflow. |
+| `.githooks/` | Git hooks; `pre-commit` runs the doc check. |
 | `build/` | Build output (gitignored): rootfs, images, `localrepo/<soc>` and `localrepo/shared`. |
 | `vendor/` | **Do not edit.** Regenerated wholesale by `make sync` from ROCKNIX. |
 
@@ -89,6 +90,7 @@ covers your change:
 ```bash
 make check      # preflight: validates the harness and any built artifacts
 make help       # every target
+git config core.hooksPath .githooks   # once per clone: the doc check runs before each commit
 ```
 
 **Pocknix Control frontend** (any host with Node, no aarch64 needed):
