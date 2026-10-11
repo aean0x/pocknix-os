@@ -1,8 +1,8 @@
-# pocknix-device-sm8250 — metapackage: the per-SoC members of an SM8250 system.
-# ONLY per-SoC packages belong here (BSP, kernel, bootloader, the SoC's proton
-# choice, calibration); shared members live on pocknix-core / the
-# pocknix-*-full layers — a dep edge from here would block `pacman -Rs` of an
-# optional layer.
+# pocknix-device-sm8250 — metapackage: the per-SoC members of an SM8250 system
+# (BSP, kernel, bootloader, the SoC's proton choice) plus the delivery edges
+# shared packages need (pocknix-gamepad-calibration). Other shared members live
+# on pocknix-core / the pocknix-*-full layers: a dep edge from here would block
+# `pacman -Rs` of an optional layer.
 pkgname=pocknix-device-sm8250
 pkgver=0.1.0
 pkgrel=8

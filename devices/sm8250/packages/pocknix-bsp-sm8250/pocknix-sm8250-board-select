@@ -5,12 +5,11 @@
 # The static grub.cfg defaults to the rp5 dtb; a Flip 2 therefore first-boots
 # as an RP5 (fully functional — its DTS is the RP5's plus the lid sensor).
 # This service reads the board token from the Android vbmeta_system_a
-# partition (the same source ROCKNIX's in-GRUB autodetect uses; our vendored
-# GRUB predates their rawsearch commands) and, on mismatch, writes
-# saved_entry=<board> into /flash/boot/grub/grubenv so the NEXT boot loads the
-# right dtb. The env block is written directly (1024 bytes, '#'-padded) — no
-# grub-editenv dependency. No auto-reboot: the corrected dtb applies on the
-# user's next boot; everything except the Flip 2 lid works meanwhile.
+# partition and, on mismatch, writes saved_entry=<board> into
+# /flash/boot/grub/grubenv so the NEXT boot loads the right dtb. The env block
+# is written directly (1024 bytes, '#'-padded), no grub-editenv dependency.
+# No auto-reboot: the corrected dtb applies on the user's next boot; everything
+# except the Flip 2 lid works meanwhile.
 FLASH="${FLASH:-/flash}"
 GRUBENV="${FLASH}/boot/grub/grubenv"
 
@@ -21,7 +20,7 @@ mountpoint -q "$FLASH" || exit 0
 
 content="$(tr -cd '[:print:]' < "$vb" 2>/dev/null)"
 want=""
-case "$content" in                            # longest token first (ROCKNIX ordering)
+case "$content" in                            # longest token first
   *RPFlip2*) want=rpflip2 ;;
   *RP5*)     want=rp5 ;;
 esac

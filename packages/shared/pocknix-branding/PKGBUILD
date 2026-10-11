@@ -11,11 +11,8 @@ url="https://github.com/shuuri-labs/pocknix-os"
 license=('GPL-2.0-or-later')
 depends=('bash')
 install='pocknix-branding.install'
-# The plymouth theme is DERIVED from the stock spinner at build time rather than committed:
-# copying 66 animation frames into this repo would duplicate plymouth's own assets and let
-# them drift. Building against the installed theme keeps the spinner in step with whatever
-# plymouth version the image ships, while the OUTPUT still lands in our own directory - which
-# is what makes it survive a plymouth upgrade (the reason a custom theme dir was wanted).
+# The plymouth theme is DERIVED from the installed stock spinner at build time, not committed:
+# copied frames would drift from plymouth's own; output in our own dir survives a plymouth upgrade.
 makedepends=('plymouth')
 source=('watermark.png'
         'Splash.qml' 'splash-metadata.json' 'wordmark.png'

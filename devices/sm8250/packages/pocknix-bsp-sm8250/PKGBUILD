@@ -1,19 +1,11 @@
 # pocknix-bsp-sm8250 — board support for the SM8250 FAMILY (Retroid Pocket 5,
 # Retroid Pocket Flip 2, each also in its Visionox-panel revision).
-# First per-SoC BSP: ONE package serves every board on the SoC. The runtime
-# board facts live in /usr/lib/pocknix/boards/<board>.conf and
-# /usr/lib/pocknix/device.conf is a sourced DISPATCHER that picks one by
-# devicetree model; InputPlumber configs are gated per-board the same way
-# (matches: on the dt model). Adding an sm8250 board = a new boards/ file +
-# its inputplumber yaml(s) + a dispatcher case arm — no new package.
-#
-# Deliberately ABSENT vs the sm8550 BSPs:
-#   * 10-pocknix-deeponly.conf — s2idle wedging is an SM8550 quirk; ROCKNIX
-#     leaves suspend fully enabled on SM8250 (no 030-suspend_mode).
-#   * 30-pocknix-cpuidle.conf — the cpu0 state1 GMU issue is SM8550-only
-#     (ROCKNIX SM8550 096-cpuidle has no SM8250 counterpart).
-#   * kernel-cmdline — arm-efi: the runtime cmdline lives in grub.cfg
-#     (pocknix-bootloader-sm8250), not in a boot-image rebuild file.
+# ONE package serves every board on the SoC. The runtime board facts live in
+# /usr/lib/pocknix/boards/<board>.conf and /usr/lib/pocknix/device.conf is a
+# sourced DISPATCHER that picks one by devicetree model; InputPlumber configs
+# are gated per-board the same way (matches: on the dt model). Adding an sm8250
+# board = a new boards/ file + its inputplumber yaml(s) + a dispatcher case arm,
+# no new package.
 pkgname=pocknix-bsp-sm8250
 pkgver=0.1.0
 pkgrel=20
@@ -65,10 +57,9 @@ package() {
   install -Dm644 "${srcdir}/rpflip2-gamepad.yaml" \
     "${pkgdir}/usr/share/inputplumber/capability_maps/rpflip2-gamepad.yaml"
 
-  # ALSA UCM for the "RetroidPocket" card (sm8250-sndcard). Mirrors ROCKNIX's
-  # tree: master conf under Qualcomm/sm8250 + card-longname symlinks under
-  # conf.d/sm8250 (plain 0002 names + the RP5 legacy-loader variant from their
-  # patch 0003; extra symlinks are inert — the matching one wins on device).
+  # ALSA UCM for the "RetroidPocket" card (sm8250-sndcard): master conf under
+  # Qualcomm/sm8250 + card-longname symlinks under conf.d/sm8250. Extra symlinks
+  # are inert, the matching longname wins on device.
   local ucm="${pkgdir}/usr/share/alsa/ucm2"
   install -Dm644 "${srcdir}/RetroidPocket.conf" "${ucm}/Qualcomm/sm8250/RetroidPocket.conf"
   install -Dm644 "${srcdir}/HiFi-RP.conf"       "${ucm}/Qualcomm/sm8250/HiFi-RP.conf"
@@ -79,19 +70,16 @@ package() {
     ln -sf "../../Qualcomm/sm8250/RetroidPocket.conf" "${ucm}/conf.d/sm8250/${l}"
   done
 
-  # udev quirks (verbatim from ROCKNIX devices/SM8250/filesystem):
-  # gamepad joystick tagging + haptics uaccess; wcd938x runtime-PM off so the
-  # headphone jack detection works.
+  # udev quirks: gamepad joystick tagging + haptics uaccess; wcd938x runtime-PM
+  # off so the headphone jack detection works.
   install -Dm644 "${srcdir}/99-retroid-pocket.rules" \
     "${pkgdir}/usr/lib/udev/rules.d/99-retroid-pocket.rules"
   install -Dm644 "${srcdir}/99-wcd938x-nosleep.rules" \
     "${pkgdir}/usr/lib/udev/rules.d/99-wcd938x-nosleep.rules"
 
-  # Post-resume PipeWire quantum bounce (ROCKNIX SM8250 wake quirk) as a
-  # suspend.target service — NOT a sleep.d hook: system-sleep hooks run while
-  # user.slice is still frozen, so pw-metadata against the frozen PipeWire
-  # deadlocked systemd-sleep and the slice never thawed ("freeze on wake",
-  # RP5 2026-07-16). Enabled via a shipped wants symlink.
+  # Post-resume PipeWire quantum bounce as a suspend.target service, NOT a
+  # sleep.d hook (see pocknix-sm8250-audio-resume for the frozen-user.slice
+  # deadlock). Enabled via a shipped wants symlink.
   install -Dm755 "${srcdir}/pocknix-sm8250-audio-resume" \
     "${pkgdir}/usr/lib/pocknix/pocknix-sm8250-audio-resume"
   install -Dm644 "${srcdir}/pocknix-sm8250-audio-resume.service" \
@@ -100,18 +88,8 @@ package() {
   ln -sf ../pocknix-sm8250-audio-resume.service \
     "${pkgdir}/usr/lib/systemd/system/suspend.target.wants/pocknix-sm8250-audio-resume.service"
 
-  # The RP5 loudness stack (validated by ear 2026-07-16; see each file's header):
-  #   * soft-mixer: PipeWire's hardware-volume mapping caps the path at 0dB
-  #     total, discarding the +54dB of positive gain the UCM plants for the
-  #     tiny speakers (why Steam was drastically quieter than raw-ALSA
-  #     players, on ROCKNIX too). soft-mixer keeps PipeWire off the hardware
-  #     mixer; volume becomes a software attenuator below the hot ceiling.
-  #   * loudness filter-chain: +9dB makeup into a lookahead limiter as a
-  #     WirePlumber SMART filter in front of the speaker sink only (jack
-  #     switching to uncompressed headphones keeps working).
-  #   * the hardware gains themselves are planted by the audio-heal service
-  #     (nothing on Arch executes the UCM BootSequence, and with soft-mixer
-  #     PipeWire never writes the mixer).
+  # Speaker loudness stack (soft-mixer + limiter filter-chain); each file's
+  # header owns its part, the hardware gains are audio-heal's.
   install -Dm644 "${srcdir}/51-pocknix-softmixer.conf" \
     "${pkgdir}/usr/share/wireplumber/wireplumber.conf.d/51-pocknix-softmixer.conf"
   install -Dm644 "${srcdir}/60-pocknix-speaker-loudness.conf" \
@@ -130,12 +108,8 @@ package() {
   ln -sf ../pocknix-sm8250-board-select.service \
     "${pkgdir}/usr/lib/systemd/system/multi-user.target.wants/pocknix-sm8250-board-select.service"
 
-  # LPASS probe self-heal (see the script header): the q6 audio clock services
-  # settle asynchronously after the adsp remoteproc boots, hard-failed macro
-  # probes are never retried by the kernel, so a boot-time service reloads the
-  # losers until the card assembles. Enabled via a shipped wants symlink so a
-  # plain pacman -U activates it (no build-script systemctl needed). It also
-  # plants the validated hardware mixer gains (see above).
+  # LPASS probe self-heal + hardware mixer gains (see the script header).
+  # Enabled via a shipped wants symlink so a plain pacman -U activates it.
   install -Dm755 "${srcdir}/pocknix-sm8250-audio-heal" \
     "${pkgdir}/usr/lib/pocknix/pocknix-sm8250-audio-heal"
   install -Dm644 "${srcdir}/pocknix-sm8250-audio-heal.service" \

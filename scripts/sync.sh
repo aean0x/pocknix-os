@@ -3,21 +3,17 @@
 # (kernel/${SOC}/, chosen by the device profile) into two destinations:
 #
 #   kernel/${SOC}/ (COMMITTED) — the full kernel input set: patch stack, DTS,
-#             kernel config, firmware list, qcom-abl bootloader packaging. A PINNED
-#             SNAPSHOT of ROCKNIX `next` (nightly) + jaewun's suspend branch + our
-#             delta. The RP6 is officially supported upstream, so most of this is
-#             public ROCKNIX work; committing it makes pocknix-os self-contained
-#             and reproducible. `make sync` advances the pin from your
-#             distribution/ checkout — review the git diff and commit the result.
+#             kernel config, firmware list, bootloader packaging. A PINNED SNAPSHOT
+#             of ROCKNIX `next` (nightly) + our delta (lineage: kernel/README.md);
+#             committing it makes pocknix-os self-contained and reproducible.
+#             `make sync` advances the pin from your distribution/ checkout:
+#             review the git diff and commit the result.
 #
 #   vendor/   (GITIGNORED) — build-time-only material that we do NOT redistribute:
 #             ROCKNIX reference scripts to adapt, and the device firmware/overlay
 #             (stock firmware comes from linux-firmware at build instead).
 #
-# Thorch auto-fetches ROCKNIX nightly at build (gitignored); we pin + commit a
-# nightly snapshot instead (reproducible, clone-standalone). We track nightly
-# (`next`), not stable. Set DISTRIBUTION_DIR to your ROCKNIX 'distribution'
-# checkout (expected on a `next`-based branch, e.g. thor-suspend-merge).
+# Set DISTRIBUTION_DIR to your ROCKNIX 'distribution' checkout (on a `next`-based branch).
 
 source "$(dirname "$0")/lib.sh"
 
@@ -101,7 +97,7 @@ for p in \
     warn "  (missing) ${src}"
     continue
   fi
-  # pre-create nested parents: macOS rsync (2.6.9) won't make implied dirs
+  # pre-create nested parents: macOS's old rsync won't make implied dirs
   mkdir -p "${dst}/reference/${p}"
   rsync -ac --delete "${src}/" "${dst}/reference/${p}/"
 done

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # check.sh — sanity-check the project + (when present) the built artifacts.
-# Phase 0: validates the harness itself; later phases add image/DTB/module checks.
 
 source "$(dirname "$0")/lib.sh"
 
@@ -78,10 +77,13 @@ done
 if out="$(python3 "${POCKNIX_ROOT}/scripts/check-power-profiles.py" 2>&1)"; then note "power profiles" "ok"
 else note "power profiles" "BROKEN"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
 
+# --- code comments: no dead repo paths, provenance or ledger facts ------------
+if out="$(python3 "${POCKNIX_ROOT}/scripts/check-comments.py" 2>&1)"; then note "code comments" "ok"
+else note "code comments" "STALE"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
+
 # --- SoC families: what a new SoC or board must carry (all SoCs, not just DEVICE) ----
-# Each of these has shipped broken once or was only written down: a missing profile dies at
-# build time, a board key a consumer reads falls back to RP6 values, an unreferenced board
-# never loads, and a cmdline drift ships a boot image that disagrees with the on-device one.
+# An unreferenced board never loads; a cmdline drift ships a boot image that disagrees with the
+# on-device rebuild.
 # Keys every board must set: the session, desktop, pinning and install-to-internal consumers
 # fall back to RP6 values without them (devices/README.md runtime contract).
 REQUIRED_BOARD_KEYS="POCKNIX_DEVICE POCKNIX_SOC POCKNIX_PANEL_W POCKNIX_PANEL_H
