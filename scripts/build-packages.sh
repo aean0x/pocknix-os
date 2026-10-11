@@ -278,7 +278,7 @@ Update one to match the other."
   fi
   # Collect what makepkg ACTUALLY produced via `makepkg --packagelist`: a split PKGBUILD
   # (packages/soc/mesa -> mesa + vulkan-freedreno) emits sibling packages a "${name}-*" glob
-  # misses (bitten by mesa: only the mesa half reached localrepo), while a bare *.pkg.tar.*
+  # misses (only the mesa half would reach localrepo), while a bare *.pkg.tar.*
   # sweep would grab .pkg.tar.* files that are makepkg *sources* symlinked into the build
   # dir (e.g. fex-emu's pinned x86 sysroot pkgs). --packagelist names exactly the built
   # artifacts, epoch and all.

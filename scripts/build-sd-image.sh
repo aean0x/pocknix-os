@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build-sd-image.sh - flashable SD image, laid out like ROCKNIX's so the device's ABL boots it:
+# build-sd-image.sh - flashable SD image, laid out the way the device's ABL expects:
 #   p1 fat32 "${SD_BOOT_PARTNAME}": /KERNEL (+ EFI/ and boot/grub/ with the dtbs on arm-efi)
 #   p2 btrfs "${ROOT_LABEL}": subvols @ @home @snapshots @pacman-cache @var-log
 # The kernel mounts root by PARTUUID (no initramfs) and boots the btrfs DEFAULT subvol: the

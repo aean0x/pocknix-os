@@ -292,13 +292,20 @@ works against the locked base.
   submit. A commit should be a complete, verified change.
 - **Rebase on `main`** rather than merging it in, and re-test after the rebase.
 - **Code comments: 2 to 4 lines, and only the WHY.** Status, plan, and validation narrative do
-  not belong in comments or commit bodies.
+  not belong in comments or commit bodies. A comment is self-contained: it may point at a file
+  in this repo, never at anything outside it. `make check` enforces the mechanical part
+  (`scripts/check-comments.py`): a repo path a comment names must exist, and a comment carries
+  no lineage or validation wording, no version, pkgrel, commit hash or date, and no pointer to
+  documents outside the repo. An exception
+  whose number or path IS the mechanism goes in `scripts/check-comments.allow`
+  (`<glob> :: <regex>` or `<glob> :: <kind> :: <regex>`, one per line).
 - **CI must be green.** The `lint` job runs `bash -n` over every script and `PKGBUILD`,
   resolves each device profile chain, checks that every `kernel-cmdline` file still
   matches its `profile.conf`, and checks the docs against the tree (`scripts/check-docs.sh`:
   every path and `make` target they name exists, layout blocks match their dirs, structural
   READMEs carry no versions or counts; a line that must keep one carries
-  `docs-check: allow`). A doc that describes what you changed moves in the same PR. It is fast; there is no excuse for a red PR.
+  `docs-check: allow`) and the code comments against the tree (`scripts/check-comments.py`,
+  see above). A doc that describes what you changed moves in the same PR. It is fast; there is no excuse for a red PR.
 - **No unrelated reformatting.** It makes the real change unreviewable.
 
 ## AI assistance

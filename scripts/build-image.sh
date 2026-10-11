@@ -205,7 +205,7 @@ install_packages() {
   chroot "${root}" pacman -Syyu --noconfirm --needed "${pkgs[@]}"
 }
 
-# Install the SoC firmware overlay (wifi board data, adsp/cdsp, vpu, ...) from ROCKNIX's
+# Install the SoC firmware overlay (wifi board data, adsp/cdsp, vpu, ...) from the
 # synced tree into the rootfs; the path comes from the device profile (FW_SRC_REL). The
 # overlay is too large to package, so it is rsynced whole. Only the blobs linux-firmware
 # would revert are packaged (sm8550: pocknix-firmware-sm8550); this still installs the rest.

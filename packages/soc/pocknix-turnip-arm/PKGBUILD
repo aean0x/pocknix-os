@@ -20,7 +20,7 @@ options=(!lto)
 # The "devel" entry is a PINNED mesa main snapshot (main carries no tag) — pinned, not floating,
 # so rebuilds reproduce; refresh _develcommit deliberately.
 _develcommit=6b9cd5ab9cc3bfd0c79d9500a07a5e74351c72d1
-# 26.2 comes from mesa's own vk-arm payload; pinning mesa's pkgver here = file conflict.
+# The series mesa itself ships comes from its vk-arm payload; pinning mesa's pkgver here = file conflict.
 _versions=('25.0.7' '25.1.9' '25.2.8' '25.3.6' '26.0.8' '26.1.6' '26.3.0devel')
 source=('0001-c11-threads-fix-build-on-c23.patch'
         'https://archive.mesa3d.org/mesa-25.0.7.tar.xz'

@@ -13,7 +13,7 @@
 #   -> boot image = gzip(Image) ++ appended DTBs, empty cpio ramdisk, mkbootimg (header v0)
 #
 # We boot a btrfs root with NO initramfs (UFS/SCSI/btrfs are built-in), so the
-# cmdline uses a standard root= spec (KERNEL_CMDLINE) instead of ROCKNIX's
+# cmdline uses a standard root= spec (KERNEL_CMDLINE), not a
 # boot=/disk=LABEL= convention, and the ramdisk stays an empty cpio.
 #
 # Outputs (per SoC):
@@ -228,8 +228,8 @@ configure() {
 
   # Assert the whole scx_lavd chain actually resolved: the fentry/BPF-trampoline
   # symbols (attach fails ENOTSUPP without them) AND BTF + sched_ext themselves —
-  # olddefconfig silently drops any of these when a dependency is missing (bitten
-  # twice: REDUCED on sm8550, DEBUG_INFO_NONE on sm8250), and the failure only
+  # olddefconfig silently drops any of these when a dependency is missing
+  # (REDUCED on sm8550, DEBUG_INFO_NONE on sm8250), and the failure only
   # shows up on-device as pocknix-lavd's ConditionPathExists quietly skipping.
   local sym
   for sym in FUNCTION_TRACER DYNAMIC_FTRACE DYNAMIC_FTRACE_WITH_DIRECT_CALLS \

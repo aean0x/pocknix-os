@@ -97,7 +97,7 @@ for p in \
     warn "  (missing) ${src}"
     continue
   fi
-  # pre-create nested parents: macOS rsync (2.6.9) won't make implied dirs
+  # pre-create nested parents: macOS's old rsync won't make implied dirs
   mkdir -p "${dst}/reference/${p}"
   rsync -ac --delete "${src}/" "${dst}/reference/${p}/"
 done

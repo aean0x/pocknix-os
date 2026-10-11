@@ -35,7 +35,7 @@ new_id="$(sed -n '1s/.*snapshot \([^ ]*\).*/\1/p' "${new}")"
 log "base ${old_id} -> ${new_id}: ${#changed[@]} changed/added, ${removed} removed"
 [ "${#changed[@]}" -gt 0 ] || { ok "nothing moved"; exit 0; }
 
-# 1:1.6.8-1 -> 1.6.8: issue titles quote the upstream version, never epoch or pkgrel.
+# 1:X-1 -> X: issue titles quote the upstream version, never epoch or pkgrel.
 upver() { local v="${1#*:}"; printf '%s' "${v%-*}"; }
 
 # Prints "<count>" then up to 5 "title <url>" lines; "?" on a failed or rate-limited call.
