@@ -212,14 +212,12 @@ build_one() {
   # Drift guard: a device BSP's committed kernel-cmdline must byte-match its own device
   # profile's KERNEL_CMDLINE (the boot image is built from the profile; the BSP file feeds
   # the on-device /flash/KERNEL rebuild — they must agree). The device is derived from the
-  # package's path (devices/<dev>/packages/<pkg>); the subshell unsets the current profile's
-  # values so the checked device's own defaults apply.
+  # package's path (devices/<dev>/packages/<pkg>).
   if [ -f "${pkgdir}/kernel-cmdline" ]; then
     local devdir want_cmdline
     devdir="$(dirname "$(dirname "${pkgdir%/}")")"
     if [ -f "${devdir}/profile.conf" ]; then
-      want_cmdline="$(unset SOC ROOT_LABEL KERNEL_CMDLINE KERNEL_CMDLINE_ROOT KERNEL_CMDLINE_EXTRA
-                      . "${devdir}/profile.conf"; printf '%s' "${KERNEL_CMDLINE}")"
+      want_cmdline="$(profile_get "${devdir}" KERNEL_CMDLINE)"
       if [ "$(cat "${pkgdir}/kernel-cmdline")" != "${want_cmdline}" ]; then
         die "${name}: kernel-cmdline drifted from ${devdir}/profile.conf KERNEL_CMDLINE —
   profile: ${want_cmdline}
