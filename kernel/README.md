@@ -18,7 +18,7 @@ One directory per SoC family (devices/README.md lists them; the notes below desc
 | `kernel.conf` | stock source pins and the ROCKNIX dirs to sync from |
 | `config-delta` | `scripts/config` arguments applied after the shared deltas in build-kernel.sh (optional) |
 | `config-assert` | symbols that must end up `=y`, checked after olddefconfig (optional) |
-| `sync-keep` | our local delta: files `make sync` restores from git after it runs; 1000+ patches it deleted come back without being listed |
+| `sync-keep` | our local delta, restored from git after `make sync`: `path` = our edit of an upstream file, `+path` = our own file, `-path` = deleted locally. 1000+ patches the sync deleted come back without a line; each warning sync prints is a merge to do by hand |
 
 ## Provenance — what's whose
 
