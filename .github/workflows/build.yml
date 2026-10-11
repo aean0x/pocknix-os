@@ -39,9 +39,10 @@ jobs:
           for dev in devices/*/; do
             dev="$(basename "$dev")"
             DEVICE="$dev" bash -c 'source scripts/lib.sh
-              echo "$DEVICE: SOC=$SOC KERNEL_PKG=$KERNEL_PKG BSP=$DEVICE_BSP_PKG"
+              echo "$DEVICE: SOC=$SOC KERNEL_PKG=$KERNEL_PKG BSP=$DEVICE_BSP_PKG META=$DEVICE_META_PKG"
               [ -f "$KERNEL_DIR/kernel.conf" ]
-              [ -f "$DEVICE_DIR/packages.list" ]'
+              [ -f "$DEVICE_DIR/packages/$DEVICE_META_PKG/PKGBUILD" ]
+              [ -f "$DEVICE_DIR/packages/$DEVICE_BSP_PKG/PKGBUILD" ]'
           done
       - name: kernel-cmdline matches profile (drift guard, same check as build-packages.sh)
         run: |
