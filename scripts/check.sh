@@ -42,7 +42,7 @@ for p in "${POCKNIX_ROOT}"/packages/soc/*/; do
   # "all" = every kernel/<soc>, so a new SoC needs no socs edits; it never mixes with names.
   if [ "${_socs}" = all ]; then note "soc pkg: ${n}" "socs: all"; continue; fi
   for s in ${_socs}; do
-    [ -d "${POCKNIX_ROOT}/kernel/${s}" ] || { note "soc pkg: ${n}" "unknown SoC '${s}' in socs"; fail=1; bad=1; }
+    [ -f "${POCKNIX_ROOT}/kernel/${s}/kernel.conf" ] || { note "soc pkg: ${n}" "unknown SoC '${s}' in socs"; fail=1; bad=1; }
   done
   [ "${bad}" -eq 0 ] && [ -n "${_socs}" ] && note "soc pkg: ${n}" "socs: ${_socs}"
 done
@@ -120,11 +120,22 @@ check_family() {  # $1 = SoC
   fi
 }
 
-for _k in "${POCKNIX_ROOT}"/kernel/*/; do
-  _soc="$(basename "${_k}")"
+for _k in "${POCKNIX_ROOT}"/kernel/*/kernel.conf; do
+  _soc="$(basename "${_k%/kernel.conf}")"
   _bad="$(check_family "${_soc}" | paste -sd ';' -)"
   if [ -z "${_bad}" ]; then note "family: ${_soc}" "ok"; else note "family: ${_soc}" "${_bad}"; fail=1; fi
 done
+
+# A common-skip line that names no kernel/common patch (after a rename) would silently
+# let that patch apply again.
+_stale=""
+for _s in "${POCKNIX_ROOT}"/kernel/*/common-skip; do
+  [ -f "${_s}" ] || continue
+  while IFS= read -r _p; do
+    [ -f "${POCKNIX_ROOT}/kernel/common/patches/${_p}" ] || _stale="${_stale} ${_s#"${POCKNIX_ROOT}"/}:${_p}"
+  done < <(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' "${_s}")
+done
+if [ -z "${_stale}" ]; then note "kernel common-skip" "ok"; else note "kernel common-skip" "not in kernel/common/patches:${_stale}"; fail=1; fi
 
 # Every key a board sets is part of the runtime contract, so it must be in the README table.
 _undoc=""
@@ -137,11 +148,11 @@ if [ -z "${_undoc}" ]; then note "board keys documented" "ok"
 else note "board keys documented" "not in devices/README.md:${_undoc}"; fail=1; fi
 
 # --- kernel enablement present? (committed; refreshable via sync) -----------
-_npatch=$(find "${KERNEL_DIR}/patches" -name '*.patch' 2>/dev/null | wc -l | tr -d ' ')
+_npatch=$(find "${KERNEL_DIR}/patches" "${POCKNIX_ROOT}/kernel/common/patches" -name '*.patch' 2>/dev/null | wc -l | tr -d ' ')
 if [ "${_npatch:-0}" -gt 0 ]; then
-  note "kernel: enablement (kernel/${SOC}/)" "${_npatch} patches"
+  note "kernel: enablement (kernel/${SOC}/ + common/)" "${_npatch} patches"
 else
-  note "kernel: enablement (kernel/${SOC}/)" "run 'make sync'"
+  note "kernel: enablement (kernel/${SOC}/ + common/)" "run 'make sync'"
 fi
 # vendor sync is build-time only (gitignored)
 if [ -d "${VENDOR_DIR}/rocknix-${SOC}/reference" ]; then

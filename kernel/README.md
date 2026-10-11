@@ -18,6 +18,7 @@ One directory per SoC family (devices/README.md lists them; the notes below desc
 | `kernel.conf` | stock source pins and the ROCKNIX dirs to sync from |
 | `config-delta` | `scripts/config` arguments applied after the shared deltas in build-kernel.sh (optional) |
 | `config-assert` | symbols that must end up `=y`, checked after olddefconfig (optional) |
+| `common-skip` | `kernel/common` patches this SoC leaves out, one file name per line with a `# why` (optional; `make check` fails on a name not in common) |
 | `sync-keep` | our local delta, restored from git after `make sync`: `path` = our edit of an upstream file, `+path` = our own file, `-path` = deleted locally. 1000+ patches the sync deleted come back without a line; each warning sync prints is a merge to do by hand |
 
 ## Provenance — what's whose
@@ -27,14 +28,15 @@ ROCKNIX work**, not ours:
 
 - **Public ROCKNIX RP6/SM8550 support** — the RP6 panel (`0104`), touchscreen, backlight,
   audio, thermal, etc. From ROCKNIX's **`next` (nightly)** branch.
-- **jaewun's suspend/resume set** — `0203`, `0207`, `1004`, `1006`–`1010`, `1015` (UFS
-  hibern8/clk-gating, geni irq masking, rsinput MCU suspend) plus the thorch s2idle stack
-  `1045`–`1051` (PCIe suspend OPP floor, rpmh suspend-state votes, lowest GPU OPP). From
+- **jaewun's suspend/resume set** — `1004`, `1009` (rsinput MCU) here; the UFS, geni and tsens
+  parts (`1001`, `1006`–`1008`, `1010`, `1015`, `1019`) and the thorch s2idle stack's generic
+  half (`1045` gated to SM8550, `1046`–`1048`) in `kernel/common/patches/`; `1049`/`1051`
+  (SM8550 dtsi OPPs) here. From
   `jaewun/ROCKNIX` `thor-suspend-fixes` / thorch; we merge/maintain it. Retired at 7.2:
   `0201` (its premise, a threaded IRQF_ONESHOT UFS handler, is gone upstream) and
   `1040`–`1044` (the "PCI: qcom: Add D3cold support" v5 series landed in 7.2).
 - **Our delta** (small) — SD UHS-I SDR104 (`0210`–`0212` + the RP6/Odin 2 sdhc_2 nodes),
-  `1021` (RP6 120Hz-only mode), the `0010` cstate-init fix, and DTS edits that `make sync`
+  `1021` (RP6 120Hz-only mode), and DTS edits that `make sync`
   does not carry (see PATCHES.md): the RP6 touchscreen at 400kHz I2C without
   `no-regmap-bulk-read` (armada-packages PR #32: the AYN workaround the RP6 inherited
   forced 63 single-byte reads per frame, capping touch at ~28Hz instead of 120Hz).
@@ -59,16 +61,22 @@ patch stack, never the pin.
 
 | Path | What | Apply order |
 |---|---|---|
-| `patches/10-mainline/` | ROCKNIX generic backports (input-polldev, pwm, adc-keys, BT RTL8733BU) — 4 | 1st (before device) |
-| `patches/20-sm8550/` | SM8550 / RP6 device patches — 73: suspend/resume set, RP6 panel, RSInput gamepad, TSENS uplow-wake fix, audio, thermal, SD UHS, etc. | 2nd |
-| `patches/30-version/` | Generic version-specific patches (msm resource cleanup, initramfs warn, rust build fix) — 3 | 3rd (after device) |
+| `patches/10-mainline/` | ROCKNIX generic backports (pwm, adc-keys, BT RTL8733BU) | 1st |
+| `patches/20-version/` | ROCKNIX patches for the kernel version, every SoC (msm resource cleanup, initramfs warn) | 2nd |
+| `patches/30-sm8550/` | SM8550 device patches: ROCKNIX's plus our 1000+ (s2idle stack, RP6 panel, RSInput gamepad, SD UHS) | 3rd |
+| `../common/patches/` | Our SoC-neutral patches, applied to every SoC; `make sync` never writes there | last |
 | `dts/qcom/` | RP6 device tree (`qcs8550-retroidpocket-rp6.dts` + shared `.dtsi`s) | — |
 | `config/linux.aarch64.conf` | Kernel config | — |
 | `config/kernel-firmware.dat` | List of firmware files to pull from `linux-firmware` (blobs NOT vendored) | — |
 | `bootloader/` | qcom-abl boot-image packaging reference | — |
 
-The numeric subdir prefixes encode ROCKNIX's `mainline -> ${DEVICE} -> <version>` patch-dir
-order (version dir named in kernel.conf); the build script applies them in sorted order.
+The numeric subdir prefixes encode ROCKNIX's `mainline -> <version> -> ${DEVICE}` patch-dir
+order (scripts/unpack; version dir named in kernel.conf); the build script applies them in
+sorted order, then `kernel/common/patches/`. Our generic patches go in `kernel/common/patches/`,
+numbered 1000+: behaviour meant for one SoC is gated inside the patch (DT compatible, quirk,
+Kconfig), so it is safe to apply everywhere. A patch that needs a SoC-dir patch first stays in
+that SoC dir. `common-skip` is the fallback for a common patch that doesn't apply or isn't
+validated on a SoC.
 
 ## What is NOT here (fetched at build, Phase 1)
 
