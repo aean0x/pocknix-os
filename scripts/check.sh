@@ -67,6 +67,49 @@ for f in config/pocknix.conf config/pacman.conf.in config/packages/base.list \
 done
 note "device" "${DEVICE} (${DEVICE_PRETTY:-?}) on ${SOC}"
 
+# Prints "<field>=<entry>" for each replaces=/conflicts= entry in PKGBUILD $1. Shared PKGBUILDs
+# run nothing at top level and have no split bodies, so sourcing reads them exactly.
+pkg_relations() {
+  ( set +eu; . "$1" >/dev/null 2>&1
+    printf 'replaces=%s\n' "${replaces[@]}"; printf 'conflicts=%s\n' "${conflicts[@]}" ) | grep -v '=$' || true
+}
+
+# Prints one problem per line: a relation in shared dir $1 with no row in allow file $2, or a
+# row whose relation is gone. $1/$2 let the self-test point it at doctored copies.
+check_shared_relations() {  # $1 = packages/shared dir, $2 = allow file
+  local f p e r rest rows="" have=""
+  while IFS= read -r r; do
+    case "${r}" in ''|'#'*) continue ;; esac
+    p="${r%% :: *}"; rest="${r#* :: }"; e="${rest%% :: *}"
+    case "${rest}" in *' :: '?*) rows="${rows}${p} ${e}"$'\n' ;; *) echo "${2##*/}: malformed row '${r}'" ;; esac
+  done < "$2"
+  for f in "$1"/*/PKGBUILD; do
+    p="${f%/PKGBUILD}"; p="${p##*/}"
+    for e in $(pkg_relations "${f}"); do
+      have="${have}${p} ${e}"$'\n'
+      printf '%s' "${rows}" | grep -qxF "${p} ${e}" || echo "${p}: ${e} has no row in ${2##*/}"
+    done
+  done
+  while read -r p e; do
+    printf '%s' "${have}" | grep -qxF "${p} ${e}" || echo "${2##*/}: '${p} :: ${e}' matches no PKGBUILD entry"
+  done < <(printf '%s' "${rows}")
+}
+
+# [pocknix-shared] reaches every SoC's fleet in one publish, and replaces= uninstalls on -Syu, so
+# each such entry in a shared package names its reason in scripts/shared-conflicts.allow.
+_allow="${POCKNIX_ROOT}/scripts/shared-conflicts.allow"
+_bad="$(check_shared_relations "${POCKNIX_ROOT}/packages/shared" "${_allow}" | paste -sd ';' -)"
+if [ -z "${_bad}" ]; then note "shared replaces/conflicts" "ok"
+else note "shared replaces/conflicts" "${_bad}"; fail=1; fi
+_t="$(mktemp -d)"
+mkdir -p "${_t}/stray"
+printf "pkgname=stray\nreplaces=('gone'\n  # a comment\n  'old<1')\n" > "${_t}/stray/PKGBUILD"
+_out="$(check_shared_relations "${_t}" "${_allow}")"
+if printf '%s\n' "${_out}" | grep -q '^stray: replaces=old<1 has no row'; then
+  note "shared replaces/conflicts self-test" "ok"
+else note "shared replaces/conflicts self-test" "a shared replaces= with no allow row went unflagged"; fail=1; fi
+rm -rf "${_t}"
+
 # --- scripts executable ----------------------------------------------------
 for s in sync.sh bootstrap.sh build-image.sh build-kernel.sh build-packages.sh \
          build-sd-image.sh stage-repo.sh stage-check.sh publish-repo.sh install.sh check.sh check-docs.sh; do

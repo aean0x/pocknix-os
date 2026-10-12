@@ -263,6 +263,11 @@ check it, which is the single biggest reason a PR stalls.
   only fresh images get it. Renaming a package needs `replaces=` + `conflicts=` for the old
   name. The maintainer's publish gate (`scripts/stage-check.sh`) rejects both omissions, so
   fixing them up front saves a round trip.
+- **A `replaces=` or `conflicts=` entry in a `packages/shared/` PKGBUILD** acts on every SoC's
+  devices in one publish (`replaces=` uninstalls the old package on `-Syu`), so each entry gets
+  a row with its reason in `scripts/shared-conflicts.allow`
+  (`<package dir> :: <field>=<entry> :: <reason>`). `make check` fails on an entry without a row
+  and on a row whose entry is gone.
 - **Do not touch `vendor/`.** `make sync` regenerates it.
 
 ## Requesting a package
