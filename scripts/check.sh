@@ -283,6 +283,20 @@ if printf '%s\n' "${_out}" | grep -q '^stray.conf is in no models row'; then
 else note "board check self-test" "a board in no models row went unflagged"; fail=1; fi
 rm -rf "${_t}"
 
+# makepkg sees only the package dir, so each BSP carries its own _device_conf; a fix landed in
+# one copy would leave the other families rendering the old dispatcher.
+device_conf_body() { sed -n '/^_device_conf()/,/^}/p' "$1"; }
+_ref="$(device_conf_body "${_bsp}/PKGBUILD")"; _drift=""
+for _f in "${POCKNIX_ROOT}"/devices/*/packages/pocknix-bsp-*/PKGBUILD; do
+  [ "$(device_conf_body "${_f}")" = "${_ref}" ] || _drift="${_drift} ${_f#"${POCKNIX_ROOT}"/}"
+done
+if [ -z "${_drift}" ]; then note "BSP _device_conf copies" "identical"
+else note "BSP _device_conf copies" "differ from ${SOC}'s:${_drift}"; fail=1; fi
+# Self-test: a line added inside the body must change what the comparison sees.
+if [ "$(awk '{ print } /^_device_conf\(\)/ { print "  : drifted" }' "${_bsp}/PKGBUILD" |
+        device_conf_body /dev/stdin)" != "${_ref}" ]; then note "BSP _device_conf self-test" "ok"
+else note "BSP _device_conf self-test" "a drifted _device_conf body compared equal"; fail=1; fi
+
 # A device package's root/ is copied as is, so the git mode is the installed mode: a script
 # committed 644 installs 644 and never runs.
 _mode=""

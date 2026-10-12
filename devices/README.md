@@ -80,7 +80,8 @@ binaries, so the repos must not mix. They build for every SoC already (`socs` = 
 a SoC-specific kernel config or a local patch delta goes in `kernel/<soc>/` (see
 kernel/README.md). `make check` validates every family: required files, family and board keys,
 the models table against boards/ (and grub.cfg + board-select on arm-efi), the rendered
-device.conf, and cmdline drift. A new tree is never published until its first
+device.conf, that every BSP PKGBUILD carries the same `_device_conf` (makepkg only sees the
+package dir, so each family keeps a copy: change them together), and cmdline drift. A new tree is never published until its first
 `make stage`/`make publish`; stage-check skips it for the other SoCs until then.
 
 ## Boot styles (`BOOTLOADER` in profile.conf)
