@@ -127,15 +127,59 @@ else note "code comments" "STALE"; printf '%s\n' "${out}" | sed 's/^/    /'; fai
 # --- SoC families: what a new SoC or board must carry (all SoCs, not just DEVICE) ----
 # An unreferenced board never loads; a cmdline drift ships a boot image that disagrees with the
 # on-device rebuild.
-# family.conf must carry the SoC and the install-to-internal contract; each board file names
-# itself; and every board must resolve the whole contract from the two (the session, desktop,
-# pinning and install consumers fall back to RP6 values without a key).
+# devices/README.md's key table as "<key> required|optional" (the Absent column says "required"
+# or what an absent key means) plus its "Env overrides" names as "<key> env". A table that stops
+# parsing empties REQUIRED_KEYS, which the family-key loop below fails on.
+_doc="${POCKNIX_ROOT}/devices/README.md"
+_keys="$(awk -F'|' '/^\| `POCKNIX_/ { k = $2; a = $4; gsub(/^ +| +$/, "", a)
+           while (match(k, /POCKNIX_[A-Z0-9_]+/)) { print substr(k, RSTART, RLENGTH), (a == "required" ? "required" : "optional"); k = substr(k, RSTART + RLENGTH) } }' "${_doc}"
+         sed -n '/^Env overrides/,/^$/p' "${_doc}" | grep -oE 'POCKNIX_[A-Z0-9_]+' | sed 's/$/ env/' || true)"
+
+# Prints "<key> <file>" for each POCKNIX_* name that device.conf consumers $@ expand but never
+# assign: assigned names are the script's own state, not keys.
+contract_reads() {  # $@ = consumer files
+  local f k
+  for f in "$@"; do
+    for k in $(grep -oE '\$\{?POCKNIX_[A-Z0-9_]+' "${f}" | sed -E 's/^\$\{?//' | sort -u); do
+      grep -qE "(^|[[:space:];])(export[[:space:]]+)?${k}=" "${f}" || echo "${k} ${f#"${POCKNIX_ROOT}"/}"
+    done
+  done
+}
+
+# Prints one problem per line: a name consumers $2.. read that the key list $1 lacks.
+check_contract() {  # $1 = "<key> <kind>" lines, $2.. = consumer files
+  local known="$1" k f
+  shift
+  contract_reads "$@" | while read -r k f; do
+    printf '%s\n' "${known}" | grep -q "^${k} " || echo "${f} reads ${k}, which devices/README.md's key table lacks"
+  done
+}
+
+# The consumers are whatever names device.conf or cores.sh, so a key a script starts reading
+# must get a table row saying whether every board sets it.
+mapfile -t _consumers < <(cd "${POCKNIX_ROOT}" && git grep -l -F -e /usr/lib/pocknix/device.conf \
+  -e /usr/lib/pocknix/cores.sh -- packages devices overlay ':!*/PKGBUILD' | sed "s|^|${POCKNIX_ROOT}/|")
+_bad="$(check_contract "${_keys}" "${_consumers[@]}" | paste -sd ';' -)"
+if [ -z "${_bad}" ]; then note "device.conf keys vs consumers" "ok (${#_consumers[@]} consumers)"
+else note "device.conf keys vs consumers" "${_bad}"; fail=1; fi
+_t="$(mktemp -d)"
+printf '. /usr/lib/pocknix/device.conf\necho "${POCKNIX_PANEL_W:-1080} ${POCKNIX_BOGUS:-x}"\n' > "${_t}/stray"
+_out="$(check_contract "${_keys}" "${_t}/stray")"
+if printf '%s\n' "${_out}" | grep -q 'reads POCKNIX_BOGUS, which' && ! printf '%s\n' "${_out}" | grep -q PANEL_W; then
+  note "device.conf keys self-test" "ok"
+else note "device.conf keys self-test" "a consumer reading an undocumented key went unflagged"; fail=1; fi
+rm -rf "${_t}"
+
+# family.conf must carry the SoC and the install-to-internal contract, and every board must
+# resolve each key the table marks required from the two (the consumers fall back to RP6 values
+# without one, which is wrong on any other panel or disk).
 REQUIRED_FAMILY_KEYS="POCKNIX_SOC POCKNIX_INTERNAL_DISK POCKNIX_BOOT_GPT_NAME
   POCKNIX_BOOT_FAT_LABEL POCKNIX_ROOT_LABEL"
-REQUIRED_BOARD_KEYS="POCKNIX_DEVICE"
-REQUIRED_KEYS="${REQUIRED_FAMILY_KEYS} ${REQUIRED_BOARD_KEYS} POCKNIX_PANEL_W POCKNIX_PANEL_H
-  POCKNIX_PANEL_REFRESH POCKNIX_PANEL_ORIENT POCKNIX_PANEL_MM POCKNIX_DESKTOP_ROTATE
-  POCKNIX_DESKTOP_SCALE POCKNIX_BIG_CORES"
+REQUIRED_KEYS="$(printf '%s\n' "${_keys}" | awk '$2 == "required" { print $1 }' | paste -sd ' ' -)"
+for _k in ${REQUIRED_FAMILY_KEYS} POCKNIX_DEVICE; do
+  case " ${REQUIRED_KEYS} " in *" ${_k} "*) ;;
+    *) note "device.conf required keys" "${_k} is not marked required in devices/README.md"; fail=1 ;; esac
+done
 
 # Sources $2 with nothing else set; prints "<unset keys>|<POCKNIX_SOC>".
 resolve_keys() {  # $1 = keys, $2 = file
