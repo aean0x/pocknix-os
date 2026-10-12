@@ -1,11 +1,5 @@
-# pocknix-bsp-sm8250 — board support for the SM8250 FAMILY (Retroid Pocket 5,
-# Retroid Pocket Flip 2, each also in its Visionox-panel revision).
-# ONE package serves every board on the SoC. The runtime board facts live in
-# /usr/lib/pocknix/boards/<board>.conf and /usr/lib/pocknix/device.conf is a
-# sourced DISPATCHER that picks one by devicetree model; InputPlumber configs
-# are gated per-board the same way (matches: on the dt model). Adding an sm8250
-# board = a new boards/ file + its inputplumber yaml(s) + a dispatcher case arm,
-# no new package.
+# One package serves every SM8250 board: device.conf picks a boards/ file by devicetree
+# model and the input maps are model-gated, so a new board needs no new package.
 pkgname=pocknix-bsp-sm8250
 pkgver=0.1.0
 pkgrel=20
@@ -21,100 +15,16 @@ provides=('pocknix-bsp')
 conflicts=('pocknix-bsp')
 optdepends=('inputplumber: gamepad -> Steam Input mapping (01-retroid-*.yaml)'
             'alsa-ucm-conf: base UCM (codec include sequences for the RetroidPocket UCM)')
-source=('device.conf'
-        '01-retroid-controller.yaml' 'rp5-gamepad.yaml'
-        '01-retroid-flip2-controller.yaml' 'rpflip2-gamepad.yaml'
-        'RetroidPocket.conf' 'HiFi-RP.conf'
-        '99-retroid-pocket.rules' '99-wcd938x-nosleep.rules'
-        'pocknix-sm8250-audio-resume' 'pocknix-sm8250-audio-resume.service'
-        'pocknix-sm8250-audio-heal' 'pocknix-sm8250-audio-heal.service'
-        'pocknix-sm8250-board-select' 'pocknix-sm8250-board-select.service'
-        '51-pocknix-softmixer.conf' '60-pocknix-speaker-loudness.conf'
-        '52-retroid-pocket-5-hdmi.conf')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
-            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
-            'SKIP' 'SKIP')
 
 package() {
-  # Runtime device facts: the model dispatcher + per-board files. boards/ is
-  # not in source= (makepkg local sources are flat); taken from startdir,
-  # which build-packages.sh populates with the whole package dir.
-  install -Dm644 "${srcdir}/device.conf" "${pkgdir}/usr/lib/pocknix/device.conf"
+  # root/ is the install tree. makepkg's umask 022 turns git's exec bit into 755/644, and
+  # files created under fakeroot are root-owned; -d keeps the symlinks as links. The units
+  # ship enabled through their wants links so a plain pacman -U activates them, and the
+  # extra UCM conf.d names are inert: only the card's own longname is looked up.
+  cp -dr "${startdir}/root/." "${pkgdir}/"
+  # boards/ also comes from startdir (build-packages.sh copies the whole package dir).
   local b
   for b in "${startdir}/boards/"*.conf; do
     install -Dm644 "${b}" "${pkgdir}/usr/lib/pocknix/boards/$(basename "${b}")"
   done
-
-  # InputPlumber composite-device configs (dt-model gated). Same MCU on both
-  # boards, but the Flip 2 has no back button so it forks the capability map
-  # to carry the Guide+A QAM chord (see rpflip2-gamepad.yaml).
-  install -Dm644 "${srcdir}/01-retroid-controller.yaml" \
-    "${pkgdir}/usr/share/inputplumber/devices/01-retroid-controller.yaml"
-  install -Dm644 "${srcdir}/rp5-gamepad.yaml" \
-    "${pkgdir}/usr/share/inputplumber/capability_maps/rp5-gamepad.yaml"
-  install -Dm644 "${srcdir}/01-retroid-flip2-controller.yaml" \
-    "${pkgdir}/usr/share/inputplumber/devices/01-retroid-flip2-controller.yaml"
-  install -Dm644 "${srcdir}/rpflip2-gamepad.yaml" \
-    "${pkgdir}/usr/share/inputplumber/capability_maps/rpflip2-gamepad.yaml"
-
-  # ALSA UCM for the "RetroidPocket" card (sm8250-sndcard): master conf under
-  # Qualcomm/sm8250 + card-longname symlinks under conf.d/sm8250. Extra symlinks
-  # are inert, the matching longname wins on device.
-  local ucm="${pkgdir}/usr/share/alsa/ucm2"
-  install -Dm644 "${srcdir}/RetroidPocket.conf" "${ucm}/Qualcomm/sm8250/RetroidPocket.conf"
-  install -Dm644 "${srcdir}/HiFi-RP.conf"       "${ucm}/Qualcomm/sm8250/HiFi-RP.conf"
-  install -d "${ucm}/conf.d/sm8250"
-  local l
-  for l in RetroidPocket.conf retroidpocket-RetroidPocket5.conf retroid-RetroidPocket5-conf \
-           retroidpocket-RetroidPocketFlip2.conf; do
-    ln -sf "../../Qualcomm/sm8250/RetroidPocket.conf" "${ucm}/conf.d/sm8250/${l}"
-  done
-
-  # udev quirks: gamepad joystick tagging + haptics uaccess; wcd938x runtime-PM
-  # off so the headphone jack detection works.
-  install -Dm644 "${srcdir}/99-retroid-pocket.rules" \
-    "${pkgdir}/usr/lib/udev/rules.d/99-retroid-pocket.rules"
-  install -Dm644 "${srcdir}/99-wcd938x-nosleep.rules" \
-    "${pkgdir}/usr/lib/udev/rules.d/99-wcd938x-nosleep.rules"
-
-  # Post-resume PipeWire quantum bounce as a suspend.target service, NOT a
-  # sleep.d hook (see pocknix-sm8250-audio-resume for the frozen-user.slice
-  # deadlock). Enabled via a shipped wants symlink.
-  install -Dm755 "${srcdir}/pocknix-sm8250-audio-resume" \
-    "${pkgdir}/usr/lib/pocknix/pocknix-sm8250-audio-resume"
-  install -Dm644 "${srcdir}/pocknix-sm8250-audio-resume.service" \
-    "${pkgdir}/usr/lib/systemd/system/pocknix-sm8250-audio-resume.service"
-  install -d "${pkgdir}/usr/lib/systemd/system/suspend.target.wants"
-  ln -sf ../pocknix-sm8250-audio-resume.service \
-    "${pkgdir}/usr/lib/systemd/system/suspend.target.wants/pocknix-sm8250-audio-resume.service"
-
-  # Speaker loudness stack (soft-mixer + limiter filter-chain); each file's
-  # header owns its part, the hardware gains are audio-heal's.
-  install -Dm644 "${srcdir}/51-pocknix-softmixer.conf" \
-    "${pkgdir}/usr/share/wireplumber/wireplumber.conf.d/51-pocknix-softmixer.conf"
-  install -Dm644 "${srcdir}/60-pocknix-speaker-loudness.conf" \
-    "${pkgdir}/usr/share/pipewire/pipewire.conf.d/60-pocknix-speaker-loudness.conf"
-  install -Dm644 "${srcdir}/52-retroid-pocket-5-hdmi.conf" \
-    "${pkgdir}/usr/share/wireplumber/wireplumber.conf.d/52-retroid-pocket-5-hdmi.conf"
-
-  # GRUB board-select correction (see the script header): the static grub.cfg
-  # defaults to the rp5 dtb; on a Flip 2 this service detects the real board
-  # from vbmeta_system_a and writes grubenv so the next boot loads its dtb.
-  install -Dm755 "${srcdir}/pocknix-sm8250-board-select" \
-    "${pkgdir}/usr/lib/pocknix/pocknix-sm8250-board-select"
-  install -Dm644 "${srcdir}/pocknix-sm8250-board-select.service" \
-    "${pkgdir}/usr/lib/systemd/system/pocknix-sm8250-board-select.service"
-  install -d "${pkgdir}/usr/lib/systemd/system/multi-user.target.wants"
-  ln -sf ../pocknix-sm8250-board-select.service \
-    "${pkgdir}/usr/lib/systemd/system/multi-user.target.wants/pocknix-sm8250-board-select.service"
-
-  # LPASS probe self-heal + hardware mixer gains (see the script header).
-  # Enabled via a shipped wants symlink so a plain pacman -U activates it.
-  install -Dm755 "${srcdir}/pocknix-sm8250-audio-heal" \
-    "${pkgdir}/usr/lib/pocknix/pocknix-sm8250-audio-heal"
-  install -Dm644 "${srcdir}/pocknix-sm8250-audio-heal.service" \
-    "${pkgdir}/usr/lib/systemd/system/pocknix-sm8250-audio-heal.service"
-  install -d "${pkgdir}/usr/lib/systemd/system/multi-user.target.wants"
-  ln -sf ../pocknix-sm8250-audio-heal.service \
-    "${pkgdir}/usr/lib/systemd/system/multi-user.target.wants/pocknix-sm8250-audio-heal.service"
 }

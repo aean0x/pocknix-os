@@ -122,7 +122,6 @@ compare_layout devices/README.md "${_doc}" "${_have}"
 
 # Every key a board sets is part of the runtime contract, so devices/README.md's table names it.
 for _key in $(cat devices/*/packages/pocknix-bsp-*/boards/*.conf devices/*/packages/pocknix-bsp-*/root/usr/lib/pocknix/device.conf \
-                devices/*/packages/pocknix-bsp-*/device.conf \
                 2>/dev/null | grep -oE '^[[:space:]]*POCKNIX_[A-Z0-9_]+=' | tr -d ' =' | sort -u); do
   grep -q "\`${_key}\`" devices/README.md ||
     err "devices/README.md:$(grep -n -m1 '^| Key |' devices/README.md | cut -d: -f1)" "key table lacks board key ${_key}"
