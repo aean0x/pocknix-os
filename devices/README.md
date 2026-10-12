@@ -39,10 +39,14 @@ devices/<soc>/
                                   #   DEVICE_PRETTY, DEVICE_HOSTNAME,
                                   #   DEVICE_BSP_PKG / DEVICE_META_PKG / KERNEL_PKG
   packages/
-    pocknix-bsp-<soc>/            # the family BSP: device.conf dispatcher + boards/,
-                                  #   input maps (dt-model gated), udev quirks, audio UCM,
-                                  #   SoC suspend/cpuidle tweaks, kernel-cmdline on qcom-abl
-                                  #   (must match the profile - build-packages.sh enforces).
+    pocknix-bsp-<soc>/            # the family BSP: boards/ + root/, the install tree copied
+                                  #   as is (git carries the exec bits and symlinks; make check
+                                  #   wants 755 exactly on files with a shebang): the
+                                  #   usr/lib/pocknix/device.conf dispatcher, input maps
+                                  #   (dt-model gated), udev quirks, audio UCM, SoC
+                                  #   suspend/cpuidle tweaks, usr/lib/pocknix/kernel-cmdline
+                                  #   on qcom-abl (must match the profile - build-packages.sh
+                                  #   enforces).
                                   #   MUST: depends=(pocknix-bsp-common)
                                   #   provides/conflicts=(pocknix-bsp)   <- wrong-device guard
     pocknix-device-<soc>/         # metapackage: depends on the BSP + kernel (+ the

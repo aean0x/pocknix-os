@@ -213,15 +213,15 @@ build_one() {
   # profile's KERNEL_CMDLINE (the boot image is built from the profile; the BSP file feeds
   # the on-device /flash/KERNEL rebuild — they must agree). The device is derived from the
   # package's path (devices/<dev>/packages/<pkg>).
-  if [ -f "${pkgdir}/kernel-cmdline" ]; then
+  if [ -f "${pkgdir}/root/usr/lib/pocknix/kernel-cmdline" ]; then
     local devdir want_cmdline
     devdir="$(dirname "$(dirname "${pkgdir%/}")")"
     if [ -f "${devdir}/profile.conf" ]; then
       want_cmdline="$(profile_get "${devdir}" KERNEL_CMDLINE)"
-      if [ "$(cat "${pkgdir}/kernel-cmdline")" != "${want_cmdline}" ]; then
+      if [ "$(cat "${pkgdir}/root/usr/lib/pocknix/kernel-cmdline")" != "${want_cmdline}" ]; then
         die "${name}: kernel-cmdline drifted from ${devdir}/profile.conf KERNEL_CMDLINE —
   profile: ${want_cmdline}
-  package: $(cat "${pkgdir}/kernel-cmdline")
+  package: $(cat "${pkgdir}/root/usr/lib/pocknix/kernel-cmdline")
 Update one to match the other."
       fi
     fi

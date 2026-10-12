@@ -97,7 +97,7 @@ check_board() {  # $1 = BSP dir, $2 = board file, $3 = SoC
   n="$(basename "$2")"
   # Reachable = sourced by the dispatcher or by another board (variants source their base).
   grep -qsE "^[[:space:]]*\. /usr/lib/pocknix/boards/${n//./\\.}([[:space:]]|\$)" \
-    "$1/device.conf" $(ls "$1"/boards/*.conf | grep -v "/${n}\$") || echo "${n} is never sourced"
+    "$1/root/usr/lib/pocknix/device.conf" "$1/device.conf" $(ls "$1"/boards/*.conf | grep -v "/${n}\$") || echo "${n} is never sourced"
   # Evaluated, not grepped: a variant board sources its base board.
   r="$(sed "s|/usr/lib/pocknix/boards/|$1/boards/|g" "$2" | env -i bash -c '
     . /dev/stdin || exit 1; for k in '"${REQUIRED_BOARD_KEYS//$'\n'/ }"'; do eval "[ -n \"\${${k}:-}\" ]" || printf "%s " "${k}"; done
@@ -118,12 +118,14 @@ check_family() {  # $1 = SoC
   for p in DEVICE_BSP_PKG DEVICE_META_PKG; do
     [ -f "${dev}/packages/$(profile_get "${dev}" "${p}")/PKGBUILD" ] || echo "${p} has no package under devices/${soc}/packages/"
   done
-  [ -f "${bsp}/device.conf" ] || echo "missing pocknix-bsp-${soc}/device.conf"
+  [ -f "${bsp}/root/usr/lib/pocknix/device.conf" ] || [ -f "${bsp}/device.conf" ] ||
+    echo "missing pocknix-bsp-${soc}/root/usr/lib/pocknix/device.conf"
   for f in "${bsp}"/boards/*.conf; do
     [ -f "${f}" ] && check_board "${bsp}" "${f}" "${soc}"
   done
   cmd="$(profile_get "${dev}" KERNEL_CMDLINE)"
-  if [ -f "${bsp}/kernel-cmdline" ] && [ "$(cat "${bsp}/kernel-cmdline")" != "${cmd}" ]; then
+  f="${bsp}/root/usr/lib/pocknix/kernel-cmdline"
+  if [ -f "${f}" ] && [ "$(cat "${f}")" != "${cmd}" ]; then
     echo "BSP kernel-cmdline drifted from the profile"
   fi
   grub="${POCKNIX_ROOT}/packages/soc/pocknix-bootloader-${soc}/grub.cfg"
@@ -140,6 +142,16 @@ for _soc in $(cd "${POCKNIX_ROOT}" && ls -d kernel/*/kernel.conf devices/*/profi
   _bad="$(check_family "${_soc}" | paste -sd ';' -)"
   if [ -z "${_bad}" ]; then note "family: ${_soc}" "ok"; else note "family: ${_soc}" "${_bad}"; fail=1; fi
 done
+
+# A device package's root/ is copied as is, so the git mode is the installed mode: a script
+# committed 644 installs 644 and never runs.
+_mode=""
+while read -r _m _ _ _f; do
+  [ "$(head -c2 "${POCKNIX_ROOT}/${_f}" 2>/dev/null)" = '#!' ] && _want=100755 || _want=100644
+  [ "${_m}" = "${_want}" ] || _mode="${_mode} ${_f}"
+done < <(git -C "${POCKNIX_ROOT}" ls-files -s -- 'devices/*/packages/*/root/*' | grep -v '^120000 ')
+if [ -z "${_mode}" ]; then note "device root/ modes" "ok"
+else note "device root/ modes" "shebang and exec bit disagree:${_mode}"; fail=1; fi
 
 # A common-skip line that names no kernel/common patch (after a rename) would silently
 # let that patch apply again.
