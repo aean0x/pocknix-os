@@ -43,6 +43,7 @@ devices/<soc>/
                                   #   SD_FAT_LABEL / SD_BOOT_PARTNAME / ROOT_LABEL (bootloader contract),
                                   #   KERNEL_CMDLINE_* (ONE cmdline for the family),
                                   #   DEVICE_PRETTY, DEVICE_HOSTNAME,
+                                  #   GPU_HWMON (the GPU thermal zone's hwmon name, for mangohud),
                                   #   DEVICE_BSP_PKG / DEVICE_META_PKG / KERNEL_PKG
   packages/
     pocknix-bsp-<soc>/            # the family BSP: boards/ (family.conf, one conf per board,

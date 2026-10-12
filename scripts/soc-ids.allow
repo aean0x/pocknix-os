@@ -9,6 +9,5 @@ packages/soc/*/socs :: ^sm[0-9]{4} :: by design: socs names the chips a package 
 scripts/check-comments.py :: SM8550 quirk :: by design: self-test fixture
 scripts/check-power-profiles.py :: underclock\.SM8550 :: by design: self-test fixture
 packages/shared/pocknix-bsp-common/pocknix-gpt-abl :: Retroid sm8250 units :: by design: help text naming the affected hardware
-packages/soc/mangohud/* :: sm[0-9]{4} :: needs issue: the GPU patch is picked by a case on the chip
 packages/shared/steamos-manager/pocknix.toml :: sm[0-9]{4} :: needs issue: one platform stanza per chip
 packages/shared/pocknix-bsp-common/power-profiles.conf :: \.SM[0-9]{4}[].] :: needs issue: per-chip clock tables
