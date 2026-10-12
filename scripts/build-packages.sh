@@ -196,19 +196,6 @@ build_one() {
     fi
     cp -a "${kout}" "${BROOT}/build/${name}/staged"
   ;; esac
-  # pocknix-firmware-<soc> is thin too: it packages vendor overlay blobs listed in
-  # its ./paths. Staged here because the gitignored vendor/ tree exists only on the
-  # build host, never inside the chroot.
-  case "${name}" in pocknix-firmware-*)
-    local fwsrc
-    fwsrc="${VENDOR_DIR}/$(profile_get "$(dirname "$(dirname "${pkgdir%/}")")" FW_SRC_REL)"
-    local fwp
-    while IFS= read -r fwp; do
-      [ -n "${fwp}" ] || continue
-      [ -f "${fwsrc}/${fwp}" ] || die "${name}: ${fwp} missing from ${fwsrc} — vendor overlay incomplete (make sync?)"
-      install -Dm644 "${fwsrc}/${fwp}" "${BROOT}/build/${name}/staged/${fwp}"
-    done < "${pkgdir}/paths"
-  ;; esac
   # Drift guard: a device BSP's committed kernel-cmdline must byte-match its own device
   # profile's KERNEL_CMDLINE (the boot image is built from the profile; the BSP file feeds
   # the on-device /flash/KERNEL rebuild — they must agree). The device is derived from the

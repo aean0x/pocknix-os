@@ -3,7 +3,7 @@
 #
 # Pipeline:
 #   bootstrap -> configure pacman -> install packages (base + session lists) -> local pocknix
-#   packages (incl. the SoC kernel) -> SoC firmware overlay -> bake the native Steam client
+#   packages (incl. the SoC kernel and firmware) -> bake the native Steam client
 #
 # The output is a finished rootfs at ${ROOTFS_DIR}. Turning that into a flashable image
 # (partitioning, boot KERNEL, first-boot config) is a SEPARATE step: scripts/build-sd-image.sh
@@ -12,7 +12,7 @@
 source "$(dirname "$0")/lib.sh"
 need_linux
 need_root build
-for t in curl tar rsync sed; do need_tool "$t"; done
+for t in curl tar sed; do need_tool "$t"; done
 
 LOCAL_REPO_DIR="${LOCALREPO_DIR}"                 # per-SoC: build/localrepo/${SOC} (set in lib.sh)
 LOCAL_REPO_SHARED_DIR="${LOCALREPO_SHARED_DIR}"   # SoC-neutral: build/localrepo/shared
@@ -205,32 +205,6 @@ install_packages() {
   chroot "${root}" pacman -Syyu --noconfirm --needed "${pkgs[@]}"
 }
 
-# Install the SoC firmware overlay (wifi board data, adsp/cdsp, vpu, ...) from the
-# synced tree into the rootfs; the path comes from the device profile (FW_SRC_REL). The
-# overlay is too large to package, so it is rsynced whole. Only the blobs linux-firmware
-# would revert are packaged (sm8550: pocknix-firmware-sm8550); this still installs the rest.
-FW_SRC="${VENDOR_DIR}/${FW_SRC_REL}"
-install_firmware() {
-  local root="$1"
-  if [ -d "${FW_SRC}" ] && [ -n "$(ls -A "${FW_SRC}" 2>/dev/null)" ]; then
-    log "installing ${SOC} device firmware -> rootfs /usr/lib/firmware ($(du -sh "${FW_SRC}" | cut -f1))"
-    mkdir -p "${root}/usr/lib/firmware"
-    # --chown=root:root: the vendor firmware tree is owned by the host build user (uid 1000); plain
-    # rsync -a would bake that into the rootfs as 'alarm'-owned firmware (and re-own /usr). Force root.
-    rsync -a --chown=root:root "${FW_SRC}/" "${root}/usr/lib/firmware/"
-  elif [ "${SOC}" = "sm8250" ]; then
-    # Expected: ROCKNIX ships NO firmware overlay for SM8250 — every blob in
-    # kernel/sm8250/config/kernel-firmware.dat (a650 GPU, adsp/cdsp, ath11k,
-    # BT) comes from upstream linux-firmware, which ALARM's linux-firmware/
-    # linux-firmware-qcom packages already put in the rootfs.
-    log "no ${SOC} firmware overlay (expected: all blobs come from ALARM linux-firmware packages)"
-  else
-    # Fatal, not a warn: this shipped an image with dead wifi/audio/battery once
-    # (fresh worktree, gitignored vendor/ absent) and the warn scrolled past.
-    die "ROCKNIX firmware overlay not at ${FW_SRC} — run 'make sync' (or copy vendor/ from a synced checkout). Without it wifi, audio and battery reporting are dead on ${SOC}."
-  fi
-}
-
 # Bake the native ARM Steam client at BUILD time so first boot needs no network: the on-device
 # launcher has no network-installer fallback, so an image with no seed ships a Steam session that
 # hard-fails. Runs the on-device installer in the rootfs chroot under a STAGING HOME, verifies the
@@ -320,9 +294,8 @@ main() {
   # back to C.UTF-8 on every launch, and the C path is slower. Set en_US.UTF-8 system-wide.
   configure_locale "${ROOTFS_DIR}"
 
-  # 4. device support: the SoC firmware overlay, then the local packages (layer metas, the
-  #    SoC kernel from ${KERNEL_BUILD_DIR}/out, the device set). Run `make kernel` first.
-  install_firmware "${ROOTFS_DIR}"
+  # 4. device support: the local packages (layer metas, the SoC kernel from
+  #    ${KERNEL_BUILD_DIR}/out, the device set). Run `make kernel` first.
   install_local_packages "${ROOTFS_DIR}"
   prune_fontconfig_compat_links "${ROOTFS_DIR}"
 

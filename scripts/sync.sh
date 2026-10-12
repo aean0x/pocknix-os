@@ -81,9 +81,9 @@ while IFS= read -r f; do
 done < <(git -C "${POCKNIX_ROOT}" ls-files "${kernel_rel}/patches/30-${SOC}/1[0-9][0-9][0-9]-*")
 [ "${nrestored}" -eq 0 ] || log "  restored ${nrestored} local-delta files from git"
 
-# --- gitignored build-time material -> vendor/ -----------------------------
+# --- gitignored reference material -> vendor/ (no build reads it) ----------
 dst="${VENDOR_DIR}/rocknix-${SOC}"
-log "  reference scripts + firmware overlay -> vendor/ (gitignored)"
+log "  reference scripts + device filesystem -> vendor/ (gitignored)"
 mkdir -p "${dst}/filesystem"
 rsync -ac --delete "${ROCKNIX_DEVICE_DIR}/filesystem/" "${dst}/filesystem/"
 for p in \
@@ -104,4 +104,4 @@ done
 
 ok "sync complete:
   kernel/${SOC}/  (committed)  $(find "${KERNEL_DIR}/patches" -name '*.patch' 2>/dev/null | wc -l | tr -d ' ') patches + dts + config
-  vendor/         (gitignored) reference scripts + firmware overlay"
+  vendor/         (gitignored) reference scripts + device filesystem"
