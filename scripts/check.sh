@@ -67,6 +67,49 @@ for f in config/pocknix.conf config/pacman.conf.in config/packages/base.list \
 done
 note "device" "${DEVICE} (${DEVICE_PRETTY:-?}) on ${SOC}"
 
+# Prints "<field>=<entry>" for each replaces=/conflicts= entry in PKGBUILD $1. Shared PKGBUILDs
+# run nothing at top level and have no split bodies, so sourcing reads them exactly.
+pkg_relations() {
+  ( set +eu; . "$1" >/dev/null 2>&1
+    printf 'replaces=%s\n' "${replaces[@]}"; printf 'conflicts=%s\n' "${conflicts[@]}" ) | grep -v '=$' || true
+}
+
+# Prints one problem per line: a relation in shared dir $1 with no row in allow file $2, or a
+# row whose relation is gone. $1/$2 let the self-test point it at doctored copies.
+check_shared_relations() {  # $1 = packages/shared dir, $2 = allow file
+  local f p e r rest rows="" have=""
+  while IFS= read -r r; do
+    case "${r}" in ''|'#'*) continue ;; esac
+    p="${r%% :: *}"; rest="${r#* :: }"; e="${rest%% :: *}"
+    case "${rest}" in *' :: '?*) rows="${rows}${p} ${e}"$'\n' ;; *) echo "${2##*/}: malformed row '${r}'" ;; esac
+  done < "$2"
+  for f in "$1"/*/PKGBUILD; do
+    p="${f%/PKGBUILD}"; p="${p##*/}"
+    for e in $(pkg_relations "${f}"); do
+      have="${have}${p} ${e}"$'\n'
+      printf '%s' "${rows}" | grep -qxF "${p} ${e}" || echo "${p}: ${e} has no row in ${2##*/}"
+    done
+  done
+  while read -r p e; do
+    printf '%s' "${have}" | grep -qxF "${p} ${e}" || echo "${2##*/}: '${p} :: ${e}' matches no PKGBUILD entry"
+  done < <(printf '%s' "${rows}")
+}
+
+# [pocknix-shared] reaches every SoC's fleet in one publish, and replaces= uninstalls on -Syu, so
+# each such entry in a shared package names its reason in scripts/shared-conflicts.allow.
+_allow="${POCKNIX_ROOT}/scripts/shared-conflicts.allow"
+_bad="$(check_shared_relations "${POCKNIX_ROOT}/packages/shared" "${_allow}" | paste -sd ';' -)"
+if [ -z "${_bad}" ]; then note "shared replaces/conflicts" "ok"
+else note "shared replaces/conflicts" "${_bad}"; fail=1; fi
+_t="$(mktemp -d)"
+mkdir -p "${_t}/stray"
+printf "pkgname=stray\nreplaces=('gone'\n  # a comment\n  'old<1')\n" > "${_t}/stray/PKGBUILD"
+_out="$(check_shared_relations "${_t}" "${_allow}")"
+if printf '%s\n' "${_out}" | grep -q '^stray: replaces=old<1 has no row'; then
+  note "shared replaces/conflicts self-test" "ok"
+else note "shared replaces/conflicts self-test" "a shared replaces= with no allow row went unflagged"; fail=1; fi
+rm -rf "${_t}"
+
 # --- scripts executable ----------------------------------------------------
 for s in sync.sh bootstrap.sh build-image.sh build-kernel.sh build-packages.sh \
          build-sd-image.sh stage-repo.sh stage-check.sh publish-repo.sh install.sh check.sh check-docs.sh; do
@@ -84,15 +127,59 @@ else note "code comments" "STALE"; printf '%s\n' "${out}" | sed 's/^/    /'; fai
 # --- SoC families: what a new SoC or board must carry (all SoCs, not just DEVICE) ----
 # An unreferenced board never loads; a cmdline drift ships a boot image that disagrees with the
 # on-device rebuild.
-# family.conf must carry the SoC and the install-to-internal contract; each board file names
-# itself; and every board must resolve the whole contract from the two (the session, desktop,
-# pinning and install consumers fall back to RP6 values without a key).
+# devices/README.md's key table as "<key> required|optional" (the Absent column says "required"
+# or what an absent key means) plus its "Env overrides" names as "<key> env". A table that stops
+# parsing empties REQUIRED_KEYS, which the family-key loop below fails on.
+_doc="${POCKNIX_ROOT}/devices/README.md"
+_keys="$(awk -F'|' '/^\| `POCKNIX_/ { k = $2; a = $4; gsub(/^ +| +$/, "", a)
+           while (match(k, /POCKNIX_[A-Z0-9_]+/)) { print substr(k, RSTART, RLENGTH), (a == "required" ? "required" : "optional"); k = substr(k, RSTART + RLENGTH) } }' "${_doc}"
+         sed -n '/^Env overrides/,/^$/p' "${_doc}" | grep -oE 'POCKNIX_[A-Z0-9_]+' | sed 's/$/ env/' || true)"
+
+# Prints "<key> <file>" for each POCKNIX_* name that device.conf consumers $@ expand but never
+# assign: assigned names are the script's own state, not keys.
+contract_reads() {  # $@ = consumer files
+  local f k
+  for f in "$@"; do
+    for k in $(grep -oE '\$\{?POCKNIX_[A-Z0-9_]+' "${f}" | sed -E 's/^\$\{?//' | sort -u); do
+      grep -qE "(^|[[:space:];])(export[[:space:]]+)?${k}=" "${f}" || echo "${k} ${f#"${POCKNIX_ROOT}"/}"
+    done
+  done
+}
+
+# Prints one problem per line: a name consumers $2.. read that the key list $1 lacks.
+check_contract() {  # $1 = "<key> <kind>" lines, $2.. = consumer files
+  local known="$1" k f
+  shift
+  contract_reads "$@" | while read -r k f; do
+    printf '%s\n' "${known}" | grep -q "^${k} " || echo "${f} reads ${k}, which devices/README.md's key table lacks"
+  done
+}
+
+# The consumers are whatever names device.conf or cores.sh, so a key a script starts reading
+# must get a table row saying whether every board sets it.
+mapfile -t _consumers < <(cd "${POCKNIX_ROOT}" && git grep -l -F -e /usr/lib/pocknix/device.conf \
+  -e /usr/lib/pocknix/cores.sh -- packages devices overlay ':!*/PKGBUILD' | sed "s|^|${POCKNIX_ROOT}/|")
+_bad="$(check_contract "${_keys}" "${_consumers[@]}" | paste -sd ';' -)"
+if [ -z "${_bad}" ]; then note "device.conf keys vs consumers" "ok (${#_consumers[@]} consumers)"
+else note "device.conf keys vs consumers" "${_bad}"; fail=1; fi
+_t="$(mktemp -d)"
+printf '. /usr/lib/pocknix/device.conf\necho "${POCKNIX_PANEL_W:-1080} ${POCKNIX_BOGUS:-x}"\n' > "${_t}/stray"
+_out="$(check_contract "${_keys}" "${_t}/stray")"
+if printf '%s\n' "${_out}" | grep -q 'reads POCKNIX_BOGUS, which' && ! printf '%s\n' "${_out}" | grep -q PANEL_W; then
+  note "device.conf keys self-test" "ok"
+else note "device.conf keys self-test" "a consumer reading an undocumented key went unflagged"; fail=1; fi
+rm -rf "${_t}"
+
+# family.conf must carry the SoC and the install-to-internal contract, and every board must
+# resolve each key the table marks required from the two (the consumers fall back to RP6 values
+# without one, which is wrong on any other panel or disk).
 REQUIRED_FAMILY_KEYS="POCKNIX_SOC POCKNIX_INTERNAL_DISK POCKNIX_BOOT_GPT_NAME
   POCKNIX_BOOT_FAT_LABEL POCKNIX_ROOT_LABEL"
-REQUIRED_BOARD_KEYS="POCKNIX_DEVICE"
-REQUIRED_KEYS="${REQUIRED_FAMILY_KEYS} ${REQUIRED_BOARD_KEYS} POCKNIX_PANEL_W POCKNIX_PANEL_H
-  POCKNIX_PANEL_REFRESH POCKNIX_PANEL_ORIENT POCKNIX_PANEL_MM POCKNIX_DESKTOP_ROTATE
-  POCKNIX_DESKTOP_SCALE POCKNIX_BIG_CORES"
+REQUIRED_KEYS="$(printf '%s\n' "${_keys}" | awk '$2 == "required" { print $1 }' | paste -sd ' ' -)"
+for _k in ${REQUIRED_FAMILY_KEYS} POCKNIX_DEVICE; do
+  case " ${REQUIRED_KEYS} " in *" ${_k} "*) ;;
+    *) note "device.conf required keys" "${_k} is not marked required in devices/README.md"; fail=1 ;; esac
+done
 
 # Sources $2 with nothing else set; prints "<unset keys>|<POCKNIX_SOC>".
 resolve_keys() {  # $1 = keys, $2 = file
@@ -240,6 +327,20 @@ if printf '%s\n' "${_out}" | grep -q '^stray.conf is in no models row'; then
 else note "board check self-test" "a board in no models row went unflagged"; fail=1; fi
 rm -rf "${_t}"
 
+# makepkg sees only the package dir, so each BSP carries its own _device_conf; a fix landed in
+# one copy would leave the other families rendering the old dispatcher.
+device_conf_body() { sed -n '/^_device_conf()/,/^}/p' "$1"; }
+_ref="$(device_conf_body "${_bsp}/PKGBUILD")"; _drift=""
+for _f in "${POCKNIX_ROOT}"/devices/*/packages/pocknix-bsp-*/PKGBUILD; do
+  [ "$(device_conf_body "${_f}")" = "${_ref}" ] || _drift="${_drift} ${_f#"${POCKNIX_ROOT}"/}"
+done
+if [ -z "${_drift}" ]; then note "BSP _device_conf copies" "identical"
+else note "BSP _device_conf copies" "differ from ${SOC}'s:${_drift}"; fail=1; fi
+# Self-test: a line added inside the body must change what the comparison sees.
+if [ "$(awk '{ print } /^_device_conf\(\)/ { print "  : drifted" }' "${_bsp}/PKGBUILD" |
+        device_conf_body /dev/stdin)" != "${_ref}" ]; then note "BSP _device_conf self-test" "ok"
+else note "BSP _device_conf self-test" "a drifted _device_conf body compared equal"; fail=1; fi
+
 # A device package's root/ is copied as is, so the git mode is the installed mode: a script
 # committed 644 installs 644 and never runs.
 _mode=""
@@ -260,6 +361,46 @@ for _s in "${POCKNIX_ROOT}"/kernel/*/common-skip; do
   done < <(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' "${_s}")
 done
 if [ -z "${_stale}" ]; then note "kernel common-skip" "ok"; else note "kernel common-skip" "not in kernel/common/patches:${_stale}"; fail=1; fi
+
+SOC_ID_RE='(^|[^a-z0-9])sm[0-9]{4}([^0-9]|$)'
+# Prints one problem per line for "<path>:<line>:<text>" hits on stdin: a chip id in a code line
+# (comments stripped) that no row of allow file $1 covers, or a row that matches nothing.
+check_soc_ids() {  # $1 = allow file
+  local r h p n t i used=" "
+  local -a globs=() res=()
+  while IFS= read -r r; do
+    case "${r}" in ''|'#'*) continue ;; *' :: '*' :: '?*) ;; *) echo "${1##*/}: malformed row '${r}'"; continue ;; esac
+    globs+=("${r%% :: *}"); r="${r#* :: }"; res+=("${r%% :: *}")
+  done < "$1"
+  while IFS= read -r h; do
+    p="${h%%:*}"; t="${h#*:}"; n="${t%%:*}"; t="${t#*:}"
+    t="$(sed -E 's/^[[:space:]]*#.*//; s/[[:space:]]#.*//' <<< "${t}")"
+    grep -qiE "${SOC_ID_RE}" <<< "${t}" || continue
+    for i in "${!globs[@]}"; do
+      # shellcheck disable=SC2053  # the row's glob is meant to glob
+      [[ "${p}" == ${globs[i]} ]] && grep -qiE -- "${res[i]}" <<< "${t}" && { used="${used}${i} "; continue 2; }
+    done
+    echo "${p}:${n} names a chip"
+  done
+  for i in "${!globs[@]}"; do
+    case "${used}" in *" ${i} "*) ;; *) echo "${1##*/}: '${globs[i]} :: ${res[i]}' matches nothing" ;; esac
+  done
+}
+
+# Shared code that names today's chips mishandles the next one; the chip trees, the family
+# docs and packages/soc/<name>-<soc>/ are where chip names belong.
+_allow="${POCKNIX_ROOT}/scripts/soc-ids.allow"
+_bad="$(git -C "${POCKNIX_ROOT}" grep -n -I -i -E "${SOC_ID_RE}" -- . ':!devices/' ':!kernel/' \
+          ':!PATCHES.md' ':!CONTRIBUTING.md' ':!README.md' ':!docs/' ':(exclude,glob)**/*.allow' \
+          ':(exclude,glob)packages/soc/*-sm[0-9][0-9][0-9][0-9]/**' | check_soc_ids "${_allow}" | paste -sd ';' -)"
+if [ -z "${_bad}" ]; then note "chip ids outside chip trees" "ok"
+else note "chip ids outside chip trees" "${_bad}"; fail=1; fi
+_id="sm""8750"   # split so this line is no hit itself
+_out="$(printf '%s\n' "packages/shared/pocknix-steam/pocknix-steam:1:  [ \"\${s}\" = ${_id} ]" \
+          "packages/shared/pocknix-steam/pocknix-steam:2:  # ${_id} probes late" | check_soc_ids "${_allow}")"
+if grep -q '^packages/shared/pocknix-steam/pocknix-steam:1 names a chip' <<< "${_out}" && ! grep -q 'steam:2' <<< "${_out}"; then
+  note "chip ids self-test" "ok"
+else note "chip ids self-test" "a stray chip id in shared code went unflagged (or a comment was flagged)"; fail=1; fi
 
 # Docs name only what the tree has; structural READMEs follow their dirs and keep no versions.
 if "${POCKNIX_ROOT}/scripts/check-docs.sh"; then note "docs match the tree" "ok"

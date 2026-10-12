@@ -80,7 +80,8 @@ binaries, so the repos must not mix. They build for every SoC already (`socs` = 
 a SoC-specific kernel config or a local patch delta goes in `kernel/<soc>/` (see
 kernel/README.md). `make check` validates every family: required files, family and board keys,
 the models table against boards/ (and grub.cfg + board-select on arm-efi), the rendered
-device.conf, and cmdline drift. A new tree is never published until its first
+device.conf, that every BSP PKGBUILD carries the same `_device_conf` (makepkg only sees the
+package dir, so each family keeps a copy: change them together), and cmdline drift. A new tree is never published until its first
 `make stage`/`make publish`; stage-check skips it for the other SoCs until then.
 
 ## Boot styles (`BOOTLOADER` in profile.conf)
@@ -103,24 +104,30 @@ device.conf, and cmdline drift. A new tree is never published until its first
 
 Sourced at launch by shared scripts (`pocknix-steam`, the desktop session, bsp-common's
 `cores.sh`, the emulation launchers, the install and rollback tools; the table names each);
-`/etc/pocknix/device.conf` is the admin override (sourced after, wins). Keys:
+`/etc/pocknix/device.conf` is the admin override (sourced after, wins). Every key a script
+that sources device.conf (or `cores.sh`) reads has a row, and `make check` fails on one that
+does not. Absent = `required` means every board resolves it (`make check` fails a board that
+leaves it unset); otherwise it says what a board without the key gets. Keys:
 
-| Key | Used by | Meaning |
-|---|---|---|
-| `POCKNIX_DEVICE` / `POCKNIX_SOC` | anything | identity |
-| `POCKNIX_PANEL_W` / `POCKNIX_PANEL_H` / `POCKNIX_PANEL_REFRESH` | pocknix-steam (refresh also: RetroArch config) | gamescope -W/-H/-r |
-| `POCKNIX_PANEL_ORIENT` | pocknix-steam | gamescope --force-orientation |
-| `POCKNIX_PANEL_MM` | pocknix-steam | GAMESCOPE_FAKE_OUTPUT_MM (gamepadui DPI; deliberately faked on small panels) |
-| `POCKNIX_DESKTOP_ROTATE` / `POCKNIX_DESKTOP_SCALE` | pocknix-desktop-rotate | kscreen-doctor rotation/scale (seeded once per user; env re-forces) |
-| `POCKNIX_BOARD_UNKNOWN` | pocknix-desktop-rotate | set by the device.conf fallback branch: board not in the list, do not force guessed values |
-| `POCKNIX_PANEL_OUTPUT` | pocknix-steam, pocknix-desktop-rotate | DRM connector of the main panel (`DSI-2`); gamescope `--prefer-output`, the desktop seed's output. Absent = single panel, first DSI |
-| `POCKNIX_PANEL_ROTATE_SHADER` | pocknix-steam | `1` = gamescope `--force-composition-rotation`: required for a panel past the DPU rotator's 1088-line cap, which otherwise scans out black. Absent = rotation autodetected |
-| `POCKNIX_PANEL2_OUTPUT`, `POCKNIX_PANEL2_W` / `POCKNIX_PANEL2_H`, `POCKNIX_DESKTOP2_SCALE` | pocknix-desktop-rotate | second panel (dual-screen boards): enabled, rotated like the main one, scaled, placed below it |
-| `POCKNIX_TOUCH_NAME` / `POCKNIX_TOUCH2_NAME` | pocknix-desktop, pocknix-second-screen | evdev names of the main/second touchscreen: kwin maps each to its output (kcminputrc); the second is libinput-ignored outside the desktop session (udev rule in the board BSP + pocknix-second-screen) |
-| `POCKNIX_BIG_CORES` | via cores.sh: pocknix-steam-env (-> pocknix-game-launch), pocknix-rt-ladder, emulator launchers | cores games and emulators are pinned to; the cores left out are the small cores irq work goes to (on a SoC with no little cluster, leave two mids out) |
-| `POCKNIX_BOOT_STYLE` | pocknix-install-internal | qcom-abl (default) or arm-efi: selects the internal-install boot-file handling (arm-efi pins grub.cfg + fstab to internal PARTUUIDs) |
-| `POCKNIX_INTERNAL_DISK` | pocknix-install/uninstall-internal, installer-gui, pocknix-tools, pocknix-rollback, pocknix-internal-boot-rename | internal disk (default /dev/sda) |
-| `POCKNIX_BOOT_GPT_NAME` / `POCKNIX_BOOT_FAT_LABEL`, `POCKNIX_ROOT_LABEL` | pocknix-install/uninstall-internal, pocknix-tools (root label), pocknix-rollback, pocknix-internal-boot-rename | internal-install boot contract |
+| Key | Used by | Absent | Meaning |
+|---|---|---|---|
+| `POCKNIX_DEVICE` / `POCKNIX_SOC` | anything | required | identity |
+| `POCKNIX_PANEL_W` / `POCKNIX_PANEL_H` / `POCKNIX_PANEL_REFRESH` | pocknix-steam, pocknix-roms-init (refresh also: es-retroarch) | required | gamescope -W/-H/-r |
+| `POCKNIX_PANEL_ORIENT` | pocknix-steam, pocknix-roms-init | required | gamescope --force-orientation |
+| `POCKNIX_PANEL_MM` | pocknix-steam | required | GAMESCOPE_FAKE_OUTPUT_MM (gamepadui DPI; deliberately faked on small panels) |
+| `POCKNIX_DESKTOP_ROTATE` / `POCKNIX_DESKTOP_SCALE` | pocknix-desktop-rotate | required | kscreen-doctor rotation/scale (seeded once per user; env re-forces) |
+| `POCKNIX_BOARD_UNKNOWN` | pocknix-desktop-rotate | board known (only the fallback branch sets it) | set by the device.conf fallback branch: board not in the list, do not force guessed values |
+| `POCKNIX_PANEL_OUTPUT` | pocknix-steam, pocknix-desktop, pocknix-desktop-rotate | single panel, first DSI | DRM connector of the main panel (`DSI-2`); gamescope `--prefer-output`, the desktop seed's output |
+| `POCKNIX_PANEL_ROTATE_SHADER` | pocknix-steam | rotation autodetected | `1` = gamescope `--force-composition-rotation`: required for a panel past the DPU rotator's 1088-line cap, which otherwise scans out black |
+| `POCKNIX_PANEL2_OUTPUT`, `POCKNIX_PANEL2_W` / `POCKNIX_PANEL2_H`, `POCKNIX_DESKTOP2_SCALE` | pocknix-desktop, pocknix-desktop-rotate | single screen (second scale: the main one's) | second panel (dual-screen boards): enabled, rotated like the main one, scaled, placed below it |
+| `POCKNIX_TOUCH_NAME` / `POCKNIX_TOUCH2_NAME` | pocknix-desktop, pocknix-second-screen, pocknix-steam (second) | no touch mapping, no second-screen handling | evdev names of the main/second touchscreen: kwin maps each to its output (kcminputrc); the second is libinput-ignored outside the desktop session (udev rule in the board BSP + pocknix-second-screen) |
+| `POCKNIX_BIG_CORES` | via cores.sh: pocknix-steam-env (-> pocknix-game-launch), pocknix-rt-ladder, emulator launchers | required | cores games and emulators are pinned to; the cores left out are the small cores irq work goes to (on a SoC with no little cluster, leave two mids out) |
+| `POCKNIX_BOOT_STYLE` | pocknix-install-internal | qcom-abl | qcom-abl or arm-efi: selects the internal-install boot-file handling (arm-efi pins grub.cfg + fstab to internal PARTUUIDs) |
+| `POCKNIX_INTERNAL_DISK` | pocknix-install/uninstall-internal, installer-gui, pocknix-tools, pocknix-rollback, pocknix-internal-boot-rename | required | internal disk |
+| `POCKNIX_BOOT_GPT_NAME` / `POCKNIX_BOOT_FAT_LABEL`, `POCKNIX_ROOT_LABEL` | pocknix-install/uninstall-internal, pocknix-tools (root label), pocknix-rollback, pocknix-internal-boot-rename (root label) | required | internal-install boot contract |
+
+Env overrides read by the same scripts, never set in device.conf: `POCKNIX_ROTATE` /
+`POCKNIX_SCALE` / `POCKNIX_OUTPUT` (pocknix-desktop-rotate re-forces the desktop seed with them).
 
 Picking the display values for a new board:
 
@@ -134,8 +141,8 @@ Picking the display values for a new board:
 * `POCKNIX_DESKTOP_SCALE` = the largest 0.25 step that keeps the logical short side >= 480
   (the Plasma Mobile shell needs the height): 1080-line panels -> 2.5, 960-line -> 2.0.
 
-Every consumer falls back to the RP6 values when a key (or the whole file) is absent, so
-a missing/partial device.conf degrades to known-good behavior instead of breaking.
+Every consumer also falls back to the RP6 values when a required key (or the whole file) is
+absent, so a missing/partial device.conf degrades to known-good behavior instead of breaking.
 (The `POCKNIX_BOOT_STYLE` gate exists precisely because those fallbacks would be wrong
 on an arm-efi board's internal storage.)
 

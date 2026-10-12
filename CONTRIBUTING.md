@@ -263,6 +263,17 @@ check it, which is the single biggest reason a PR stalls.
   only fresh images get it. Renaming a package needs `replaces=` + `conflicts=` for the old
   name. The maintainer's publish gate (`scripts/stage-check.sh`) rejects both omissions, so
   fixing them up front saves a round trip.
+- **A `replaces=` or `conflicts=` entry in a `packages/shared/` PKGBUILD** acts on every SoC's
+  devices in one publish (`replaces=` uninstalls the old package on `-Syu`), so each entry gets
+  a row with its reason in `scripts/shared-conflicts.allow`
+  (`<package dir> :: <field>=<entry> :: <reason>`). `make check` fails on an entry without a row
+  and on a row whose entry is gone.
+- **Shared code does not name a chip.** A code line outside `devices/`, `kernel/`, the family
+  docs and `packages/soc/<name>-<soc>/` that names an SoC (`sm8550`) handles today's chips and
+  mishandles the next one. Make it chip-neutral (read device.conf or the build's `SOC`); a
+  deliberate exception gets a row in `scripts/soc-ids.allow` (`<path glob> :: <regex> ::
+  <reason>`). `make check` fails on an uncovered chip id and on a row that matches nothing, so
+  fixing a leak deletes its row.
 - **Do not touch `vendor/`.** `make sync` regenerates it.
 
 ## Requesting a package
