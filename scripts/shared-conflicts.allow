@@ -2,9 +2,6 @@
 # "<package dir> :: <field>=<entry> :: <reason>". [pocknix-shared] is in every SoC's repo order,
 # so the entry acts on every fleet at once, and replaces= uninstalls on -Syu. check.sh fails on
 # an entry without a row and on a row whose entry is gone.
-pocknix-bsp-common :: conflicts=linux-pocknix-sm8550<7.2.6-6 :: HandlePowerKey=suspend needs a kernel that drops the wake press
-pocknix-bsp-common :: conflicts=linux-pocknix-sm8250<7.2.6-3 :: HandlePowerKey=suspend needs a kernel that drops the wake press
-pocknix-bsp-common :: conflicts=pocknix-bsp-sm8550<0.2.0-14 :: took over the cmdline-sync hook older sm8550 BSPs ship
 pocknix-desktop-kde :: conflicts=pocknix-desktop<0.1.0-27 :: files that pocknix-desktop shipped before the split
 pocknix-desktop-plasma-mobile :: conflicts=pocknix-desktop<0.1.0-27 :: files that pocknix-desktop shipped before the split
 pocknix-session :: conflicts=pocknix-desktop<0.1.0-27 :: steamos-session-select lived in pocknix-desktop before the split

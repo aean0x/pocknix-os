@@ -28,8 +28,9 @@ row, which an unknown or absent model gets (`make check` pins the two together).
 
 Adding a **board to an existing family**: a `boards/<board>.conf` (only what differs from
 `boards/family.conf`) + its `boards/models` row(s) + (if its controller differs) an
-inputplumber yaml/map with the board's dt-model `matches:` - plus, on arm-efi SoCs, a
-menuentry in the SoC grub.cfg and the board in the BSP's board-select script
+inputplumber yaml/map with the board's dt-model `matches:` + a `[[device]]` entry in the
+BSP's `root/usr/share/steamos-manager/devices/pocknix-family.toml`, ahead of the SoC entry -
+plus, on arm-efi SoCs, a menuentry in the SoC grub.cfg and the board in the BSP's board-select script
 (pocknix-sm8250-board-select). Bump the BSP (and bootloader) pkgrels. No new packages, no
 new image.
 
@@ -43,7 +44,10 @@ devices/<soc>/
                                   #   SD_FAT_LABEL / SD_BOOT_PARTNAME / ROOT_LABEL (bootloader contract),
                                   #   KERNEL_CMDLINE_* (ONE cmdline for the family),
                                   #   DEVICE_PRETTY, DEVICE_HOSTNAME,
+                                  #   GPU_HWMON (the GPU thermal zone's hwmon name, for mangohud),
                                   #   DEVICE_BSP_PKG / DEVICE_META_PKG / KERNEL_PKG
+  freqs.txt                       # (with power-profiles.d tables) available cpufreq/devfreq
+                                  #   frequencies the tables are checked against
   packages/
     pocknix-bsp-<soc>/            # the family BSP: boards/ (family.conf, one conf per board,
                                   #   models = the table device.conf is rendered from) +
@@ -51,7 +55,12 @@ devices/<soc>/
                                   #   exec bits and symlinks; make check wants 755 exactly on
                                   #   files with a shebang): input maps
                                   #   (dt-model gated), udev quirks, audio UCM, SoC
-                                  #   suspend/cpuidle tweaks, usr/lib/pocknix/kernel-cmdline
+                                  #   suspend/cpuidle tweaks, steamos-manager's device match
+                                  #   (usr/share/steamos-manager/devices/pocknix-family.toml:
+                                  #   the boards, then a qcom,<soc> catch-all), pocknix-perfd's
+                                  #   underclock tables (usr/share/pocknix/power-profiles.d/
+                                  #   family.conf, checked against freqs.txt),
+                                  #   usr/lib/pocknix/kernel-cmdline
                                   #   on qcom-abl (must match the profile - build-packages.sh
                                   #   enforces).
                                   #   MUST: depends=(pocknix-bsp-common)
