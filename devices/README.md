@@ -28,8 +28,9 @@ row, which an unknown or absent model gets (`make check` pins the two together).
 
 Adding a **board to an existing family**: a `boards/<board>.conf` (only what differs from
 `boards/family.conf`) + its `boards/models` row(s) + (if its controller differs) an
-inputplumber yaml/map with the board's dt-model `matches:` - plus, on arm-efi SoCs, a
-menuentry in the SoC grub.cfg and the board in the BSP's board-select script
+inputplumber yaml/map with the board's dt-model `matches:` + a `[[device]]` entry in the
+BSP's `root/usr/share/steamos-manager/devices/pocknix-family.toml`, ahead of the SoC entry -
+plus, on arm-efi SoCs, a menuentry in the SoC grub.cfg and the board in the BSP's board-select script
 (pocknix-sm8250-board-select). Bump the BSP (and bootloader) pkgrels. No new packages, no
 new image.
 
@@ -52,7 +53,10 @@ devices/<soc>/
                                   #   exec bits and symlinks; make check wants 755 exactly on
                                   #   files with a shebang): input maps
                                   #   (dt-model gated), udev quirks, audio UCM, SoC
-                                  #   suspend/cpuidle tweaks, usr/lib/pocknix/kernel-cmdline
+                                  #   suspend/cpuidle tweaks, steamos-manager's device match
+                                  #   (usr/share/steamos-manager/devices/pocknix-family.toml:
+                                  #   the boards, then a qcom,<soc> catch-all),
+                                  #   usr/lib/pocknix/kernel-cmdline
                                   #   on qcom-abl (must match the profile - build-packages.sh
                                   #   enforces).
                                   #   MUST: depends=(pocknix-bsp-common)
