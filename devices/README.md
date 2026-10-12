@@ -46,6 +46,8 @@ devices/<soc>/
                                   #   DEVICE_PRETTY, DEVICE_HOSTNAME,
                                   #   GPU_HWMON (the GPU thermal zone's hwmon name, for mangohud),
                                   #   DEVICE_BSP_PKG / DEVICE_META_PKG / KERNEL_PKG
+  freqs.txt                       # (with power-profiles.d tables) available cpufreq/devfreq
+                                  #   frequencies the tables are checked against
   packages/
     pocknix-bsp-<soc>/            # the family BSP: boards/ (family.conf, one conf per board,
                                   #   models = the table device.conf is rendered from) +
@@ -55,7 +57,9 @@ devices/<soc>/
                                   #   (dt-model gated), udev quirks, audio UCM, SoC
                                   #   suspend/cpuidle tweaks, steamos-manager's device match
                                   #   (usr/share/steamos-manager/devices/pocknix-family.toml:
-                                  #   the boards, then a qcom,<soc> catch-all),
+                                  #   the boards, then a qcom,<soc> catch-all), pocknix-perfd's
+                                  #   underclock tables (usr/share/pocknix/power-profiles.d/
+                                  #   family.conf, checked against freqs.txt),
                                   #   usr/lib/pocknix/kernel-cmdline
                                   #   on qcom-abl (must match the profile - build-packages.sh
                                   #   enforces).
