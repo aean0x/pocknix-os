@@ -134,8 +134,9 @@ check_family() {  # $1 = SoC
   fi
 }
 
-for _k in "${POCKNIX_ROOT}"/kernel/*/kernel.conf; do
-  _soc="$(basename "${_k%/kernel.conf}")"
+# Either half alone is a family: a profile without a kernel dir must fail, not go unchecked.
+for _soc in $(cd "${POCKNIX_ROOT}" && ls -d kernel/*/kernel.conf devices/*/profile.conf 2>/dev/null |
+              cut -d/ -f2 | sort -u); do
   _bad="$(check_family "${_soc}" | paste -sd ';' -)"
   if [ -z "${_bad}" ]; then note "family: ${_soc}" "ok"; else note "family: ${_soc}" "${_bad}"; fail=1; fi
 done
