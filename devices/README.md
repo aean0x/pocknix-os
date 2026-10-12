@@ -99,8 +99,9 @@ device.conf, and cmdline drift. A new tree is never published until its first
 
 ## The runtime contract (`/usr/lib/pocknix/device.conf` -> `boards/<board>.conf`)
 
-Sourced by shared session scripts (`pocknix-steam`, `pocknix-desktop-rotate`,
-`pocknix-play`); `/etc/pocknix/device.conf` is the admin override (sourced after, wins). Keys:
+Sourced at launch by shared scripts (`pocknix-steam`, the desktop session, bsp-common's
+`cores.sh`, the emulation launchers, the install and rollback tools; the table names each);
+`/etc/pocknix/device.conf` is the admin override (sourced after, wins). Keys:
 
 | Key | Used by | Meaning |
 |---|---|---|
