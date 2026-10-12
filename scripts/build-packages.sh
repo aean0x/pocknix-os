@@ -200,7 +200,8 @@ build_one() {
   # its ./paths. Staged here because the gitignored vendor/ tree exists only on the
   # build host, never inside the chroot.
   case "${name}" in pocknix-firmware-*)
-    local fwsrc="${POCKNIX_ROOT}/vendor/rocknix-${name#pocknix-firmware-}/filesystem/usr/lib/kernel-overlays/base/lib/firmware"
+    local fwsrc
+    fwsrc="${VENDOR_DIR}/$(profile_get "$(dirname "$(dirname "${pkgdir%/}")")" FW_SRC_REL)"
     local fwp
     while IFS= read -r fwp; do
       [ -n "${fwp}" ] || continue
