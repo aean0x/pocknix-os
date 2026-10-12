@@ -13,4 +13,3 @@ packages/soc/mangohud/* :: sm[0-9]{4} :: needs issue: the GPU patch is picked by
 packages/shared/steamos-manager/pocknix.toml :: sm[0-9]{4} :: needs issue: one platform stanza per chip
 packages/shared/pocknix-bsp-common/PKGBUILD :: -sm[0-9]{4}< :: needs issue: per-chip kernel and BSP conflicts=
 packages/shared/pocknix-bsp-common/power-profiles.conf :: \.SM[0-9]{4}[].] :: needs issue: per-chip clock tables
-packages/soc/mesa/PKGBUILD :: ^pkgdesc=.*SM8550 :: needs issue: pkgdesc names one chip on every build
