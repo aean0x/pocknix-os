@@ -84,24 +84,31 @@ else note "code comments" "STALE"; printf '%s\n' "${out}" | sed 's/^/    /'; fai
 # --- SoC families: what a new SoC or board must carry (all SoCs, not just DEVICE) ----
 # An unreferenced board never loads; a cmdline drift ships a boot image that disagrees with the
 # on-device rebuild.
-# Keys every board must set: the session, desktop, pinning and install-to-internal consumers
-# fall back to RP6 values without them (devices/README.md runtime contract).
-REQUIRED_BOARD_KEYS="POCKNIX_DEVICE POCKNIX_SOC POCKNIX_PANEL_W POCKNIX_PANEL_H
-  POCKNIX_PANEL_REFRESH POCKNIX_PANEL_ORIENT POCKNIX_PANEL_MM POCKNIX_DESKTOP_ROTATE
-  POCKNIX_DESKTOP_SCALE POCKNIX_BIG_CORES POCKNIX_INTERNAL_DISK POCKNIX_BOOT_GPT_NAME
+# family.conf must carry the SoC and the install-to-internal contract; each board file names
+# itself; and every board must resolve the whole contract from the two (the session, desktop,
+# pinning and install consumers fall back to RP6 values without a key).
+REQUIRED_FAMILY_KEYS="POCKNIX_SOC POCKNIX_INTERNAL_DISK POCKNIX_BOOT_GPT_NAME
   POCKNIX_BOOT_FAT_LABEL POCKNIX_ROOT_LABEL"
+REQUIRED_BOARD_KEYS="POCKNIX_DEVICE"
+REQUIRED_KEYS="${REQUIRED_FAMILY_KEYS} ${REQUIRED_BOARD_KEYS} POCKNIX_PANEL_W POCKNIX_PANEL_H
+  POCKNIX_PANEL_REFRESH POCKNIX_PANEL_ORIENT POCKNIX_PANEL_MM POCKNIX_DESKTOP_ROTATE
+  POCKNIX_DESKTOP_SCALE POCKNIX_BIG_CORES"
+
+# Sources $2 with nothing else set; prints "<unset keys>|<POCKNIX_SOC>".
+resolve_keys() {  # $1 = keys, $2 = file
+  env -i bash -c '. "$1" >/dev/null || exit 1; for k in $2; do eval "[ -n \"\${${k}:-}\" ]" || printf "%s " "${k}"; done
+    printf "|%s" "${POCKNIX_SOC:-}"' sh "$2" "${1//$'\n'/ }"
+}
 
 # Prints one problem per line for a board file; nothing means it is fine.
-check_board() {  # $1 = BSP dir, $2 = board file, $3 = SoC
-  local n r m
-  n="$(basename "$2")"
+check_board() {  # $1 = BSP dir, $2 = board file, $3 = SoC, $4 = scratch copy of boards/
+  local n b r m
+  n="$(basename "$2")"; b="${n%.conf}"
   # Reachable = sourced by the dispatcher or by another board (variants source their base).
   grep -qsE "^[[:space:]]*\. /usr/lib/pocknix/boards/${n//./\\.}([[:space:]]|\$)" \
     "$1/root/usr/lib/pocknix/device.conf" $(ls "$1"/boards/*.conf | grep -v "/${n}\$") || echo "${n} is never sourced"
-  # Evaluated, not grepped: a variant board sources its base board.
-  r="$(sed "s|/usr/lib/pocknix/boards/|$1/boards/|g" "$2" | env -i bash -c '
-    . /dev/stdin || exit 1; for k in '"${REQUIRED_BOARD_KEYS//$'\n'/ }"'; do eval "[ -n \"\${${k}:-}\" ]" || printf "%s " "${k}"; done
-    printf "|%s" "${POCKNIX_SOC:-}"')" || { echo "${n} fails to source"; return; }
+  grep -qx "POCKNIX_DEVICE=${b}" "$2" || echo "${n} must set POCKNIX_DEVICE=${b} itself"
+  r="$(resolve_keys "${REQUIRED_KEYS}" "$4/${n}")" || { echo "${n} fails to source"; return; }
   m="${r%%|*}"; [ -z "${m}" ] || echo "${n} lacks ${m% }"
   [ "${r#*|}" = "$3" ] || echo "${n} says POCKNIX_SOC=${r#*|}"
 }
@@ -109,7 +116,7 @@ check_board() {  # $1 = BSP dir, $2 = board file, $3 = SoC
 # Prints one problem per line for a SoC family; nothing means it is fine.
 check_family() {  # $1 = SoC
   local soc="$1" dev="${POCKNIX_ROOT}/devices/$1" bsp="${POCKNIX_ROOT}/devices/$1/packages/pocknix-bsp-$1"
-  local f p cmd grub line
+  local f p cmd grub line t r m
   for f in "devices/${soc}/profile.conf" "config/tuning/${soc}.conf" "kernel/${soc}/kernel.conf"; do
     [ -f "${POCKNIX_ROOT}/${f}" ] || echo "missing ${f}"
   done
@@ -120,9 +127,20 @@ check_family() {  # $1 = SoC
   done
   [ -f "${bsp}/root/usr/lib/pocknix/device.conf" ] ||
     echo "missing pocknix-bsp-${soc}/root/usr/lib/pocknix/device.conf"
-  for f in "${bsp}"/boards/*.conf; do
-    [ -f "${f}" ] && check_board "${bsp}" "${f}" "${soc}"
-  done
+  if [ -f "${bsp}/boards/family.conf" ]; then
+    # Installed paths point into a scratch copy, so nested sources (variant -> base ->
+    # family.conf) resolve against the tree.
+    t="$(mktemp -d)"
+    for f in "${bsp}"/boards/*.conf; do sed "s|/usr/lib/pocknix/boards/|${t}/|g" "${f}" > "${t}/${f##*/}"; done
+    r="$(resolve_keys "${REQUIRED_FAMILY_KEYS}" "${t}/family.conf")" || echo "family.conf fails to source"
+    m="${r%%|*}"; [ -z "${m}" ] || echo "family.conf lacks ${m% }"
+    for f in "${bsp}"/boards/*.conf; do
+      [ "${f##*/}" = family.conf ] || check_board "${bsp}" "${f}" "${soc}" "${t}"
+    done
+    rm -rf "${t}"
+  else
+    echo "missing pocknix-bsp-${soc}/boards/family.conf"
+  fi
   cmd="$(profile_get "${dev}" KERNEL_CMDLINE)"
   f="${bsp}/root/usr/lib/pocknix/kernel-cmdline"
   if [ -f "${f}" ] && [ "$(cat "${f}")" != "${cmd}" ]; then
