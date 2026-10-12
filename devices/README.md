@@ -41,7 +41,7 @@ devices/<soc>/
                                   #   SOC (selects kernel/<soc>/ + vendor/rocknix-<soc>/),
                                   #   BOOTLOADER (qcom-abl | arm-efi),
                                   #   SD_FAT_LABEL / SD_BOOT_PARTNAME / ROOT_LABEL (bootloader contract),
-                                  #   KERNEL_CMDLINE_* (ONE cmdline for the family), FW_SRC_REL,
+                                  #   KERNEL_CMDLINE_* (ONE cmdline for the family),
                                   #   DEVICE_PRETTY, DEVICE_HOSTNAME,
                                   #   DEVICE_BSP_PKG / DEVICE_META_PKG / KERNEL_PKG
   packages/
@@ -59,8 +59,10 @@ devices/<soc>/
     pocknix-device-<soc>/         # metapackage: depends on the BSP + kernel (+ the
                                   #   bootloader package on arm-efi SoCs) + shared session
                                   #   packages. MUST provides/conflicts=(pocknix-device).
-    pocknix-firmware-<soc>/       # (optional) vendor blobs that must override linux-firmware's,
-                                  #   shipped under /usr/lib/firmware/updates/
+    pocknix-firmware-<soc>/       # (optional) vendor firmware linux-firmware lacks or gets wrong,
+                                  #   fetched by pinned commit + sha256 (never from vendor/),
+                                  #   installed under /usr/lib/firmware/updates/; only boards
+                                  #   in the BSP's boards/models. The BSP depends= on it.
 ```
 
 If the family brings a **new SoC**, also create `kernel/<soc>/` (`kernel.conf` with the

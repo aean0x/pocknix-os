@@ -272,11 +272,11 @@ if [ "${_npatch:-0}" -gt 0 ]; then
 else
   note "kernel: enablement (kernel/${SOC}/ + common/)" "run 'make sync'"
 fi
-# vendor sync is build-time only (gitignored)
+# vendor/ is sync reference only (gitignored); no build reads it
 if [ -d "${VENDOR_DIR}/rocknix-${SOC}/reference" ]; then
-  note "vendor: reference/firmware" "synced"
+  note "vendor: reference" "synced"
 else
-  note "vendor: reference/firmware" "run 'make sync' (build host)"
+  note "vendor: reference" "run 'make sync' (build host)"
 fi
 
 # --- built artifacts (only checked if they exist) --------------------------
