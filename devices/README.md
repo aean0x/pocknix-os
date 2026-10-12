@@ -9,10 +9,12 @@ hardcodes a device fact: the **build** reads `devices/<name>/profile.conf` (sour
 (`make build DEVICE=sm8550` is the default; `DEVICE=sm8250` for the RP5 family):
 each family image serves every board on its SoC, ROCKNIX-style. The BSP
 (`pocknix-bsp-<soc>`) ships per-board facts in `/usr/lib/pocknix/boards/<board>.conf`,
-each sourcing the family-wide `boards/family.conf` first, and `/usr/lib/pocknix/device.conf` is a sourced **dispatcher** that picks one at
-source time by `/proc/device-tree/model`. InputPlumber configs are gated with
-`matches:` on the devicetree model. Since consumers *source* `device.conf`, the
-dispatcher is invisible to them; `/etc/pocknix/device.conf` still overrides.
+each sourcing the family-wide `boards/family.conf` first, and
+`/usr/lib/pocknix/device.conf` is a sourced **dispatcher** that picks one at source time
+by `/proc/device-tree/model`. It is rendered at package time from the BSP's
+`boards/models` table (`<board> <dt model>` rows). InputPlumber configs are gated with
+`matches:` on the devicetree model. Since consumers *source* `device.conf`, the dispatcher
+is invisible to them; `/etc/pocknix/device.conf` still overrides.
 
 Current families:
 
@@ -21,11 +23,15 @@ Current families:
   Thor, which has its own (its extra AYN key).
 * **sm8250** (arm-efi): Retroid Pocket 5, Retroid Pocket Flip 2; each also as a Visionox-panel revision (separate `-visionox` dtb + board conf, picked by the grub `visionox` marker file).
 
-Adding a **board to an existing family**: a `boards/<board>.conf` (only what differs
-from `boards/family.conf`) + a dispatcher case arm + (if its controller differs) an inputplumber yaml/map with the board's dt-model
-`matches:` - plus, on arm-efi SoCs, a menuentry in the SoC grub.cfg and the board in the
-BSP's board-select script (pocknix-sm8250-board-select). Bump the BSP (and bootloader)
-pkgrels. No new packages, no new image.
+The first board a bullet names is the family's fallback: it must be the first `boards/models`
+row, which an unknown or absent model gets (`make check` pins the two together).
+
+Adding a **board to an existing family**: a `boards/<board>.conf` (only what differs from
+`boards/family.conf`) + its `boards/models` row(s) + (if its controller differs) an
+inputplumber yaml/map with the board's dt-model `matches:` - plus, on arm-efi SoCs, a
+menuentry in the SoC grub.cfg and the board in the BSP's board-select script
+(pocknix-sm8250-board-select). Bump the BSP (and bootloader) pkgrels. No new packages, no
+new image.
 
 ## What a family target must provide
 
@@ -39,11 +45,11 @@ devices/<soc>/
                                   #   DEVICE_PRETTY, DEVICE_HOSTNAME,
                                   #   DEVICE_BSP_PKG / DEVICE_META_PKG / KERNEL_PKG
   packages/
-    pocknix-bsp-<soc>/            # the family BSP: boards/ (family.conf + one conf per board)
-                                  #   + root/, the install tree copied
-                                  #   as is (git carries the exec bits and symlinks; make check
-                                  #   wants 755 exactly on files with a shebang): the
-                                  #   usr/lib/pocknix/device.conf dispatcher, input maps
+    pocknix-bsp-<soc>/            # the family BSP: boards/ (family.conf, one conf per board,
+                                  #   models = the table device.conf is rendered from) +
+                                  #   root/, the install tree copied as is (git carries the
+                                  #   exec bits and symlinks; make check wants 755 exactly on
+                                  #   files with a shebang): input maps
                                   #   (dt-model gated), udev quirks, audio UCM, SoC
                                   #   suspend/cpuidle tweaks, usr/lib/pocknix/kernel-cmdline
                                   #   on qcom-abl (must match the profile - build-packages.sh
@@ -71,7 +77,8 @@ copied to the SD boot FAT. Each SoC gets its own pacman repo tree
 binaries, so the repos must not mix. They build for every SoC already (`socs` = `all`);
 a SoC-specific kernel config or a local patch delta goes in `kernel/<soc>/` (see
 kernel/README.md). `make check` validates every family: required files, family and board keys,
-dispatcher reachability and cmdline drift. A new tree is never published until its first
+the models table against boards/ (and grub.cfg + board-select on arm-efi), the rendered
+device.conf, and cmdline drift. A new tree is never published until its first
 `make stage`/`make publish`; stage-check skips it for the other SoCs until then.
 
 ## Boot styles (`BOOTLOADER` in profile.conf)
@@ -86,7 +93,7 @@ dispatcher reachability and cmdline drift. A new tree is never published until i
   a RAW Image; the board dtb is a separate `/boot/grub/<board>.dtb`; the cmdline lives
   in grub.cfg (`packages/soc/pocknix-bootloader-<soc>/grub.cfg` - build-packages.sh
   enforces it matches the profile's `KERNEL_CMDLINE`). Board selection at the boot
-  level is the GRUB menuentry; at the OS level it's the dispatcher + model gates.
+  level is the GRUB menuentry; at the OS level it's device.conf + model gates.
   The stock ABL SD-boots this chain too; the ROCKNIX ABL kit on the SD boot FAT is
   optional here.
 
@@ -135,7 +142,7 @@ on an arm-efi board's internal storage.)
    and note the DTS `model =` string - it keys everything at runtime.
 2. `boards/<board>.conf` in the family BSP (panel geometry/orientation from the DTS; keys
    every board shares, like `POCKNIX_BIG_CORES`, live in `boards/family.conf`); display
-   values per the rule above + a dispatcher case arm.
+   values per the rule above + a `boards/models` row per DT model string.
 3. InputPlumber: extend the family yaml's `matches:` if the board shares the family
    controller, or add a new model-gated yaml + capability map if it differs.
 4. UCM if the sound card name differs; udev quirks as needed. arm-efi: add the board's
@@ -143,6 +150,6 @@ on an arm-efi board's internal storage.)
    Dual-screen board: the `POCKNIX_PANEL2_*`/`POCKNIX_TOUCH*` keys plus a udev rule
    ignoring the second touchscreen unless `/run/pocknix/second-screen` exists (see
    the sm8550 BSP's Thor rule); gamescope blanks the second panel by itself.
-5. `make check` (board keys, dispatcher, cmdline); bump pkgrels; `make build DEVICE=<soc>`.
+5. `make check` (board keys, models table, cmdline); bump pkgrels; `make build DEVICE=<soc>`.
    No shared file should need editing; if one does, the boundary has a hole: fix the
    boundary, not the device.
