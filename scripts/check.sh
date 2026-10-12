@@ -362,6 +362,46 @@ for _s in "${POCKNIX_ROOT}"/kernel/*/common-skip; do
 done
 if [ -z "${_stale}" ]; then note "kernel common-skip" "ok"; else note "kernel common-skip" "not in kernel/common/patches:${_stale}"; fail=1; fi
 
+SOC_ID_RE='(^|[^a-z0-9])sm[0-9]{4}([^0-9]|$)'
+# Prints one problem per line for "<path>:<line>:<text>" hits on stdin: a chip id in a code line
+# (comments stripped) that no row of allow file $1 covers, or a row that matches nothing.
+check_soc_ids() {  # $1 = allow file
+  local r h p n t i used=" "
+  local -a globs=() res=()
+  while IFS= read -r r; do
+    case "${r}" in ''|'#'*) continue ;; *' :: '*' :: '?*) ;; *) echo "${1##*/}: malformed row '${r}'"; continue ;; esac
+    globs+=("${r%% :: *}"); r="${r#* :: }"; res+=("${r%% :: *}")
+  done < "$1"
+  while IFS= read -r h; do
+    p="${h%%:*}"; t="${h#*:}"; n="${t%%:*}"; t="${t#*:}"
+    t="$(sed -E 's/^[[:space:]]*#.*//; s/[[:space:]]#.*//' <<< "${t}")"
+    grep -qiE "${SOC_ID_RE}" <<< "${t}" || continue
+    for i in "${!globs[@]}"; do
+      # shellcheck disable=SC2053  # the row's glob is meant to glob
+      [[ "${p}" == ${globs[i]} ]] && grep -qiE -- "${res[i]}" <<< "${t}" && { used="${used}${i} "; continue 2; }
+    done
+    echo "${p}:${n} names a chip"
+  done
+  for i in "${!globs[@]}"; do
+    case "${used}" in *" ${i} "*) ;; *) echo "${1##*/}: '${globs[i]} :: ${res[i]}' matches nothing" ;; esac
+  done
+}
+
+# Shared code that names today's chips mishandles the next one; the chip trees, the family
+# docs and packages/soc/<name>-<soc>/ are where chip names belong.
+_allow="${POCKNIX_ROOT}/scripts/soc-ids.allow"
+_bad="$(git -C "${POCKNIX_ROOT}" grep -n -I -i -E "${SOC_ID_RE}" -- . ':!devices/' ':!kernel/' \
+          ':!PATCHES.md' ':!CONTRIBUTING.md' ':!README.md' ':!docs/' ':(exclude,glob)**/*.allow' \
+          ':(exclude,glob)packages/soc/*-sm[0-9][0-9][0-9][0-9]/**' | check_soc_ids "${_allow}" | paste -sd ';' -)"
+if [ -z "${_bad}" ]; then note "chip ids outside chip trees" "ok"
+else note "chip ids outside chip trees" "${_bad}"; fail=1; fi
+_id="sm""8750"   # split so this line is no hit itself
+_out="$(printf '%s\n' "packages/shared/pocknix-steam/pocknix-steam:1:  [ \"\${s}\" = ${_id} ]" \
+          "packages/shared/pocknix-steam/pocknix-steam:2:  # ${_id} probes late" | check_soc_ids "${_allow}")"
+if grep -q '^packages/shared/pocknix-steam/pocknix-steam:1 names a chip' <<< "${_out}" && ! grep -q 'steam:2' <<< "${_out}"; then
+  note "chip ids self-test" "ok"
+else note "chip ids self-test" "a stray chip id in shared code went unflagged (or a comment was flagged)"; fail=1; fi
+
 # Docs name only what the tree has; structural READMEs follow their dirs and keep no versions.
 if "${POCKNIX_ROOT}/scripts/check-docs.sh"; then note "docs match the tree" "ok"
 else note "docs match the tree" "see the lines above"; fail=1; fi
