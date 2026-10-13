@@ -355,13 +355,25 @@ check_meta_gpus() {  # $1 = meta PKGBUILD, $2 = GPU_GEN, $3 = packages/soc dir
   done
 }
 
+# A variable as kernel/<soc>/kernel.conf resolves it, in a clean environment like profile_get.
+kernel_get() {  # $1 = SoC, $2 = variable name
+  env -i bash -c '. "$1" && printf "%s" "${!2:-}"' sh "${POCKNIX_ROOT}/kernel/$1/kernel.conf" "$2"
+}
+
 # Prints one problem per line for a SoC family; nothing means it is fine.
 check_family() {  # $1 = SoC
   local soc="$1" dev="${POCKNIX_ROOT}/devices/$1" bsp="${POCKNIX_ROOT}/devices/$1/packages/pocknix-bsp-$1"
-  local f p grub ids sel b m pb pm ok gen meta
+  local f p grub ids sel b m pb pm ok gen meta rel
   for f in "devices/${soc}/profile.conf" "devices/${soc}/tuning.conf" "kernel/${soc}/kernel.conf"; do
     [ -f "${POCKNIX_ROOT}/${f}" ] || echo "missing ${f}"
   done
+  # The shared kernel recipe takes its pkgrel from here; makepkg dies on a missing one.
+  if [ -f "${POCKNIX_ROOT}/kernel/${soc}/kernel.conf" ]; then
+    rel="$(kernel_get "${soc}" KERNEL_PKGREL)"
+    case "${rel}" in
+      ''|*[!0-9]*|0*) echo "kernel/${soc}/kernel.conf KERNEL_PKGREL='${rel}' is not a positive integer" ;;
+    esac
+  fi
   [ -f "${dev}/profile.conf" ] || return
   grep -q "^| kernel (${soc}" "${POCKNIX_ROOT}/PATCHES.md" || echo "no PATCHES.md kernel row"
   for p in DEVICE_BSP_PKG DEVICE_META_PKG; do

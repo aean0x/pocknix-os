@@ -31,7 +31,7 @@ not and cannot relicense them. The main ones:
 
 | Component | Where | Upstream license |
 |---|---|---|
-| Linux kernel + patch series | `kernel/`, `packages/soc/linux-pocknix-*` | GPL-2.0-only |
+| Linux kernel + patch series | `kernel/`, `packages/soc/linux-pocknix/` | GPL-2.0-only |
 | ROCKNIX patches, scripts, BSP material | `kernel/*/patches`, various packages | GPL-2.0 |
 | ROCKNIX-built GRUB binary | `packages/soc/pocknix-bootloader-sm8250` | GPL-3.0-or-later (GRUB) |
 | ROCKNIX ABL (fetched, pinned) | `packages/soc/pocknix-bootloader-*` | BSD-3-Clause (Qualcomm edk2 LinuxLoader) |

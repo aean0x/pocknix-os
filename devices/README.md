@@ -39,8 +39,9 @@ new image.
 * Data about one chip (profile, tuning, freqs, boards) goes in `devices/<soc>/`.
 * A chip's own `arch=any` packages (its BSP, its device meta) go in `devices/<soc>/packages/`.
 * A recipe built per chip goes in `packages/soc/`, gated by its `socs` or `gpus` file. The
-  goal is one recipe for every chip; `linux-pocknix-<soc>` and `pocknix-bootloader-<soc>`
-  are the remaining one-chip recipes until they are templated.
+  goal is one recipe for every chip: `packages/soc/linux-pocknix/` builds every chip's kernel
+  package from its `kernel/<soc>/kernel.conf`; `pocknix-bootloader-<soc>` is the remaining
+  one-chip recipe until it is templated.
 * `packages/shared/` only if the bytes are identical for every chip.
 
 ## What a family target must provide
@@ -95,10 +96,10 @@ devices/<soc>/
 ```
 
 If the family brings a **new SoC**, also create `kernel/<soc>/` (`kernel.conf` with the
-source pins + `config/ patches/ dts/ bootloader/` - populated by `make sync` against the
-ROCKNIX device dir named in `ROCKNIX_SOC`), a thin `packages/soc/linux-pocknix-<soc>/`
-(copy an existing one; it only packages `make kernel` output, plus `mkbootimg` on qcom-abl;
-the /flash deploy is bsp-common's and needs nothing per SoC) and a
+source pins, `KERNEL_PKGREL` (1 for a new chip) + `config/ patches/ dts/ bootloader/` -
+populated by `make sync` against the ROCKNIX device dir named in `ROCKNIX_SOC`); the kernel
+package needs no recipe of its own (`packages/soc/linux-pocknix/` packages `make kernel` output,
+plus `mkbootimg` on qcom-abl; the /flash deploy is bsp-common's and needs nothing per SoC), and a
 `packages/soc/pocknix-bootloader-<soc>/` - on arm-efi SoCs the GRUB payload
 + a grub.cfg.in template (see pocknix-bootloader-sm8250), on both styles the ROCKNIX ABL install kit
 copied to the SD boot FAT. Each SoC gets its own pacman repo tree
