@@ -35,7 +35,7 @@ source "${POCKNIX_ROOT}/devices/${DEVICE}/profile.conf"
 profile_defaults
 source "${POCKNIX_ROOT}/kernel/${SOC}/kernel.conf"
 # Per-SoC userspace compiler tuning: the tuned packages/soc PKGBUILDs read these
-# (build-packages.sh injects them into makepkg's environment).
+# (build-packages.sh injects them into every packages/soc and packages/gpu makepkg environment).
 source "${POCKNIX_ROOT}/devices/${DEVICE}/tuning.conf"
 
 # Paths derived from the profile (must come after it):

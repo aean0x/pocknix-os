@@ -40,8 +40,8 @@ not and cannot relicense them. The main ones:
 | MangoHud | `packages/soc/mangohud` | MIT |
 | FEX-Emu | `packages/soc/fex-emu` | MIT |
 | alsa-ucm-conf material | `devices/*` BSPs | BSD-3-Clause |
-| Valve DXVK build (fetched, pinned) | `packages/soc/pocknix-dxvk2-donor` | zlib |
-| Proton-GE, Proton-CachyOS | `packages/soc/proton-*-dxvk2` | BSD-3-Clause (Proton) plus each bundled component's own |
+| Valve DXVK build (fetched, pinned) | `packages/gpu/pocknix-dxvk2-donor` | zlib |
+| Proton-GE, Proton-CachyOS | `packages/gpu/proton-*-dxvk2` | BSD-3-Clause (Proton) plus each bundled component's own |
 | Packaged emulators, tools, and libraries | `packages/*` | each project's own license |
 
 PKGBUILDs in `packages/` fetch pinned upstream sources; the resulting binary packages and

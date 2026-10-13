@@ -49,8 +49,8 @@ Especially welcome:
 | Path | What lives there |
 |---|---|
 | `packages/shared/<pkg>/` | SoC-neutral packages, built once for every device. Most contributions land here. |
-| `packages/soc/<pkg>/` | Packages built per SoC family (GPU stack, emulators, kernels); a `socs` file names the families or says `all`, or a `gpus` file names the Adreno generations (matched against each profile's `GPU_GEN`). |
-| `packages/attic/<pkg>/` | Retired recipes, kept for reference and never built. |
+| `packages/soc/<pkg>/` | Packages built per SoC family (GPU stack, emulators, kernels); a `socs` file names the families or says `all`. |
+| `packages/gpu/<pkg>/` | Packages built per Adreno generation; a `gpus` file names the generations, matched against each profile's `GPU_GEN`. |
 | `devices/<soc>/` | Per-SoC-family and per-board facts: `profile.conf`, compiler tuning, the device metapackage, BSP package, InputPlumber configs. `devices/README.md` says where a new file goes. |
 | `kernel/<soc>/` | Committed kernel inputs: pinned version, patch series, config, dts. See `kernel/README.md`. |
 | `kernel/common/patches/` | Our SoC-neutral kernel patches, applied to every SoC. |

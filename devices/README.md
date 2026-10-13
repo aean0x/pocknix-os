@@ -38,10 +38,12 @@ new image.
 
 * Data about one chip (profile, tuning, freqs, boards) goes in `devices/<soc>/`.
 * A chip's own `arch=any` packages (its BSP, its device meta) go in `devices/<soc>/packages/`.
-* A recipe built per chip goes in `packages/soc/`, gated by its `socs` or `gpus` file. The
-  goal is one recipe for every chip: `packages/soc/linux-pocknix/` builds every chip's kernel
+* A recipe built per chip goes in `packages/soc/`, gated by its `socs` file. The goal is
+  one recipe for every chip: `packages/soc/linux-pocknix/` builds every chip's kernel
   package from its `kernel/<soc>/kernel.conf`; `pocknix-bootloader-<soc>` is the remaining
   one-chip recipe until it is templated.
+* A recipe built per Adreno generation goes in `packages/gpu/`, gated by its `gpus` file
+  against each profile's `GPU_GEN`. Neither dir takes the other's gate file.
 * `packages/shared/` only if the bytes are identical for every chip.
 
 ## What a family target must provide
@@ -55,7 +57,7 @@ devices/<soc>/
                                   #   for the family), DEVICE_PRETTY,
                                   #   GPU_HWMON (the GPU thermal zone's hwmon name, for mangohud),
                                   #   GPU_GEN (Adreno generation, a6xx/a7xx/a8xx: selects the
-                                  #   packages/soc packages gated by a ./gpus file).
+                                  #   packages/gpu packages whose ./gpus file lists it).
                                   #   Defaults a profile may override: config/pocknix.conf
                                   #   (DEVICE_HOSTNAME, SD_FAT_LABEL / SD_BOOT_PARTNAME /
                                   #   ROOT_LABEL, set before the profile: override with X=value)
@@ -63,7 +65,7 @@ devices/<soc>/
                                   #   DEVICE_BSP_PKG / DEVICE_META_PKG / KERNEL_PKG from SOC)
   freqs.txt                       # (with power-profiles.d tables) available cpufreq/devfreq
                                   #   frequencies the tables are checked against
-  tuning.conf                     # userspace compiler tuning for the chip's packages/soc
+  tuning.conf                     # userspace compiler tuning for the chip's per-SoC
                                   #   builds: POCKNIX_TUNE_CFLAGS (ROCKNIX's TARGET_CPU/FLAGS
                                   #   composed as -march/-mtune), POCKNIX_FEX_TUNE_CPU (per
                                   #   their fex package.mk mapping)
@@ -106,7 +108,7 @@ copied to the SD boot FAT. Each SoC gets its own pacman repo tree
 (`build/localrepo/<soc>`, published at `POCKNIX_REPO_URL/<soc>`): the tuned packages
 (mesa, gamescope, mangohud, fex-emu) share pkgnames across SoCs with different
 binaries, so the repos must not mix. They build for every SoC already (`socs` = `all`), and
-packages gated by GPU generation (a `gpus` file, e.g. the a6xx `-dxvk2` protons) follow the
+packages gated by GPU generation (`packages/gpu/`, e.g. the a6xx `-dxvk2` protons) follow the
 profile's `GPU_GEN`: a new SoC on a known Adreno generation sets it and lists them in its meta;
 a SoC-specific kernel config or a local patch delta goes in `kernel/<soc>/` (see
 kernel/README.md). `make check` validates every family: required files, family and board keys,
