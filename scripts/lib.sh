@@ -13,16 +13,26 @@ export POCKNIX_ROOT="$(cd "${_lib_dir}/.." && pwd)"
 source "${POCKNIX_ROOT}/config/pocknix.conf"
 
 # --- device profile + per-SoC kernel pins -----------------------------------
-# The device profile (devices/<name>/profile.conf) declares everything device-
-# specific: SoC, partition labels/names, kernel cmdline, firmware source,
-# device packages. It sets SOC, which selects the per-SoC kernel tree and its
-# source pins (kernel/<soc>/kernel.conf).
+# The device profile (devices/<name>/profile.conf) declares what differs per family: SoC,
+# boot style, kernel cmdline, GPU sensor. It sets SOC, which selects the per-SoC kernel tree
+# and its source pins (kernel/<soc>/kernel.conf).
 if [ ! -f "${POCKNIX_ROOT}/devices/${DEVICE}/profile.conf" ]; then
   printf 'error: unknown DEVICE=%s — available: %s\n' \
     "${DEVICE}" "$(ls "${POCKNIX_ROOT}/devices" 2>/dev/null | tr '\n' ' ')" >&2
   exit 1
 fi
+# Profile defaults that derive from the profile's own keys, so they run after it; a profile
+# sets any of them to override. The SoC-neutral ones live in config/pocknix.conf instead,
+# because a profile expands them (ROOT_LABEL in its cmdline) while it is being sourced, so a
+# profile overrides those with a plain X=value.
+profile_defaults() {
+  : "${KERNEL_CMDLINE:=${KERNEL_CMDLINE_ROOT} ${KERNEL_CMDLINE_EXTRA}}"
+  : "${DEVICE_BSP_PKG:=pocknix-bsp-${SOC}}"
+  : "${DEVICE_META_PKG:=pocknix-device-${SOC}}"
+  : "${KERNEL_PKG:=linux-pocknix-${SOC}}"
+}
 source "${POCKNIX_ROOT}/devices/${DEVICE}/profile.conf"
+profile_defaults
 source "${POCKNIX_ROOT}/kernel/${SOC}/kernel.conf"
 # Per-SoC userspace compiler tuning: the tuned packages/soc PKGBUILDs read these
 # (build-packages.sh injects them into makepkg's environment).
@@ -32,10 +42,6 @@ source "${POCKNIX_ROOT}/config/tuning/${SOC}.conf"
 : "${DEVICE_DIR:=${POCKNIX_ROOT}/devices/${DEVICE}}"
 : "${KERNEL_DIR:=${POCKNIX_ROOT}/kernel/${SOC}}"
 : "${ROCKNIX_DEVICE_DIR:=${ROCKNIX_PROJECT_DIR}/devices/${ROCKNIX_SOC}}"
-# Boot-image style for the SoC's bootloader: qcom-abl (ABL boots an Android
-# boot image, sm8550) or arm-efi (ABL chainloads GRUB, raw Image, sm8250).
-# Set per profile; default qcom-abl.
-: "${BOOTLOADER:=qcom-abl}"
 # Per-SoC pacman repo: tuned packages (mesa etc.) share pkgnames across SoCs
 # with different binaries, so each SoC gets its own localrepo/published tree.
 # packages/shared/* are byte-identical across SoCs: built once into the shared
@@ -84,16 +90,11 @@ need_tool(){ have "$1" || die "missing required tool: $1"; }
 # --- package lists ---------------------------------------------------------
 # awk $1, not sed 's/#.*//': sed keeps the whitespace before an inline comment and
 # pacman then can't match the name.
-# A variable as one family's profile alone sets it: the profile assigns with ":=" defaults, so
-# the selected DEVICE's values (already loaded) are cleared first, by the names it assigns.
+# A variable as one family's build resolves it (pocknix.conf, its profile, the defaults), in a
+# clean environment: everything assigns with ":=", so the selected DEVICE's values would win.
 profile_get() {  # $1 = devices/<soc> dir, $2 = variable name
-  (
-    for _v in $(sed -nE 's/^: "\$\{([A-Z0-9_]+):=.*/\1/p; s/^([A-Z0-9_]+)=.*/\1/p' "$1/profile.conf"); do
-      unset "${_v}"
-    done
-    . "$1/profile.conf"
-    eval "printf '%s' \"\${$2:-}\""
-  )
+  env -i POCKNIX_ROOT="${POCKNIX_ROOT}" bash -c "$(declare -f profile_defaults)"'
+    . "${POCKNIX_ROOT}/config/pocknix.conf" && . "$1/profile.conf" && profile_defaults && printf "%s" "${!2:-}"' sh "$1" "$2"
 }
 
 read_pkglist() {

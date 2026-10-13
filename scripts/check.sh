@@ -112,7 +112,7 @@ rm -rf "${_t}"
 
 # --- scripts executable ----------------------------------------------------
 for s in sync.sh bootstrap.sh build-image.sh build-kernel.sh build-packages.sh \
-         build-sd-image.sh stage-repo.sh stage-check.sh publish-repo.sh install.sh check.sh check-docs.sh; do
+         build-sd-image.sh stage-repo.sh stage-check.sh publish-repo.sh install.sh check.sh check-docs.sh render-bsp.sh; do
   [ -x "${POCKNIX_ROOT}/scripts/${s}" ] && note "exec: scripts/${s}" "ok" || { note "exec: scripts/${s}" "not +x"; fail=1; }
 done
 
@@ -169,20 +169,27 @@ if printf '%s\n' "${_out}" | grep -q 'reads POCKNIX_BOGUS, which' && ! printf '%
 else note "device.conf keys self-test" "a consumer reading an undocumented key went unflagged"; fail=1; fi
 rm -rf "${_t}"
 
-# Copies boards dir $1 to a scratch dir (printed) with the installed paths pointing into it, so
-# nested sources (variant -> base -> family.conf) resolve against the tree.
-stage_boards() {  # $1 = boards dir
-  local t f
-  t="$(mktemp -d)"
-  for f in "$1"/*.conf; do sed "s|/usr/lib/pocknix/boards/|${t}/|g" "${f}" > "${t}/${f##*/}"; done
+# Lays out boards dir $1 as family $2's BSP installs it (with what scripts/render-bsp.sh renders:
+# device.conf and family.conf) in a scratch dir (printed). Installed paths point into it, so
+# nested sources (variant -> base -> family.conf) and the dispatcher resolve against the tree.
+stage_boards() {  # $1 = boards dir, $2 = SoC
+  local t r f dev="${POCKNIX_ROOT}/devices/$2"
+  t="$(mktemp -d)"; r="$(mktemp -d)"
+  BOOTLOADER="$(profile_get "${dev}" BOOTLOADER)" SD_FAT_LABEL="$(profile_get "${dev}" SD_FAT_LABEL)" \
+    ROOT_LABEL="$(profile_get "${dev}" ROOT_LABEL)" "${POCKNIX_ROOT}/scripts/render-bsp.sh" "$1" "${r}" ||
+    { rm -rf "${t}" "${r}"; return 1; }
+  for f in "$1"/*.conf "${r}"/*.conf; do
+    sed -e "s|/usr/lib/pocknix/boards/|${t}/|g" -e "s|/proc/device-tree/model|${t}/model|g" "${f}" > "${t}/${f##*/}"
+  done
+  rm -rf "${r}"
   printf '%s' "${t}"
 }
 
-# Prints "<key>=<value>" for each POCKNIX_* key board $2 resolves from BSP boards dir $1.
-board_values() {  # $1 = boards dir, $2 = board
+# Prints "<key>=<value>" for each POCKNIX_* key board $3 of family $2 resolves from boards dir $1.
+board_values() {  # $1 = boards dir, $2 = SoC, $3 = board
   local t rc=0
-  t="$(stage_boards "$1")"
-  env -i bash -c '. "$1" >/dev/null || exit 1; for k in ${!POCKNIX_@}; do printf "%s=%s\n" "${k}" "${!k}"; done' sh "${t}/$2.conf" || rc=1
+  t="$(stage_boards "$1" "$2")" || return 1
+  env -i bash -c '. "$1" >/dev/null || exit 1; for k in ${!POCKNIX_@}; do printf "%s=%s\n" "${k}" "${!k}"; done' sh "${t}/$3.conf" || rc=1
   rm -rf "${t}"
   return "${rc}"
 }
@@ -218,7 +225,7 @@ _ref_boards="${POCKNIX_ROOT}/devices/${_ref_soc}/packages/pocknix-bsp-${_ref_soc
 _ref_board="$(awk '!/^[[:space:]]*(#|$)/ { print $1; exit }' "${_ref_boards}/models" 2>/dev/null || true)"
 _fb_allow="${POCKNIX_ROOT}/scripts/fallbacks.allow"
 if [ -z "${_ref_board}" ]; then _bad="no reference board (config/pocknix.conf DEVICE default -> boards/models)"
-elif ! _ref="$(board_values "${_ref_boards}" "${_ref_board}")"; then _bad="reference board ${_ref_board} fails to source"
+elif ! _ref="$(board_values "${_ref_boards}" "${_ref_soc}" "${_ref_board}")"; then _bad="reference board ${_ref_board} fails to source"
 else _bad="$(check_fallbacks "${_keys}" "${_ref}" "${_fb_allow}" "${_consumers[@]}" | paste -sd ';' -)"; fi
 if [ -z "${_bad}" ]; then note "device.conf fallbacks" "ok (reference ${_ref_board})"
 else note "device.conf fallbacks" "${_bad}"; fail=1; fi
@@ -236,7 +243,7 @@ rm -rf "${_t}"
 # resolve each key the table marks required from the two (the consumers fall back to RP6 values
 # without one, which is wrong on any other panel or disk).
 REQUIRED_FAMILY_KEYS="POCKNIX_SOC POCKNIX_INTERNAL_DISK POCKNIX_BOOT_GPT_NAME
-  POCKNIX_BOOT_FAT_LABEL POCKNIX_ROOT_LABEL"
+  POCKNIX_BOOT_STYLE POCKNIX_BOOT_FAT_LABEL POCKNIX_ROOT_LABEL"
 REQUIRED_KEYS="$(printf '%s\n' "${_keys}" | awk '$2 == "required" { print $1 }' | paste -sd ' ' -)"
 for _k in ${REQUIRED_FAMILY_KEYS} POCKNIX_DEVICE; do
   case " ${REQUIRED_KEYS} " in *" ${_k} "*) ;;
@@ -260,14 +267,14 @@ probe_model() {  # $1 = scratch dir, $2 = model, $3 = expected
   [ ! -s "$1/device.conf.out" ] || echo "device.conf: model '$2' prints to stdout"
 }
 
-# Prints one problem per line for a BSP's boards/; nothing means it is fine. $3 lets the
+# Prints one problem per line for a BSP's boards/; nothing means it is fine. $2 lets the
 # self-test below point it at a doctored copy.
-check_boards() {  # $1 = BSP dir, $2 = SoC, $3 = boards dir
-  local bsp="$1" soc="$2" boards="$3" t f n b m r rows="" first="" firstm="" got want
+check_boards() {  # $1 = SoC, $2 = boards dir
+  local soc="$1" boards="$2" t f n b m r rows="" first="" firstm="" got want
   for f in family.conf models; do
     [ -f "${boards}/${f}" ] || { echo "missing boards/${f}"; return; }
   done
-  t="$(stage_boards "${boards}")"
+  t="$(stage_boards "${boards}" "${soc}")" || { echo "scripts/render-bsp.sh fails for ${soc}"; return; }
   r="$(resolve_keys "${REQUIRED_FAMILY_KEYS}" "${t}/family.conf")" || echo "family.conf fails to source"
   m="${r%%|*}"; [ -z "${m}" ] || echo "family.conf lacks ${m% }"
 
@@ -305,8 +312,6 @@ check_boards() {  # $1 = BSP dir, $2 = SoC, $3 = boards dir
 
   # The rendered dispatcher: each row picks its board, anything else the first board flagged
   # unknown, and nothing reaches stdout (cores.sh sources it inside $(...)).
-  ( cd "${bsp}" && . ./PKGBUILD && _device_conf "${boards}/models" ) 2>/dev/null |
-    sed -e "s|/usr/lib/pocknix/boards/|${t}/|g" -e "s|/proc/device-tree/model|${t}/model|g" > "${t}/device.conf"
   if sh -n "${t}/device.conf" 2>/dev/null; then
     while IFS='|' read -r b m; do
       probe_model "${t}" "${m}" "${b}|"
@@ -331,7 +336,7 @@ check_family() {  # $1 = SoC
   for p in DEVICE_BSP_PKG DEVICE_META_PKG; do
     [ -f "${dev}/packages/$(profile_get "${dev}" "${p}")/PKGBUILD" ] || echo "${p} has no package under devices/${soc}/packages/"
   done
-  check_boards "${bsp}" "${soc}" "${bsp}/boards"
+  check_boards "${soc}" "${bsp}/boards"
   # The build renders the cmdline from the profile; a committed copy would be a second source.
   [ ! -e "${bsp}/root/usr/lib/pocknix/kernel-cmdline" ] ||
     echo "BSP commits root/usr/lib/pocknix/kernel-cmdline, which the build renders from the profile"
@@ -383,25 +388,11 @@ _t="$(mktemp -d)"
 _bsp="${POCKNIX_ROOT}/devices/${SOC}/packages/pocknix-bsp-${SOC}"
 cp -R "${_bsp}/boards" "${_t}/"
 printf '. /usr/lib/pocknix/boards/family.conf\nPOCKNIX_DEVICE=stray\n' > "${_t}/boards/stray.conf"
-_out="$(check_boards "${_bsp}" "${SOC}" "${_t}/boards")"
+_out="$(check_boards "${SOC}" "${_t}/boards")"
 if printf '%s\n' "${_out}" | grep -q '^stray.conf is in no models row'; then
   note "board check self-test" "ok"
 else note "board check self-test" "a board in no models row went unflagged"; fail=1; fi
 rm -rf "${_t}"
-
-# makepkg sees only the package dir, so each BSP carries its own _device_conf; a fix landed in
-# one copy would leave the other families rendering the old dispatcher.
-device_conf_body() { sed -n '/^_device_conf()/,/^}/p' "$1"; }
-_ref="$(device_conf_body "${_bsp}/PKGBUILD")"; _drift=""
-for _f in "${POCKNIX_ROOT}"/devices/*/packages/pocknix-bsp-*/PKGBUILD; do
-  [ "$(device_conf_body "${_f}")" = "${_ref}" ] || _drift="${_drift} ${_f#"${POCKNIX_ROOT}"/}"
-done
-if [ -z "${_drift}" ]; then note "BSP _device_conf copies" "identical"
-else note "BSP _device_conf copies" "differ from ${SOC}'s:${_drift}"; fail=1; fi
-# Self-test: a line added inside the body must change what the comparison sees.
-if [ "$(awk '{ print } /^_device_conf\(\)/ { print "  : drifted" }' "${_bsp}/PKGBUILD" |
-        device_conf_body /dev/stdin)" != "${_ref}" ]; then note "BSP _device_conf self-test" "ok"
-else note "BSP _device_conf self-test" "a drifted _device_conf body compared equal"; fail=1; fi
 
 # A device package's root/ is copied as is, so the git mode is the installed mode: a script
 # committed 644 installs 644 and never runs.
