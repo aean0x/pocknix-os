@@ -233,7 +233,7 @@ build_one() {
   # (the kernel package, the Steam stack, fex-rootfs) just to lay out a few files. Their
   # depends= still ships in the .pkg metadata; -d only skips build-time resolution. A
   # ./nodeps marker opts in other packages whose runtime deps would drag a layer in.
-  # Per-SoC tuning (config/tuning/${SOC}.conf via lib.sh) rides the makepkg
+  # Per-SoC tuning (devices/<soc>/tuning.conf via lib.sh) rides the makepkg
   # environment: the tuned PKGBUILDs read POCKNIX_TUNE_CFLAGS/POCKNIX_FEX_TUNE_CPU
   # (falling back to their sm8550 strings when unset, e.g. standalone makepkg).
   local mkflags="-s" tune_env
