@@ -43,7 +43,9 @@ devices/<soc>/
                                   #   BOOTLOADER (qcom-abl | arm-efi),
                                   #   KERNEL_CMDLINE_ROOT / KERNEL_CMDLINE_EXTRA (ONE cmdline
                                   #   for the family), DEVICE_PRETTY,
-                                  #   GPU_HWMON (the GPU thermal zone's hwmon name, for mangohud).
+                                  #   GPU_HWMON (the GPU thermal zone's hwmon name, for mangohud),
+                                  #   GPU_GEN (Adreno generation, a6xx/a7xx/a8xx: selects the
+                                  #   packages/soc packages gated by a ./gpus file).
                                   #   Defaults a profile may override: config/pocknix.conf
                                   #   (DEVICE_HOSTNAME, SD_FAT_LABEL / SD_BOOT_PARTNAME /
                                   #   ROOT_LABEL, set before the profile: override with X=value)
@@ -68,9 +70,11 @@ devices/<soc>/
                                   #   No kernel-cmdline: the build renders it from the profile.
                                   #   MUST: depends=(pocknix-bsp-common)
                                   #   provides/conflicts=(pocknix-bsp)   <- wrong-device guard
-    pocknix-device-<soc>/         # metapackage: depends on the BSP + kernel (+ the
-                                  #   bootloader package on arm-efi SoCs) + shared session
-                                  #   packages. MUST provides/conflicts=(pocknix-device).
+    pocknix-device-<soc>/         # metapackage: depends on the BSP + kernel + bootloader
+                                  #   + its protons: exactly the ./gpus packages listing its
+                                  #   GPU_GEN (make check enforces), the stock ones otherwise.
+                                  #   Nothing every family needs: that goes on pocknix-core.
+                                  #   MUST provides/conflicts=(pocknix-device).
     pocknix-firmware-<soc>/       # (optional) vendor firmware linux-firmware lacks or gets wrong,
                                   #   fetched by pinned commit + sha256 (never from vendor/),
                                   #   installed under /usr/lib/firmware/updates/; only boards
@@ -88,9 +92,12 @@ mapping), and a `packages/soc/pocknix-bootloader-<soc>/` - on arm-efi SoCs the G
 copied to the SD boot FAT. Each SoC gets its own pacman repo tree
 (`build/localrepo/<soc>`, published at `POCKNIX_REPO_URL/<soc>`): the tuned packages
 (mesa, gamescope, mangohud, fex-emu) share pkgnames across SoCs with different
-binaries, so the repos must not mix. They build for every SoC already (`socs` = `all`);
+binaries, so the repos must not mix. They build for every SoC already (`socs` = `all`), and
+packages gated by GPU generation (a `gpus` file, e.g. the a6xx `-dxvk2` protons) follow the
+profile's `GPU_GEN`: a new SoC on a known Adreno generation sets it and lists them in its meta;
 a SoC-specific kernel config or a local patch delta goes in `kernel/<soc>/` (see
 kernel/README.md). `make check` validates every family: required files, family and board keys,
+the meta's `gpus` packages against `GPU_GEN`,
 the models table against boards/ and the dts model lines (and grub.cfg + board-select on
 arm-efi), the consumers' fallbacks, the rendered device.conf and family.conf, and that
 the cmdline has no committed copy outside the profile. The BSP PKGBUILD installs what the
