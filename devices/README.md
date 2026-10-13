@@ -34,6 +34,15 @@ plus, on arm-efi SoCs, a menuentry in the SoC grub.cfg.in template and the board
 (pocknix-sm8250-board-select). Bump the BSP (and bootloader) pkgrels. No new packages, no
 new image.
 
+## Where a new file goes
+
+* Data about one chip (profile, tuning, freqs, boards) goes in `devices/<soc>/`.
+* A chip's own `arch=any` packages (its BSP, its device meta) go in `devices/<soc>/packages/`.
+* A recipe built per chip goes in `packages/soc/`, gated by its `socs` or `gpus` file. The
+  goal is one recipe for every chip; `linux-pocknix-<soc>` and `pocknix-bootloader-<soc>`
+  are the remaining one-chip recipes until they are templated.
+* `packages/shared/` only if the bytes are identical for every chip.
+
 ## What a family target must provide
 
 ```
@@ -53,6 +62,10 @@ devices/<soc>/
                                   #   DEVICE_BSP_PKG / DEVICE_META_PKG / KERNEL_PKG from SOC)
   freqs.txt                       # (with power-profiles.d tables) available cpufreq/devfreq
                                   #   frequencies the tables are checked against
+  tuning.conf                     # userspace compiler tuning for the chip's packages/soc
+                                  #   builds: POCKNIX_TUNE_CFLAGS (ROCKNIX's TARGET_CPU/FLAGS
+                                  #   composed as -march/-mtune), POCKNIX_FEX_TUNE_CPU (per
+                                  #   their fex package.mk mapping)
   packages/
     pocknix-bsp-<soc>/            # the family BSP: boards/ (family.conf, one conf per board,
                                   #   models = the table device.conf is rendered from;
@@ -85,9 +98,8 @@ If the family brings a **new SoC**, also create `kernel/<soc>/` (`kernel.conf` w
 source pins + `config/ patches/ dts/ bootloader/` - populated by `make sync` against the
 ROCKNIX device dir named in `ROCKNIX_SOC`), a thin `packages/soc/linux-pocknix-<soc>/`
 (copy an existing one; it only packages `make kernel` output, plus `mkbootimg` on qcom-abl;
-the /flash deploy is bsp-common's and needs nothing per SoC), a `config/tuning/<soc>.conf` (ROCKNIX's
-TARGET_CPU/FLAGS composed as -march/-mtune; FEX TUNE_CPU per their fex package.mk
-mapping), and a `packages/soc/pocknix-bootloader-<soc>/` - on arm-efi SoCs the GRUB payload
+the /flash deploy is bsp-common's and needs nothing per SoC) and a
+`packages/soc/pocknix-bootloader-<soc>/` - on arm-efi SoCs the GRUB payload
 + a grub.cfg.in template (see pocknix-bootloader-sm8250), on both styles the ROCKNIX ABL install kit
 copied to the SD boot FAT. Each SoC gets its own pacman repo tree
 (`build/localrepo/<soc>`, published at `POCKNIX_REPO_URL/<soc>`): the tuned packages
