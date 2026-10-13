@@ -327,16 +327,12 @@ main() {
     return 1
   }
 
-  local built=0 name force devdir devsoc pkgsocs
+  local built=0 name force devdir devsoc pkgsocs pkggpus
   local -a failed=()
-  # Shared packages (packages/shared/*/ — built once, into [pocknix-shared]) +
-  # per-SoC packages (packages/soc/*/ — each declares its SoCs in ./socs) +
-  # device packages (devices/*/packages/*/ — the arch=any BSPs/metapackages
-  # build in seconds). Per-SoC/device packages are scoped to the CURRENT SoC's
-  # repo: device packages via their profile's SOC, packages/soc via the socs
-  # file (which also keeps the sm8250-only dxvk2 protons — replaces= hazard —
-  # out of the sm8550 repo entirely). Up-to-date packages are skipped (see
-  # build_one); PKG= names and POCKNIX_FORCE_REBUILD=1 force.
+  # Per-SoC and device packages build only into the CURRENT SoC's repo: device packages by
+  # their profile's SOC, packages/soc by ./socs or by ./gpus against GPU_GEN. The gpus gate
+  # keeps the a6xx dxvk2 protons out of every other GPU's repo, where their replaces= would
+  # downgrade DXVK. PKG= names and POCKNIX_FORCE_REBUILD=1 force past the up-to-date skip.
   for pkgdir in "${PACKAGES_DIR}"/shared/*/ "${PACKAGES_DIR}"/soc/*/ "${POCKNIX_ROOT}"/devices/*/packages/*/; do
     [ -f "${pkgdir}/PKGBUILD" ] || continue
     name="$(basename "${pkgdir}")"
@@ -346,9 +342,15 @@ main() {
       [ "${devsoc}" = "${SOC}" ] || continue
     ;; esac
     case "${pkgdir}" in */packages/soc/*)
-      [ -f "${pkgdir}/socs" ] || die "${name}: packages/soc/ package with no socs file — declare its SoC(s), one space-separated line, or all"
-      read -r pkgsocs < "${pkgdir}/socs"
-      case " ${pkgsocs} " in " all "|*" ${SOC} "*) ;; *) continue ;; esac
+      if [ -f "${pkgdir}/gpus" ]; then
+        [ -n "${GPU_GEN:-}" ] || die "${name}: gated on ./gpus but devices/${DEVICE}/profile.conf sets no GPU_GEN"
+        read -r pkggpus < "${pkgdir}/gpus" || true
+        case " ${pkggpus} " in *" ${GPU_GEN} "*) ;; *) continue ;; esac
+      else
+        [ -f "${pkgdir}/socs" ] || die "${name}: packages/soc/ package with no socs or gpus file — declare its SoC(s) (or all), or its GPU generation(s), on one space-separated line"
+        read -r pkgsocs < "${pkgdir}/socs"
+        case " ${pkgsocs} " in " all "|*" ${SOC} "*) ;; *) continue ;; esac
+      fi
     ;; esac
     force=0
     [ "${POCKNIX_FORCE_REBUILD:-0}" = "1" ] && force=1

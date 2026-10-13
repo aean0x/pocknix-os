@@ -22,21 +22,35 @@ done
 
 # --- package placement: shared/ vs soc/ -------------------------------------
 # The split is load-bearing: shared/ builds once into [pocknix-shared], soc/
-# builds per SoC gated by ./socs. A PKGBUILD directly under packages/ is
-# invisible to the build; a soc/ package without socs (or with an unknown SoC)
-# would silently vanish from every repo; a socs file under shared/ is a
-# misplacement (shared builds must be SoC-blind).
+# builds per SoC gated by ./socs, or by ./gpus against each profile's GPU_GEN. A
+# PKGBUILD directly under packages/ is invisible to the build; a soc/ package
+# with neither gate (or an unknown SoC or GPU) would silently vanish from every
+# repo; a socs file under shared/ is a misplacement (shared builds must be SoC-blind).
 while IFS= read -r p; do
   note "package: ${p#"${POCKNIX_ROOT}"/}" "OUTSIDE shared/ and soc/ — never built"; fail=1
 done < <(find "${POCKNIX_ROOT}/packages" -maxdepth 2 -name PKGBUILD \
            ! -path "*/packages/shared/*" ! -path "*/packages/soc/*" 2>/dev/null)
+_gens=" $(for _d in "${POCKNIX_ROOT}"/devices/*/profile.conf; do profile_get "${_d%/profile.conf}" GPU_GEN; echo; done | sort -u | paste -sd ' ' -) "
 for p in "${POCKNIX_ROOT}"/packages/soc/*/; do
   [ -d "${p}" ] || continue
   n="$(basename "${p}")"
-  if [ ! -f "${p}/socs" ]; then
-    note "soc pkg: ${n}" "MISSING socs file"; fail=1; continue
+  if [ -f "${p}/socs" ] && [ -f "${p}/gpus" ]; then
+    note "soc pkg: ${n}" "has both socs and gpus (one gate per package)"; fail=1; continue
   fi
-  read -r _socs < "${p}/socs"
+  if [ -f "${p}/gpus" ]; then
+    read -r _gpus < "${p}/gpus" || true   # a 0-byte file fails read; the empty check reports it
+    bad=0
+    for g in ${_gpus}; do
+      case "${_gens}" in *" ${g} "*) ;; *) note "soc pkg: ${n}" "gpus names '${g}', which no profile's GPU_GEN is"; fail=1; bad=1 ;; esac
+    done
+    [ -n "${_gpus}" ] || { note "soc pkg: ${n}" "empty gpus file"; fail=1; bad=1; }
+    [ "${bad}" -eq 0 ] && note "soc pkg: ${n}" "gpus: ${_gpus}"
+    continue
+  fi
+  if [ ! -f "${p}/socs" ]; then
+    note "soc pkg: ${n}" "MISSING socs or gpus file"; fail=1; continue
+  fi
+  read -r _socs < "${p}/socs" || true
   bad=0
   # "all" = every kernel/<soc>, so a new SoC needs no socs edits; it never mixes with names.
   if [ "${_socs}" = all ]; then note "soc pkg: ${n}" "socs: all"; continue; fi
@@ -324,10 +338,27 @@ check_boards() {  # $1 = SoC, $2 = boards dir
   rm -rf "${t}"
 }
 
+# Prints one problem per line: meta PKGBUILD $1 must depend on every $3/*/gpus package listing
+# GPU_GEN $2 and on none that omits it, so a meta carrying another generation's packages fails.
+# Metas run nothing at top level, so sourcing reads depends= exactly.
+check_meta_gpus() {  # $1 = meta PKGBUILD, $2 = GPU_GEN, $3 = packages/soc dir
+  local deps g n
+  deps=" $( (set +eu; . "$1" >/dev/null 2>&1; printf '%s ' "${depends[@]}") ) "
+  for g in "$3"/*/gpus; do
+    [ -f "${g}" ] || continue
+    n="${g%/gpus}"; n="${n##*/}"
+    if grep -qw -- "$2" "${g}"; then
+      case "${deps}" in *" ${n} "*) ;; *) echo "${1##*/devices/} lacks ${n} (its gpus lists $2)" ;; esac
+    else
+      case "${deps}" in *" ${n} "*) echo "${1##*/devices/} depends on ${n}, whose gpus omits $2" ;; esac
+    fi
+  done
+}
+
 # Prints one problem per line for a SoC family; nothing means it is fine.
 check_family() {  # $1 = SoC
   local soc="$1" dev="${POCKNIX_ROOT}/devices/$1" bsp="${POCKNIX_ROOT}/devices/$1/packages/pocknix-bsp-$1"
-  local f p grub ids sel b m pb pm ok
+  local f p grub ids sel b m pb pm ok gen meta
   for f in "devices/${soc}/profile.conf" "config/tuning/${soc}.conf" "kernel/${soc}/kernel.conf"; do
     [ -f "${POCKNIX_ROOT}/${f}" ] || echo "missing ${f}"
   done
@@ -337,6 +368,12 @@ check_family() {  # $1 = SoC
     [ -f "${dev}/packages/$(profile_get "${dev}" "${p}")/PKGBUILD" ] || echo "${p} has no package under devices/${soc}/packages/"
   done
   check_boards "${soc}" "${bsp}/boards"
+  gen="$(profile_get "${dev}" GPU_GEN)"
+  meta="${dev}/packages/$(profile_get "${dev}" DEVICE_META_PKG)/PKGBUILD"
+  case "${gen}" in
+    a[0-9]xx) [ ! -f "${meta}" ] || check_meta_gpus "${meta}" "${gen}" "${POCKNIX_ROOT}/packages/soc" ;;
+    *) echo "profile GPU_GEN '${gen}' is not an Adreno generation (a6xx, a7xx, ...)" ;;
+  esac
   # The build renders the cmdline from the profile; a committed copy would be a second source.
   [ ! -e "${bsp}/root/usr/lib/pocknix/kernel-cmdline" ] ||
     echo "BSP commits root/usr/lib/pocknix/kernel-cmdline, which the build renders from the profile"
@@ -392,6 +429,26 @@ _out="$(check_boards "${SOC}" "${_t}/boards")"
 if printf '%s\n' "${_out}" | grep -q '^stray.conf is in no models row'; then
   note "board check self-test" "ok"
 else note "board check self-test" "a board in no models row went unflagged"; fail=1; fi
+rm -rf "${_t}"
+
+# The meta rule must catch a missing gpus package: a meta listing all of one generation's
+# gpus packages but the first has to be flagged for exactly that one.
+_t="$(mktemp -d)"; _gen=""; _n=""; _deps=""
+for _g in "${POCKNIX_ROOT}"/packages/soc/*/gpus; do
+  [ -f "${_g}" ] || continue
+  [ -n "${_gen}" ] || read -r _gen _ < "${_g}" || true
+  grep -qw -- "${_gen}" "${_g}" || continue
+  _p="${_g%/gpus}"; _p="${_p##*/}"
+  if [ -z "${_n}" ]; then _n="${_p}"; else _deps="${_deps} '${_p}'"; fi
+done
+if [ -z "${_n}" ]; then note "device meta GPU rule self-test" "skipped (no gpus packages)"
+else
+  printf 'depends=(%s)\n' "${_deps}" > "${_t}/PKGBUILD"
+  if [ "$(check_meta_gpus "${_t}/PKGBUILD" "${_gen}" "${POCKNIX_ROOT}/packages/soc")" = \
+       "${_t}/PKGBUILD lacks ${_n} (its gpus lists ${_gen})" ]; then
+    note "device meta GPU rule self-test" "ok"
+  else note "device meta GPU rule self-test" "a ${_gen} meta without ${_n} went unflagged (or flagged more)"; fail=1; fi
+fi
 rm -rf "${_t}"
 
 # A device package's root/ is copied as is, so the git mode is the installed mode: a script
