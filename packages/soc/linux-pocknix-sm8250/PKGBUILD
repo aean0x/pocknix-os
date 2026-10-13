@@ -2,10 +2,10 @@
 # linux-pocknix-sm8550, whose header carries the thin-package rationale.
 # arm-efi difference: no boot image, no mkbootimg. GRUB loads /flash/KERNEL as a RAW Image plus a
 # separate /flash/boot/grub/<board>.dtb, and the cmdline lives in grub.cfg
-# (pocknix-bootloader-sm8250), so the alpm hook only copies Image + dtbs.
+# (pocknix-bootloader-sm8250), so the /flash deploy only copies Image + dtbs.
 pkgname=linux-pocknix-sm8250
 pkgver=7.2.10
-pkgrel=3
+pkgrel=4
 pkgdesc="SM8250 kernel (stock ${pkgver} + ROCKNIX patch stack, SoC board dtbs) — packaged from 'make kernel' output"
 arch=('aarch64')
 url="https://github.com/shuuri-labs/pocknix-os"
@@ -17,8 +17,6 @@ conflicts=('linux-aarch64')
 replaces=('linux-aarch64')
 install=linux-pocknix.install
 options=('!strip')          # the kernel Image and DTBs must not be stripped
-source=('pocknix-update-boot' '90-linux-pocknix.hook')
-sha256sums=('SKIP' 'SKIP')
 
 package() {
   local out="${startdir}/staged"     # = build/kernel/out, copied in by scripts/build-packages.sh
@@ -36,9 +34,7 @@ package() {
   install -d "${pkgdir}/usr/lib/modules"
   cp -a "${out}/modroot/lib/modules/${kver}" "${pkgdir}/usr/lib/modules/${kver}"
 
-  # the install scriptlet and the /flash refresh hook read this to find the modules dir
+  # the install scriptlet and the /flash deploy read this to find the modules dir
   install -Dm644 /dev/stdin "${pkgdir}/usr/lib/pocknix/kernelrelease" <<<"${kver}"
 
-  install -Dm755 "${srcdir}/pocknix-update-boot"    "${pkgdir}/usr/bin/pocknix-update-boot"
-  install -Dm644 "${srcdir}/90-linux-pocknix.hook"  "${pkgdir}/usr/share/libalpm/hooks/90-linux-pocknix.hook"
 }
