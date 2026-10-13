@@ -268,6 +268,10 @@ check it, which is the single biggest reason a PR stalls.
   a row with its reason in `scripts/shared-conflicts.allow`
   (`<package dir> :: <field>=<entry> :: <reason>`). `make check` fails on an entry without a row
   and on a row whose entry is gone.
+- **A device.conf consumer's fallback** (`${POCKNIX_<key>:-<value>}`) is the RP6 value for a
+  key devices/README.md marks required and 0 or empty for an optional one; an exception gets a
+  row with its reason in `scripts/fallbacks.allow` (`<key> :: <reason>`). `make check` fails on
+  a fallback that breaks the rule without a row and on a row that matches no fallback.
 - **Shared code does not name a chip.** A code line outside `devices/`, `kernel/`, the family
   docs and `packages/soc/<name>-<soc>/` that names an SoC (`sm8550`) handles today's chips and
   mishandles the next one. Make it chip-neutral (read device.conf or the build's `SOC`); a

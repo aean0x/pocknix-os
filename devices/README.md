@@ -88,7 +88,8 @@ copied to the SD boot FAT. Each SoC gets its own pacman repo tree
 binaries, so the repos must not mix. They build for every SoC already (`socs` = `all`);
 a SoC-specific kernel config or a local patch delta goes in `kernel/<soc>/` (see
 kernel/README.md). `make check` validates every family: required files, family and board keys,
-the models table against boards/ (and grub.cfg + board-select on arm-efi), the rendered
+the models table against boards/ and the dts model lines (and grub.cfg + board-select on
+arm-efi), the consumers' fallbacks, the rendered
 device.conf, that every BSP PKGBUILD carries the same `_device_conf` (makepkg only sees the
 package dir, so each family keeps a copy: change them together), and cmdline drift. A new tree is never published until its first
 `make stage`/`make publish`; stage-check skips it for the other SoCs until then.
@@ -154,11 +155,15 @@ Every consumer also falls back to the RP6 values when a required key (or the who
 absent, so a missing/partial device.conf degrades to known-good behavior instead of breaking.
 (The `POCKNIX_BOOT_STYLE` gate exists precisely because those fallbacks would be wrong
 on an arm-efi board's internal storage.)
+`make check` holds each consumer's `${POCKNIX_<key>:-<value>}` to that rule: a required key's
+fallback is the RP6 value, an optional key's is 0 or empty, and `scripts/fallbacks.allow` lists
+the exceptions with a reason.
 
 ## Bring-up checklist for a new board
 
 1. Confirm the board's dtb is in `kernel/<soc>/dts` (re-`make sync` if ROCKNIX added it)
-   and note the DTS `model =` string - it keys everything at runtime.
+   and note the DTS `model =` string - it keys everything at runtime (`make check` fails a
+   `boards/models` row that no `model = "...";` under `kernel/<soc>/dts` declares).
 2. `boards/<board>.conf` in the family BSP (panel geometry/orientation from the DTS; keys
    every board shares, like `POCKNIX_BIG_CORES`, live in `boards/family.conf`); display
    values per the rule above + a `boards/models` row per DT model string.
