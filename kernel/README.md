@@ -23,7 +23,6 @@ kernel/
     patches/30-<soc>/    ROCKNIX device patches + our 1000+     <- make sync, plus ours
     dts/                 device trees for every board on the SoC  <- make sync
     config/              ROCKNIX kernel config + firmware list  <- make sync (overwritten)
-    bootloader/          ROCKNIX boot packaging, reference only <- make sync
     sync-keep            our local delta inside the synced dirs
     config-delta         scripts/config arguments on top of the synced config (optional)
     config-assert        symbols that must end up =y (optional)
