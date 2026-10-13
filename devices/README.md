@@ -98,7 +98,7 @@ devices/<soc>/
 ```
 
 If the family brings a **new SoC**, also create `kernel/<soc>/` (`kernel.conf` with the
-source pins, `KERNEL_PKGREL` (1 for a new chip) + `config/ patches/ dts/ bootloader/` -
+source pins, `KERNEL_PKGREL` (1 for a new chip) + `config/ patches/ dts/` -
 populated by `make sync` against the ROCKNIX device dir named in `ROCKNIX_SOC`); the kernel
 package needs no recipe of its own (`packages/soc/linux-pocknix/` packages `make kernel` output,
 plus `mkbootimg` on qcom-abl; the /flash deploy is bsp-common's and needs nothing per SoC), and a
