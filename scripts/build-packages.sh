@@ -131,10 +131,15 @@ setup_chroot() {
   fi
 }
 
-# Packages that also build from the SoC's profile (build_one stages ./staged/kernel-cmdline
-# into them), so a profile edit must rebuild them like an edit to their own dir. pocknix.conf
-# counts too: sm8250's root= is its SD_ROOT_PARTUUID.
-profile_pkg() { case "$1" in "${DEVICE_BSP_PKG}"|"pocknix-bootloader-${SOC}") return 0 ;; esac; return 1; }
+# Files outside a package's dir that it is also built from (build_one stages what they render
+# into ./staged), so editing one rebuilds it like an edit to its own dir. pocknix.conf holds the
+# SD labels and sm8250's root= PARTUUID.
+pkg_extra_srcs() {  # $1 = package name
+  case "$1" in
+    "${DEVICE_BSP_PKG}") echo "${DEVICE_DIR}/profile.conf ${CONFIG_DIR}/pocknix.conf ${POCKNIX_ROOT}/scripts/render-bsp.sh" ;;
+    "pocknix-bootloader-${SOC}") echo "${DEVICE_DIR}/profile.conf ${CONFIG_DIR}/pocknix.conf" ;;
+  esac
+}
 
 build_one() {
   local pkgdir="$1" force="${2:-0}" name; name="$(basename "${pkgdir}")"
@@ -155,17 +160,16 @@ build_one() {
   # POCKNIX_FORCE_REBUILD=1 rebuilds everything. The kernel package also rebuilds whenever
   # `make kernel` produced a newer Image than the packaged one.
   if [ "${force}" -eq 0 ]; then
-    local uptodate=1 nlist=0 p f
+    local uptodate=1 nlist=0 p f s
     while IFS= read -r p; do
       nlist=$((nlist+1))
       f="${repo_dir}/$(basename "${p}")"
       if [ ! -f "${f}" ] || [ -n "$(find "${pkgdir}" -newer "${f}" -print -quit)" ]; then
         uptodate=0; break
       fi
-      if profile_pkg "${name}" && { [ "${DEVICE_DIR}/profile.conf" -nt "${f}" ] ||
-           [ "${CONFIG_DIR}/pocknix.conf" -nt "${f}" ]; }; then
-        uptodate=0; break
-      fi
+      for s in $(pkg_extra_srcs "${name}"); do
+        [ "${s}" -nt "${f}" ] && { uptodate=0; break 2; }
+      done
       case "${name}" in linux-pocknix-*)
         if [ -f "${KERNEL_BUILD_DIR}/out/Image" ] && [ "${KERNEL_BUILD_DIR}/out/Image" -nt "${f}" ]; then
           uptodate=0; break
@@ -207,9 +211,13 @@ build_one() {
   ;; esac
   # The cmdline is written once, in the profile: the qcom-abl BSP installs it for the on-device
   # boot image rebuild, the arm-efi bootloader renders it into grub.cfg.
-  if profile_pkg "${name}"; then
+  if [ "${name}" = "${DEVICE_BSP_PKG}" ] || [ "${name}" = "pocknix-bootloader-${SOC}" ]; then
     mkdir -p "${BROOT}/build/${name}/staged"
     printf '%s\n' "${KERNEL_CMDLINE}" > "${BROOT}/build/${name}/staged/kernel-cmdline"
+  fi
+  if [ "${name}" = "${DEVICE_BSP_PKG}" ]; then
+    BOOTLOADER="${BOOTLOADER}" SD_FAT_LABEL="${SD_FAT_LABEL}" ROOT_LABEL="${ROOT_LABEL}" \
+      "${POCKNIX_ROOT}/scripts/render-bsp.sh" "${pkgdir}/boards" "${BROOT}/build/${name}/staged"
   fi
   # Persistent source cache: SRCDEST lives OUTSIDE the per-package build dir (which is wiped
   # every run), so makepkg downloads each source ONCE and reuses it. File sources (e.g.
@@ -334,7 +342,7 @@ main() {
     name="$(basename "${pkgdir}")"
     case "${pkgdir}" in */devices/*/packages/*)
       devdir="$(dirname "$(dirname "${pkgdir%/}")")"
-      devsoc="$(unset SOC; . "${devdir}/profile.conf" >/dev/null 2>&1; printf '%s' "${SOC}")"
+      devsoc="$(profile_get "${devdir}" SOC)"
       [ "${devsoc}" = "${SOC}" ] || continue
     ;; esac
     case "${pkgdir}" in */packages/soc/*)
