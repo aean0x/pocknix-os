@@ -39,6 +39,10 @@ image; `arm-efi`: raw Image + dtbs for GRUB). The numbered dirs follow ROCKNIX's
 order (mainline, then the version dir, then the device dir): device patches can depend on
 version-dir context.
 
+The `linux-pocknix-<soc>` package ships only that output (plus `mkbootimg` on qcom-abl). The
+on-device /flash deploy belongs to pocknix-bsp-common, which picks it by the board's
+`POCKNIX_BOOT_STYLE`, so a new SoC adds no boot scripts.
+
 ## Where a patch goes
 
 - **Ours and generic** (code that runs on any SoC): `kernel/common/patches/`, numbered 1000+.

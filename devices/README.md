@@ -80,8 +80,8 @@ devices/<soc>/
 If the family brings a **new SoC**, also create `kernel/<soc>/` (`kernel.conf` with the
 source pins + `config/ patches/ dts/ bootloader/` - populated by `make sync` against the
 ROCKNIX device dir named in `ROCKNIX_SOC`), a thin `packages/soc/linux-pocknix-<soc>/`
-(copy an existing one; it only packages `make kernel` output - note the qcom-abl vs
-arm-efi difference in its /flash hook), a `config/tuning/<soc>.conf` (ROCKNIX's
+(copy an existing one; it only packages `make kernel` output, plus `mkbootimg` on qcom-abl;
+the /flash deploy is bsp-common's and needs nothing per SoC), a `config/tuning/<soc>.conf` (ROCKNIX's
 TARGET_CPU/FLAGS composed as -march/-mtune; FEX TUNE_CPU per their fex package.mk
 mapping), and a `packages/soc/pocknix-bootloader-<soc>/` - on arm-efi SoCs the GRUB payload
 + a grub.cfg.in template (see pocknix-bootloader-sm8250), on both styles the ROCKNIX ABL install kit
@@ -100,10 +100,14 @@ copy an existing family's `package()`. A new tree is never published until its f
 
 ## Boot styles (`BOOTLOADER` in profile.conf)
 
+On the device the style is `POCKNIX_BOOT_STYLE`, rendered into the BSP's family.conf from
+`BOOTLOADER`; bsp-common's `pocknix-boot-deploy` runs that style's /flash deploy for every
+kernel update, rollback and cmdline change. Kernel packages ship no deploy scripts or hooks.
+
 * `qcom-abl` (sm8550): the ROCKNIX ABL boots an Android boot image (`/KERNEL`,
   mkbootimg, cmdline baked in, all dtbs appended - ABL picks by board id). The BSP
   ships `/usr/lib/pocknix/kernel-cmdline`, which build-packages.sh renders from the profile's
-  `KERNEL_CMDLINE` into its `./staged`; the kernel package's hook rebuilds /flash/KERNEL on device.
+  `KERNEL_CMDLINE` into its `./staged`; bsp-common's kernel hook rebuilds /flash/KERNEL on device.
   The SD boot FAT also carries `rocknix_abl/` (pocknix-bootloader-<soc>): ROCKNIX's
   first-install kit for flashing that ABL from rooted stock Android - inert at boot,
   pocknix never flashes it itself.
@@ -138,7 +142,7 @@ leaves it unset); otherwise it says what a board without the key gets. Keys:
 | `POCKNIX_PANEL2_OUTPUT`, `POCKNIX_PANEL2_W` / `POCKNIX_PANEL2_H`, `POCKNIX_DESKTOP2_SCALE` | pocknix-desktop, pocknix-desktop-rotate | single screen (second scale: the main one's) | second panel (dual-screen boards): enabled, rotated like the main one, scaled, placed below it |
 | `POCKNIX_TOUCH_NAME` / `POCKNIX_TOUCH2_NAME` | pocknix-desktop, pocknix-second-screen, pocknix-steam (second) | no touch mapping, no second-screen handling | evdev names of the main/second touchscreen: kwin maps each to its output (kcminputrc); the second is libinput-ignored outside the desktop session (udev rule in the board BSP + pocknix-second-screen) |
 | `POCKNIX_BIG_CORES` | via cores.sh: pocknix-steam-env (-> pocknix-game-launch), pocknix-rt-ladder, emulator launchers | required | cores games and emulators are pinned to; the cores left out are the small cores irq work goes to (on a SoC with no little cluster, leave two mids out) |
-| `POCKNIX_BOOT_STYLE` | pocknix-install-internal | required | qcom-abl or arm-efi (rendered from the profile's `BOOTLOADER`): selects the internal-install boot-file handling (arm-efi pins grub.cfg + fstab to internal PARTUUIDs) |
+| `POCKNIX_BOOT_STYLE` | pocknix-install-internal, pocknix-boot-deploy (the kernel hook, pocknix-rollback, pocknix-cmdline-sync) | required | qcom-abl or arm-efi (rendered from the profile's `BOOTLOADER`): selects the /flash kernel deploy (`pocknix-build-bootimg` or `pocknix-update-boot`) and the internal-install boot-file handling (arm-efi pins grub.cfg + fstab to internal PARTUUIDs) |
 | `POCKNIX_INTERNAL_DISK` | pocknix-install/uninstall-internal, installer-gui, pocknix-tools, pocknix-rollback, pocknix-internal-boot-rename | required | internal disk |
 | `POCKNIX_BOOT_GPT_NAME` / `POCKNIX_BOOT_FAT_LABEL`, `POCKNIX_ROOT_LABEL` | pocknix-install/uninstall-internal, pocknix-tools (root label), pocknix-rollback, pocknix-internal-boot-rename (root label) | required | internal-install boot contract (the two labels are rendered from `SD_FAT_LABEL` / `ROOT_LABEL`, config/pocknix.conf defaults a profile may override) |
 
