@@ -27,7 +27,7 @@ done
 # from every repo, and another dir's gate file means the package sits in the wrong dir.
 while IFS= read -r p; do
   note "package: ${p#"${POCKNIX_ROOT}"/}" "OUTSIDE shared/, soc/ and gpu/: never built"; fail=1
-done < <(find "${POCKNIX_ROOT}/packages" -maxdepth 2 -name PKGBUILD \
+done < <(find "${POCKNIX_ROOT}/packages" -maxdepth 3 -name PKGBUILD \
            ! -path "*/packages/shared/*" ! -path "*/packages/soc/*" ! -path "*/packages/gpu/*" 2>/dev/null)
 _gens=" $(for _d in "${POCKNIX_ROOT}"/devices/*/profile.conf; do profile_get "${_d%/profile.conf}" GPU_GEN; echo; done | sort -u | paste -sd ' ' -) "
 for p in "${POCKNIX_ROOT}"/packages/gpu/*/; do
