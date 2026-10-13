@@ -125,8 +125,7 @@ if out="$(python3 "${POCKNIX_ROOT}/scripts/check-comments.py" 2>&1)"; then note 
 else note "code comments" "STALE"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
 
 # --- SoC families: what a new SoC or board must carry (all SoCs, not just DEVICE) ----
-# An unreferenced board never loads; a cmdline drift ships a boot image that disagrees with the
-# on-device rebuild.
+# An unreferenced board never loads.
 # devices/README.md's key table as "<key> required|optional" (the Absent column says "required"
 # or what an absent key means) plus its "Env overrides" names as "<key> env". A table that stops
 # parsing empties REQUIRED_KEYS, which the family-key loop below fails on.
@@ -323,7 +322,7 @@ check_boards() {  # $1 = BSP dir, $2 = SoC, $3 = boards dir
 # Prints one problem per line for a SoC family; nothing means it is fine.
 check_family() {  # $1 = SoC
   local soc="$1" dev="${POCKNIX_ROOT}/devices/$1" bsp="${POCKNIX_ROOT}/devices/$1/packages/pocknix-bsp-$1"
-  local f p cmd grub line ids sel b m pb pm ok
+  local f p grub ids sel b m pb pm ok
   for f in "devices/${soc}/profile.conf" "config/tuning/${soc}.conf" "kernel/${soc}/kernel.conf"; do
     [ -f "${POCKNIX_ROOT}/${f}" ] || echo "missing ${f}"
   done
@@ -333,18 +332,18 @@ check_family() {  # $1 = SoC
     [ -f "${dev}/packages/$(profile_get "${dev}" "${p}")/PKGBUILD" ] || echo "${p} has no package under devices/${soc}/packages/"
   done
   check_boards "${bsp}" "${soc}" "${bsp}/boards"
-  cmd="$(profile_get "${dev}" KERNEL_CMDLINE)"
-  f="${bsp}/root/usr/lib/pocknix/kernel-cmdline"
-  if [ -f "${f}" ] && [ "$(cat "${f}")" != "${cmd}" ]; then
-    echo "BSP kernel-cmdline drifted from the profile"
-  fi
+  # The build renders the cmdline from the profile; a committed copy would be a second source.
+  [ ! -e "${bsp}/root/usr/lib/pocknix/kernel-cmdline" ] ||
+    echo "BSP commits root/usr/lib/pocknix/kernel-cmdline, which the build renders from the profile"
+  # Without it the on-device boot image rebuild skips silently, leaving the old kernel booting.
+  [ "$(profile_get "${dev}" BOOTLOADER)" != qcom-abl ] || grep -q 'staged/kernel-cmdline' "${bsp}/PKGBUILD" ||
+    echo "qcom-abl BSP PKGBUILD does not install staged/kernel-cmdline"
   [ -f "${bsp}/boards/models" ] || return 0
   # arm-efi picks the dtb before Linux runs, so GRUB needs a menuentry per board too.
-  grub="${POCKNIX_ROOT}/packages/soc/pocknix-bootloader-${soc}/grub.cfg"
+  grub="${POCKNIX_ROOT}/packages/soc/pocknix-bootloader-${soc}/grub.cfg.in"
   if [ -f "${grub}" ]; then
-    while IFS= read -r line; do
-      [ "${line}" = "${cmd}" ] || { echo "a grub.cfg menuentry cmdline drifted from the profile"; break; }
-    done < <(sed -n 's|^[[:space:]]*linux /KERNEL ||p' "${grub}")
+    sed -n 's|^[[:space:]]*linux /KERNEL ||p' "${grub}" | grep -qvx '@KERNEL_CMDLINE@' &&
+      echo "a grub.cfg.in menuentry spells out a cmdline instead of @KERNEL_CMDLINE@"
     ids="$(sed -nE "s/^menuentry .* --id '([^']+)'.*/\1/p" "${grub}" | sort -u | paste -sd ' ' -)"
     [ "${ids}" = "$(grep -vE '^[[:space:]]*(#|$)' "${bsp}/boards/models" | awk '{print $1}' | sort -u | paste -sd ' ' -)" ] ||
       echo "grub.cfg menuentry ids (${ids}) differ from the boards/models boards"

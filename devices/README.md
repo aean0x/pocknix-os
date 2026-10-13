@@ -30,7 +30,7 @@ Adding a **board to an existing family**: a `boards/<board>.conf` (only what dif
 `boards/family.conf`) + its `boards/models` row(s) + (if its controller differs) an
 inputplumber yaml/map with the board's dt-model `matches:` + a `[[device]]` entry in the
 BSP's `root/usr/share/steamos-manager/devices/pocknix-family.toml`, ahead of the SoC entry -
-plus, on arm-efi SoCs, a menuentry in the SoC grub.cfg and the board in the BSP's board-select script
+plus, on arm-efi SoCs, a menuentry in the SoC grub.cfg.in template and the board in the BSP's board-select script
 (pocknix-sm8250-board-select). Bump the BSP (and bootloader) pkgrels. No new packages, no
 new image.
 
@@ -59,10 +59,8 @@ devices/<soc>/
                                   #   (usr/share/steamos-manager/devices/pocknix-family.toml:
                                   #   the boards, then a qcom,<soc> catch-all), pocknix-perfd's
                                   #   underclock tables (usr/share/pocknix/power-profiles.d/
-                                  #   family.conf, checked against freqs.txt),
-                                  #   usr/lib/pocknix/kernel-cmdline
-                                  #   on qcom-abl (must match the profile - build-packages.sh
-                                  #   enforces).
+                                  #   family.conf, checked against freqs.txt).
+                                  #   No kernel-cmdline: the build renders it from the profile.
                                   #   MUST: depends=(pocknix-bsp-common)
                                   #   provides/conflicts=(pocknix-bsp)   <- wrong-device guard
     pocknix-device-<soc>/         # metapackage: depends on the BSP + kernel (+ the
@@ -91,21 +89,24 @@ kernel/README.md). `make check` validates every family: required files, family a
 the models table against boards/ and the dts model lines (and grub.cfg + board-select on
 arm-efi), the consumers' fallbacks, the rendered
 device.conf, that every BSP PKGBUILD carries the same `_device_conf` (makepkg only sees the
-package dir, so each family keeps a copy: change them together), and cmdline drift. A new tree is never published until its first
+package dir, so each family keeps a copy: change them together), and that the cmdline has no
+committed copy outside the profile. A new tree is never published until its first
 `make stage`/`make publish`; stage-check skips it for the other SoCs until then.
 
 ## Boot styles (`BOOTLOADER` in profile.conf)
 
 * `qcom-abl` (sm8550): the ROCKNIX ABL boots an Android boot image (`/KERNEL`,
   mkbootimg, cmdline baked in, all dtbs appended - ABL picks by board id). The BSP
-  ships `kernel-cmdline`; the kernel package's hook rebuilds /flash/KERNEL on device.
+  ships `/usr/lib/pocknix/kernel-cmdline`, which build-packages.sh renders from the profile's
+  `KERNEL_CMDLINE` into its `./staged`; the kernel package's hook rebuilds /flash/KERNEL on device.
   The SD boot FAT also carries `rocknix_abl/` (pocknix-bootloader-<soc>): ROCKNIX's
   first-install kit for flashing that ABL from rooted stock Android - inert at boot,
   pocknix never flashes it itself.
 * `arm-efi` (sm8250): the ABL chainloads GRUB (`EFI/BOOT/bootaa64.efi`); `/KERNEL` is
   a RAW Image; the board dtb is a separate `/boot/grub/<board>.dtb`; the cmdline lives
-  in grub.cfg (`packages/soc/pocknix-bootloader-<soc>/grub.cfg` - build-packages.sh
-  enforces it matches the profile's `KERNEL_CMDLINE`). Board selection at the boot
+  in grub.cfg, rendered from `packages/soc/pocknix-bootloader-<soc>/grub.cfg.in` with the
+  profile's `KERNEL_CMDLINE` in place of each entry's `@KERNEL_CMDLINE@` (build-packages.sh
+  stages it; a profile edit rebuilds the BSP and the bootloader package). Board selection at the boot
   level is the GRUB menuentry; at the OS level it's device.conf + model gates.
   The stock ABL SD-boots this chain too; the ROCKNIX ABL kit on the SD boot FAT is
   optional here.
@@ -174,6 +175,6 @@ the exceptions with a reason.
    Dual-screen board: the `POCKNIX_PANEL2_*`/`POCKNIX_TOUCH*` keys plus a udev rule
    ignoring the second touchscreen unless `/run/pocknix/second-screen` exists (see
    the sm8550 BSP's Thor rule); gamescope blanks the second panel by itself.
-5. `make check` (board keys, models table, cmdline); bump pkgrels; `make build DEVICE=<soc>`.
+5. `make check` (board keys, models table, grub menuentries); bump pkgrels; `make build DEVICE=<soc>`.
    No shared file should need editing; if one does, the boundary has a hole: fix the
    boundary, not the device.

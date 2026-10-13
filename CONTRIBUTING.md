@@ -315,8 +315,8 @@ works against the locked base.
   whose number or path IS the mechanism goes in `scripts/check-comments.allow`
   (`<glob> :: <regex>` or `<glob> :: <kind> :: <regex>`, one per line).
 - **CI must be green.** The `lint` job runs `bash -n` over every script and `PKGBUILD`,
-  resolves each device profile chain, checks that every `kernel-cmdline` file still
-  matches its `profile.conf`, and checks the docs against the tree (`scripts/check-docs.sh`:
+  resolves each device profile chain, checks that the kernel cmdline lives only in
+  `profile.conf`, and checks the docs against the tree (`scripts/check-docs.sh`:
   every path and `make` target they name exists, layout blocks match their dirs, structural
   READMEs carry no versions or counts; a line that must keep one carries
   `docs-check: allow`) and the code comments against the tree (`scripts/check-comments.py`,
