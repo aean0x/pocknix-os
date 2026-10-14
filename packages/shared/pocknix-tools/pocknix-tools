@@ -159,7 +159,7 @@ layer_installed() { [ "$(pocknix-layer status 2>/dev/null | sed -n 's/^installed
 do_layer() {
   if layer_installed; then
     kdialog --title "$TITLE" --warningcontinuecancel \
-      "Remove the emulation layer?\n\nES-DE, RetroArch and the standalone emulators are uninstalled. Your ROMs, BIOS files, saves and emulator settings are kept, so installing the layer again brings everything back as it was.\n\nClose ES-DE and any emulator first. The ES-DE and favourite tiles in Steam disappear the next time Steam starts." \
+      "Remove the emulation layer?\n\nES-DE, RetroArch and the standalone emulators are uninstalled. Your ROMs, BIOS files, saves and emulator settings are kept, so installing the layer again brings everything back as it was.\n\nClose ES-DE and any emulator first. Their Steam tiles are removed with them." \
       || return 0
     konsole_run "/usr/bin/pocknix-layer remove"
     layer_installed && { gui_err "The emulation layer is still installed. The terminal output says what went wrong."; return 0; }
@@ -171,7 +171,41 @@ do_layer() {
     || return 0
   konsole_run "/usr/bin/pocknix-layer install"
   layer_installed || { gui_err "The emulation layer is still not installed. The terminal output says what went wrong."; return 0; }
-  kdialog --title "$TITLE" --msgbox "The emulation layer is installed.\n\nES-DE is in the app menu now, and in Steam the next time it starts." || true
+  local names=()
+  mapfile -t names < <(tile_names)
+  if add_tiles "${names[@]}"; then
+    kdialog --title "$TITLE" --msgbox "The emulation layer is installed.\n\nES-DE and the emulators are in the app menu and in your Steam library." || true
+  else
+    kdialog --title "$TITLE" --msgbox "Steam tiles were not added.\n\nThe emulation layer is installed. ES-DE and the emulators are in the app menu.\n\nTo add their tiles later, open Konsole and run:\npocknix-tiles enable ${names[*]}" || true
+  fi
+}
+
+# one name per installed emulator that has a tile manifest
+tile_names() {
+  local f n
+  for f in /usr/share/pocknix-emulation/steam/*.conf; do
+    [ -e "${f}" ] || continue
+    n="${f##*/}"
+    echo "${n%.conf}"
+  done
+}
+
+# Exit codes are pocknix-tiles': 3 = Steam starting or open without its API, 4 = no account yet.
+# Fails only when the user gives up or on an error, already reported.
+add_tiles() {
+  local out rc
+  [ "$#" -gt 0 ] || return 0
+  while :; do
+    rc=0; out="$(pocknix-tiles enable "$@" 2>&1)" || rc=$?
+    case "${rc}" in
+      0) return 0 ;;
+      3) kdialog --title "$TITLE" --warningcontinuecancel \
+           "Steam cannot take new tiles right now.\n\nWait for Steam to finish starting, or close it (Steam menu, Exit), then press Continue." || return 1 ;;
+      4) kdialog --title "$TITLE" --warningcontinuecancel \
+           "Steam has no account on this device yet.\n\nSign in to Steam, then press Continue." || return 1 ;;
+      *) gui_err "Adding the Steam tiles failed:\n\n$(printf '%s' "${out}" | tail -3)"; return 1 ;;
+    esac
+  done
 }
 
 emulators_present() { pocknix-roms-init --list 2>/dev/null || true; }

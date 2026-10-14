@@ -16,6 +16,7 @@ emulator get a tile in your Steam library when installed from Pocknix Tools.
 | Nintendo DS | RetroArch (melonDS) |
 | Nintendo 3DS | Azahar |
 | GameCube / Wii | Dolphin |
+| Wii U | Cemu |
 | Nintendo Switch | Eden or Ryujinx (bring your own build, see [below](#using-your-own-emulator-build)) |
 | Sega Master System / Genesis / Game Gear / Sega CD | RetroArch (Genesis Plus GX) |
 | Sega Saturn | RetroArch (YabaSanshiro) |
@@ -23,6 +24,9 @@ emulator get a tile in your Steam library when installed from Pocknix Tools.
 | PlayStation | RetroArch (DuckStation) |
 | PlayStation 2 | ARMSX2 |
 | PlayStation Portable | PPSSPP |
+| PlayStation 3 | RPCS3 |
+| PlayStation Vita | Vita3K |
+| Xbox | xemu |
 | Arcade / Neo Geo | RetroArch (FBNeo) |
 
 ## Installing it
