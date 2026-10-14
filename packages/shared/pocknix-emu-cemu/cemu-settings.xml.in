@@ -49,8 +49,9 @@
             <FriendService>true</FriendService>
         </Notification>
     </Graphic>
+    <!-- api 3 = Cubeb; 0 is DirectSound, which Linux builds lack, so 0 means no sound -->
     <Audio>
-        <api>0</api>
+        <api>3</api>
         <delay>2</delay>
         <TVChannels>1</TVChannels>
         <PadChannels>1</PadChannels>

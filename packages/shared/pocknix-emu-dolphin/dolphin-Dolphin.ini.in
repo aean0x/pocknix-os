@@ -1,7 +1,7 @@
 # Dolphin core config seed (-> ~/.config/dolphin-emu/Dolphin.ini). The confirm-stop dialog and
 # the analytics prompt are pre-answered: both are blocking modals with no way out in game mode.
 [Core]
-GFXBackend = Vulkan
+GFXBackend = OGL
 [Display]
 Fullscreen = True
 [Interface]

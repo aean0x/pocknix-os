@@ -1,11 +1,13 @@
 # Dolphin GameCube pad seed (-> ~/.config/dolphin-emu/GCPadNew.ini); Dolphin's own default is
-# keyboard-only, i.e. a dead controller. Face buttons are mapped positionally (GC B = west).
+# keyboard-only, i.e. a dead controller. Face buttons match the printed letters of a Nintendo-layout
+# pad (A right, B bottom, X top, Y left). The xb360 pad reports by Xbox position, and its top and
+# left buttons as WEST and NORTH (the BTN_Y/BTN_X codes).
 # The trailing " 0" belongs to the evdev device name — drop it and Dolphin binds nothing.
 [GCPad1]
 Device = evdev/0/Microsoft X-Box 360 pad 0
-Buttons/A = SOUTH
-Buttons/B = WEST
-Buttons/X = EAST
+Buttons/A = EAST
+Buttons/B = SOUTH
+Buttons/X = WEST
 Buttons/Y = NORTH
 Buttons/Z = TR
 Buttons/Start = START
