@@ -1,8 +1,8 @@
 # Emulation
 
 pocknix-os offers **ES-DE** as the frontend, with RetroArch and a few standalone emulators doing
-the work. It is "drop your files in and play": no per-emulator setup, and games you favorite in
-ES-DE show up in your Steam library automatically.
+the work. It is "drop your files in and play": no per-emulator setup, and ES-DE plus every
+emulator get a tile in your Steam library when installed from Pocknix Tools.
 
 ## Supported systems
 
@@ -116,10 +116,18 @@ Once it is on, open one of these from the other computer:
 
 ## Getting games into Steam
 
-Favorite a game in ES-DE (the Favorite button), quit ES-DE, and re-enter Game Mode. The game
-appears in your Steam library in a "Pocknix" collection, ready to launch straight from Big
-Picture. Un-favorite to remove it. Favorites are synced when you enter Game Mode, so they show up
-on the next entry, never mid-session.
+Installing emulation from Pocknix Tools also adds a tile to your Steam library for ES-DE, each
+emulator and Steam ROM Manager. If Steam cannot take new tiles right then (still starting, for
+example), Tools asks you to wait or close Steam, then tries again. Updates never add a tile or
+bring back one you deleted, and installing a single emulator with pacman adds none either: run
+`pocknix-tiles enable <emulator>` from a desktop terminal (for example `pocknix-tiles enable
+dolphin`, or `esde` for ES-DE). That also removes ES-DE favourite tiles left by an older
+Pocknix. Removing an emulator removes its tile. The emulator tiles open the emulator's own menu
+with the normal controller layout. Menus built for a mouse (Dolphin, Azahar, Cemu, RPCS3) can be
+driven with Steam's mouse controls, or pick another layout for the tile in Steam; Steam keeps
+that choice even if the emulator is reinstalled.
+
+ES-DE favourites are not added to Steam.
 
 ## Tweaking individual emulator settings
 
@@ -151,13 +159,13 @@ then edit it. Restoring the ES-DE defaults puts the link back.
 Every standalone emulator has a folder under `~/Emulation/emulators/`: `eden`, `ryujinx`,
 `armsx2`, `rpcs3`, `vita3k`, `xemu`, `dolphin`, `cemu`, `azahar`, `ppsspp`. Put **one** file in
 it, an AppImage or a binary, and Pocknix launches that instead of its own build, from ES-DE and
-from Steam favorites alike, with the same pre-made settings. Remove the file to go back to the
+from Steam alike, with the same pre-made settings. Remove the file to go back to the
 built-in one. A folder with more than one file is ignored.
 
 **Nintendo Switch is bring-your-own only.** Pocknix ships no Switch emulator. Drop an Eden or a
 Ryujinx build into its folder and it is set up on first launch: controller, fullscreen, vsync and
 resolution. With both present, choose which one runs in ES-DE under *Other Settings, Alternative
-Emulators*; Steam favorites follow that choice. If you had Eden installed by an earlier Pocknix
+Emulators*; Steam tiles follow that choice. If you had Eden installed by an earlier Pocknix
 version, it is moved into `~/Emulation/emulators/eden/` for you and keeps working.
 
 ## What is already set up for you
