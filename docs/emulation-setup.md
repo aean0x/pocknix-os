@@ -57,6 +57,11 @@ The ROM directory can live anywhere, and ES-DE is the single source of truth. Go
 `/run/media/deck/<card label>/ROMs`). Move your files there, then rescan. `BIOS/`, `Saves/`, and `States/`
 stay in `~/Emulation`.
 
+Steam ROM Manager, Cemu and Ryujinx were pointed at the ROM folder when they were set up, and
+keep the old one. Run *Restore emulator default settings* in **Pocknix Tools** for each of them
+(your old file is kept as a `.bak-<date>` copy), then *Add Games* and *Save to Steam* in Steam ROM
+Manager again so your game tiles use the new paths.
+
 ## BIOS and firmware
 
 Some systems need BIOS or firmware files that pocknix cannot ship. Put them in
@@ -130,10 +135,16 @@ Defaults are tuned for the RP6, but you can change per-emulator settings any tim
   Eden or Ryujinx for Switch): each has its own in-app settings menu. Launch the emulator
   from the desktop to reach its full configuration UI.
 
-Settings you change are yours: when a Pocknix update ships a better default, only settings you
-never touched follow it. **Pocknix Tools** has a *Restore emulator default settings* entry that
-puts one emulator, or all of them, back to the shipped defaults, keeping your old file as a
-`.bak-<date>` copy.
+Pocknix sets each emulator up once, the first time it is installed. After that the settings are
+yours: updates never change them. **Pocknix Tools** has a *Restore emulator default settings*
+entry that puts one emulator, or all of them, back to the current Pocknix defaults, keeping your
+old file as a `.bak-<date>` copy.
+
+ES-DE's system list and emulator lookup (`~/ES-DE/custom_systems/es_systems.xml` and
+`es_find_rules.xml`) are links to the Pocknix copies, so they stay in step with updates. To use
+your own, replace the link with a real file, for example
+`cp --remove-destination /usr/share/pocknix-emulation/es_systems.xml ~/ES-DE/custom_systems/`,
+then edit it. Restoring the ES-DE defaults puts the link back.
 
 ## Using your own emulator build
 
