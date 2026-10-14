@@ -253,7 +253,11 @@ check it, which is the single biggest reason a PR stalls.
   should be clean. Commit `dist/index.js` and `dist/index.js.map` alongside the `src/` change.
 - **Patch series**: numbered files in the package directory, added to `source=()` with
   matching checksums, applying cleanly against the pinned base. If you touch a component
-  with a row in `PATCHES.md`, update that row.
+  with a row in `PATCHES.md`, update that row: what it carries now, plus anything
+  deliberately not taken (one-clause reason). A dropped patch gets no entry beyond its
+  number on the row's retired list (kept when the PKGBUILD says numbers are never reused)
+  and, only where a sync or rebase would bring it back, a one-clause "stays dropped" note;
+  the commit message says why.
 - **License**: a package you author for pocknix-os declares `license=('GPL-2.0-or-later')`.
   One that repackages third-party content keeps the upstream license and names it in a
   comment on the same line (`license=('zlib')   # Valve's DXVK build, repackaged`). `make check`
