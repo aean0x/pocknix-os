@@ -3,8 +3,8 @@
 # from meson wraps, so the build chroot needs network. Patch files stay flat in the package
 # dir: makepkg strips local source entries to their basename.
 pkgname=mangohud
-pkgver=0.8.3
-pkgrel=7
+pkgver=0.8.4
+pkgrel=1
 pkgdesc="Vulkan/OpenGL FPS/frametime/CPU/GPU overlay + mangoapp for the gamescope Steam session"
 arch=('aarch64')
 url="https://github.com/flightlessmango/MangoHud"
