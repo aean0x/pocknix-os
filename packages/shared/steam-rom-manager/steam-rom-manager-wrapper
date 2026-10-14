@@ -1,0 +1,16 @@
+#!/bin/bash
+# X11 (XWayland) whenever the session can authenticate to it: under Wayland ozone a forced scale
+# draws scaled but touches land unscaled. Wayland only where X11 would die (ssh, a systemd unit).
+plat=()
+if [ -n "${DISPLAY:-}" ] && [ -r "${XAUTHORITY:-}" ]; then
+  plat=(--ozone-platform=x11)
+elif [ -n "${WAYLAND_DISPLAY:-}" ]; then
+  plat=(--ozone-platform=wayland)
+fi
+# The env scrub: a Steam launch injects LD_PRELOAD and its runtime libraries, which break the
+# bundled Electron. --no-sandbox: chrome-sandbox needs setuid root, impossible in the squashfs.
+# Scale 1.7: SRM will not shrink below 800x600 logical, and Plasma Mobile's 2-2.5 on the 1080p
+# panels leaves 540 or less, so the window would run off the bottom of the screen.
+exec env -u LD_PRELOAD -u LD_LIBRARY_PATH FUSERMOUNT_PROG=/usr/bin/fusermount \
+  /opt/pocknix/steam-rom-manager/Steam-ROM-Manager.AppImage --no-sandbox --force-device-scale-factor=1.7 \
+  "${plat[@]}" "$@"
