@@ -6,7 +6,7 @@
 pkgname=gamescope
 epoch=1
 pkgver=3.16.31.rocknix.20260927.f6916aa
-pkgrel=3
+pkgrel=4
 _commit=f6916aacdecb4476f05746fef4dc49a650c28f05
 install=gamescope.install
 pkgdesc="SteamOS session compositing WM — patched (for msm handhelds)"
@@ -31,8 +31,10 @@ source=("gamescope::git+https://github.com/ValveSoftware/gamescope.git#commit=${
         '0006-steamcompmgr-fix-gamepad-cursor-sprite-frozen-via-XTest.patch'
         '0009-steamcompmgr-run-SGSR-when-FSR-is-requested-on-SDR-content.patch'
         '0010-steamcompmgr-elapsed-time-fps-limiter.patch'
-        '0011-steamcompmgr-skip-identity-colour-LUTs-in-the-composite.patch')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+        '0011-steamcompmgr-skip-identity-colour-LUTs-in-the-composite.patch'
+        '0012-libliftoff-treat-enodev-as-no-fit.patch'
+        '0013-libliftoff-give-planes-the-layer-zpos.patch')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 prepare() {
   cd gamescope
@@ -44,6 +46,8 @@ prepare() {
   patch -p1 < "${srcdir}/0009-steamcompmgr-run-SGSR-when-FSR-is-requested-on-SDR-content.patch"
   patch -p1 < "${srcdir}/0010-steamcompmgr-elapsed-time-fps-limiter.patch"
   patch -p1 < "${srcdir}/0011-steamcompmgr-skip-identity-colour-LUTs-in-the-composite.patch"
+  patch -p1 < "${srcdir}/0012-libliftoff-treat-enodev-as-no-fit.patch"
+  patch -p1 < "${srcdir}/0013-libliftoff-give-planes-the-layer-zpos.patch"
 }
 
 build() {
