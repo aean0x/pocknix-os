@@ -22,7 +22,7 @@
 
 - **SteamOS gaming mode** on the Steam ARM client, with Proton picked for you.
 - **Performance tuning that just works.** pocknix builds its own kernel, based on the [ROCKNIX](https://github.com/ROCKNIX/distribution) kernel, and tunes it, the CPU scheduler and the graphics stack for smooth frame times out of the box. All you do is set a frame cap.
-- **A full Arch system underneath**: a touch-friendly desktop mode, Flatpak apps via Discover, and updates through `pacman`, no reflashing.
+- **A full, mutable Arch system underneath**: a touch-friendly desktop mode, Flatpak apps via Discover, and updates through `pacman`, no reflashing.
 - **Locked by default, rolling if you want it.** Out of the box `pacman` points at our own tested snapshot of the Arch Linux ARM packages pocknix needs, so updates arrive together and stay stable, like SteamOS. Advanced users can switch to **rolling** mode, which points `pacman` at the full Arch Linux ARM repo and makes pocknix a true rolling Arch distro, with the occasional breakage that comes with it.
 
 ## Supported devices
