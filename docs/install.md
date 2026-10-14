@@ -41,8 +41,9 @@ the card is inserted.
 The first boot into game mode can take a long while, especially from an SD card. Leave it be; it
 will come up.
 
-**Then change the default password.** It is `pocknix` and publicly known: run `passwd` (and
-`sudo passwd root`) in a terminal. SSH is off by default.
+> [!IMPORTANT]
+> **Then change the default password.** It is `pocknix` and publicly known: run `passwd` (and
+> `sudo passwd root`) in a terminal. SSH is off by default.
 
 ### Newer RP5 / Flip 2 panels
 
@@ -57,8 +58,8 @@ small `POCKNIX` partition, next to `KERNEL`, then boot again.
 Updates, kernel included, arrive through the pocknix package repo, with no reflashing. Any of:
 
 - **Pocknix Control (recommended)**: Quick Access Menu → **Pocknix Control** → **Updater** →
-  **Update**, without leaving game mode.
-- **Pocknix Tools**: in desktop mode, open **Pocknix Tools** and pick the update option.
+  **Check for Updates** → **Install Updates**, without leaving game mode.
+- **Pocknix Updater**: in desktop mode, launch the **Pocknix Updater** app.
 - **Terminal**: `sudo pacman -Syu`, like any Arch system.
 
 The Steam client updates itself separately and tells you when one is available. If an update goes

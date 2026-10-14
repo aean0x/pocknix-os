@@ -11,13 +11,12 @@
 
 <p align="center">
   <a href="docs/install.md"><b>Install pocknix</b></a> ·
-  <a href="#supported-devices"><b>Supported devices</b></a> ·
   <a href="docs/README.md"><b>Documentation</b></a> ·
   <a href="docs/known-issues.md"><b>Known issues</b></a>
 </p>
 
 > [!WARNING]
-> pocknix-os is **experimental**. The default password (`pocknix`) is public: change it with `passwd` after first boot.
+> pocknix-os is experimental software. Install it at your own risk.
 
 ## What you get
 
@@ -45,7 +44,7 @@
 1. **Install**: flash the image for your device from the [latest release](https://github.com/shuuri-labs/pocknix-os/releases/latest) and follow the [install guide](docs/install.md).
 2. **Play**: download a game, launch it, then open the Quick Access Menu → **Performance** and set a **Framerate Limit**. That's it.
    - *Optional*: if it doesn't feel smooth, try toggling the game's own vsync setting.
-3. **Update**: Quick Access Menu → **Pocknix Control** → **Updater** → **Update**.
+3. **Update**: Quick Access Menu → **Pocknix Control** → **Updater** → **Check for Updates** → **Install Updates**.
 
 ## Docs
 
