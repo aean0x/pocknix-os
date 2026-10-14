@@ -158,11 +158,6 @@ configure() {
   #  - default cpufreq governor performance -> schedutil: LAVD does its own per-core DVFS
   #    via scx_bpf_cpuperf_set(), which only schedutil honours; under performance the
   #    clocks pin to max and the thermal headroom is lost. Still runtime-overridable.
-  #  - MMC_SDHCI_MSM_DOWNSTREAM: the Qualcomm downstream sdhci-msm driver (patches
-  #    0210-0212). The sm8550 family dts rebind sdhc_2 (microSD) to it
-  #    ("qcom,sdhci-msm-v5-downstream") for UHS-I SDR104: the upstream driver has an
-  #    SDR104 tuning/clock regression on sm8550, which is why the vendor DTs cap the slot
-  #    to High-Speed. =y beside MMC_SDHCI_MSM (distinct compatibles + driver names).
   #  - QCOM_Q6V5_PAS =m: built in (as the synced sm8250 config ships it) the adsp/cdsp/slpi
   #    remoteprocs probe before the initramfs-less root holds /usr/lib/firmware, and remoteproc
   #    never retries a failed request_firmware: the DSPs stay offline and the q6 sound card
@@ -181,7 +176,6 @@ configure() {
     --enable PM_SLEEP_DEBUG \
     --enable UNICODE \
     --enable BTRFS_FS \
-    --enable MMC_SDHCI_MSM_DOWNSTREAM \
     --enable FW_LOADER_COMPRESS \
     --enable FW_LOADER_COMPRESS_ZSTD \
     --enable ANDROID \

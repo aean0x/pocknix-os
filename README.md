@@ -17,7 +17,7 @@ As any Arch user knows, rolling updates can mean unexpected breakage, so staying
 
 - **Performance tuned.** Almost all of the graphics and display stack is recompiled with SoC-specific tuning, and Pocknix runs the ROCKNIX kernel with some key additions:
   - **The gaming-focused `scx_lavd` CPU scheduler**, enabled by default, for smooth, consistent frame pacing.
-  - **UHS-I SDR104 microSD support** ported from Armbian's downstream `sdhci-msm` driver, lifting microSD reads from ~13 MB/s to ~85 MB/s on SM8550 devices.
+  - **UHS-I SDR104 microSD** on SM8550 devices, lifting microSD reads from ~13 MB/s to ~85 MB/s.
 - **Real sleep and wake.** Suspend/resume works, but is still **experimental on SM8550 devices**.
 - **Plasma Mobile rather than regular Plasma**, for a touch-optimized desktop experience that suits these small screens better than Plasma Desktop. For those who want it, the ability to switch desktop mode to a full Plasma Desktop session will be added in a coming update.
 - **Mutable.** The root filesystem is writeable, and advanced users can switch to rolling mode for a full rolling Arch experience.
