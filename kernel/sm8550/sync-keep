@@ -5,3 +5,4 @@
 -patches/20-version/0011-thermal-adc-tm5-drop-iio-val-int-check.patch
 dts/qcom/qcs8550-ayn-common.dtsi
 dts/qcom/qcs8550-ayn-odin2.dts
+dts/qcom/qcs8550-ayn-thor.dts
