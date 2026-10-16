@@ -2,7 +2,7 @@
 # Build with ./nodeps: makepkg -s would drag all of KDE/Qt into the chroot for a data package.
 pkgname=pocknix-desktop-kde
 pkgver=0.1.0
-pkgrel=2
+pkgrel=3
 pkgdesc="pocknix KDE defaults shared by the Plasma desktop flavours"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
@@ -10,6 +10,7 @@ license=('GPL-2.0-or-later')
 depends=('bash'
          'plasma-workspace'
          'kwin'
+         'glib2'             # gdbus for the live touchscreen pinning
          'powerdevil'
          'kscreen'           # kscreen-doctor drives the rotated-DSI transform
          'plasma-nm'
@@ -17,13 +18,17 @@ depends=('bash'
 # These files lived in pocknix-desktop up to -26; a lone install against that would collide.
 conflicts=('pocknix-desktop<0.1.0-27')
 source=('pocknix-desktop-rotate' 'pocknix-desktop-rotate.desktop'
+        'pocknix-desktop-touchpin' 'pocknix-desktop-touchpin.desktop'
         'ksplashrc' 'powerdevilrc' 'kscreenlockerrc' '50-kde-power-key.sh')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
   install -Dm755 "${srcdir}/pocknix-desktop-rotate"   "${pkgdir}/usr/bin/pocknix-desktop-rotate"
   install -Dm644 "${srcdir}/pocknix-desktop-rotate.desktop" \
     "${pkgdir}/etc/xdg/autostart/pocknix-desktop-rotate.desktop"
+  install -Dm755 "${srcdir}/pocknix-desktop-touchpin" "${pkgdir}/usr/bin/pocknix-desktop-touchpin"
+  install -Dm644 "${srcdir}/pocknix-desktop-touchpin.desktop" \
+    "${pkgdir}/etc/xdg/autostart/pocknix-desktop-touchpin.desktop"
   install -Dm644 "${srcdir}/ksplashrc"                "${pkgdir}/etc/xdg/ksplashrc"
   install -Dm644 "${srcdir}/powerdevilrc"             "${pkgdir}/etc/xdg/powerdevilrc"
   install -Dm644 "${srcdir}/kscreenlockerrc"          "${pkgdir}/etc/xdg/kscreenlockerrc"

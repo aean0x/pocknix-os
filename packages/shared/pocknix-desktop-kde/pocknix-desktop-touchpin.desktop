@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=pocknix touchscreen pinning
+Comment=Pin each touchscreen to its output on dual-screen boards
+Exec=/usr/bin/pocknix-desktop-touchpin
+OnlyShowIn=KDE;
+NoDisplay=true
+X-KDE-autostart-phase=1
