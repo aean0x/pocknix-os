@@ -47,6 +47,9 @@ STATUS_RE = re.compile(
 NOTES_RE = re.compile(
     r"pocknix-notes|\bdev/[a-z0-9-]+\.md|\bplans/[a-z0-9-]+\.md|maintainer-guide|learnings\.md"
     r"|progress\.md|conventions\.md"
+    # the notes' dev/ file names on their own: an aside naming one is still a pointer
+    r"|\b(building|claude-setup|cruft|desktop|emulation|fex-version-bump|graphics|issue-intake|kernel"
+    r"|pacman-repo|patch-rebase|steam|steam-client-bump|tester-program|testing-fedora-vm)\.md\b"
 )
 VERSION_RE = re.compile(
     r"(?<![\w.])\d+\.\d+\.\d+(?!\.\d)(-\d+)?\b"           # 1.2.3 or 1.2.3-4, not an IPv4
