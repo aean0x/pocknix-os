@@ -1,7 +1,7 @@
 #!/bin/bash
 # pocknix-steam-install — download Valve's NATIVE ARM64 Steam runtime + client, and bootstrap the
-# client into a complete install tree. The channel must be steamdeck_publicbeta, not plain
-# publicbeta: only it carries the gamepadui font + vgui payload (otherwise CreateGlFont fails).
+# client into a complete install tree. Seeds a steamdeck_* channel, not plain publicbeta: only the
+# Deck channels carry the gamepadui font + vgui payload (otherwise CreateGlFont fails).
 set -e
 set -o pipefail
 
@@ -11,8 +11,8 @@ RUNTIME_DIR="${STEAM}/steam-runtime-steamrt-arm64"
 CLIENT_DIR="${STEAM}/steamrtarm64"
 RUNTIME_TAR_URL="https://repo.steampowered.com/steamrt3c/images/latest-public-beta/steam-runtime-steamrt-arm64.tar.xz"
 STEAM_CDN="https://client-update.steamstatic.com"
-STEAM_ARM_CHANNEL="steamdeck_publicbeta"
-STEAM_ARM_MANIFEST_NAME="steam_client_${STEAM_ARM_CHANNEL}_linuxarm64"
+. /usr/lib/pocknix/pocknix-steam-channel
+STEAM_ARM_MANIFEST_NAME="steam_client_${POCKNIX_STEAM_CHANNEL}_linuxarm64"
 STEAM_MANIFEST_URL="${STEAM_CDN}/${STEAM_ARM_MANIFEST_NAME}"
 
 # The Steam CDN drops connections mid-stream and returns 502/503 on the big client zip, and
@@ -59,7 +59,7 @@ fi
 # 2. native ARM64 Steam client. The manifest is binary VDF, so tr splits it into printable runs
 #    (strings-equivalent, without a binutils dep) before the zip name can be matched.
 if [ ! -d "${CLIENT_DIR}" ]; then
-  log "Resolving + downloading Steam ARM64 client (${STEAM_ARM_CHANNEL})..."
+  log "Resolving + downloading Steam ARM64 client (${POCKNIX_STEAM_CHANNEL})..."
   target_file=$(curl -fsSL "${STEAM_MANIFEST_URL}" | tr -c '[:print:]' '\n' \
     | grep -oP 'bins_linuxarm64_linuxarm64\.zip\.(?!vz\.)[^"]+' | head -n1)
   [ -n "${target_file}" ] || die "could not parse client zip from manifest"
@@ -68,7 +68,7 @@ if [ ! -d "${CLIENT_DIR}" ]; then
   unzip -o "${zip_path}" -d "${STEAM}" || die "client extract failed"
   rm -f "${zip_path}"
   chmod +x "${CLIENT_DIR}/steam"
-  mkdir -p "${STEAM}/package"; echo "${STEAM_ARM_CHANNEL}" > "${STEAM}/package/beta"
+  mkdir -p "${STEAM}/package"; echo "${POCKNIX_STEAM_CHANNEL}" > "${STEAM}/package/beta"
   # 'root' is load-bearing: Steam execs $HOME/.steam/root/steam_msg.sh on errors. Targets stay
   # relative so the baked tree survives extraction under a different HOME.
   mkdir -p "${STEAM_DOT}"

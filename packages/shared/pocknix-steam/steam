@@ -33,10 +33,8 @@ if [ -z "${DISPLAY:-}" ]; then
   [ -n "${DISPLAY:-}" ] || echo "steam: WARNING no XWayland socket in /tmp/.X11-unix — is the Plasma session up + kwin's XWayland running?" >&2
 fi
 
-# Re-pin here too: a desktop-mode `steam` otherwise flips package/beta to steamdeck_stable and
-# breaks the next game-mode launch. See pocknix-steam.
-mkdir -p "${STEAM}/package"
-echo steamdeck_publicbeta > "${STEAM}/package/beta"
+. /usr/lib/pocknix/pocknix-steam-channel
+pocknix_steam_channel_guard "${STEAM}"
 
 # Same game-launch pin + CPU topology as game mode.
 . /usr/lib/pocknix/pocknix-steam-env
