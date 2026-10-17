@@ -1,0 +1,33 @@
+#!/bin/bash
+# pocknix-desktop-touchpin: pin each touchscreen to its output on the running kwin.
+# kwin can leave a touchscreen unmapped despite the launcher's kcminputrc entry, and an
+# unmapped one lands on the first output; setting outputName live sticks.
+set -u
+
+log() { echo "pocknix-desktop-touchpin: $*" >&2; }
+
+for _dc in /usr/lib/pocknix/device.conf /etc/pocknix/device.conf; do
+  [ -r "${_dc}" ] && . "${_dc}"
+done
+[ -n "${POCKNIX_TOUCH2_NAME:-}" ] || exit 0
+
+pin() {  # <evdev name> <output>
+  local ev="" d
+  [ -n "$1" ] && [ -n "$2" ] || return 0
+  for d in /sys/class/input/event*; do
+    [ "$(cat "${d}/device/name" 2>/dev/null)" = "$1" ] && { ev=${d##*/}; break; }
+  done
+  [ -n "${ev}" ] || { log "'$1' not found"; return 0; }
+  # kwin registers its InputDevice objects shortly after the session starts.
+  for _ in $(seq 1 20); do
+    gdbus call --session --dest org.kde.KWin --object-path "/org/kde/KWin/InputDevice/${ev}" \
+      --method org.freedesktop.DBus.Properties.Set org.kde.KWin.InputDevice outputName "<'$2'>" \
+      >/dev/null 2>&1 && { log "$1 (${ev}) -> $2"; return 0; }
+    sleep 0.5
+  done
+  log "kwin never exposed ${ev} for $1"
+}
+
+pin "${POCKNIX_TOUCH_NAME:-}" "${POCKNIX_PANEL_OUTPUT:-}"
+pin "${POCKNIX_TOUCH2_NAME}" "${POCKNIX_PANEL2_OUTPUT:-}"
+exit 0
