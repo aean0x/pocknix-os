@@ -2,7 +2,7 @@
 # gamescope launcher, and the ARM-Proton compat-tool plumbing.
 pkgname=pocknix-steam
 pkgver=0.1.0
-pkgrel=69
+pkgrel=70
 pkgdesc="Native ARM64 Steam Big Picture (gamescope) for the RP6 — installer + launcher"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
@@ -22,10 +22,10 @@ install=pocknix-steam.install
 source=('pocknix-steam-install' 'pocknix-steam' 'pocknix-steam-splash' 'pocknix-steam-sync' 'steam' 'steam.desktop'
         'steam-256.png' 'steam-512.png' 'registry.vdf'
         'pocknix-proton-prep' 'pocknix-proton-prep.service'
-        'pocknix-game-launch' 'pocknix-steam-env' 'pocknix-proton-wrapper' 'fex-profiles.json'
+        'pocknix-game-launch' 'pocknix-steam-env' 'pocknix-steam-channel' 'pocknix-proton-wrapper' 'fex-profiles.json'
         'pocknix-guestos-mount' 'pocknix-guestos.service' 'graphics_provider.json')
 sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
-            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
   install -Dm755 "${srcdir}/pocknix-steam-install" "${pkgdir}/usr/bin/pocknix-steam-install"
@@ -48,6 +48,7 @@ package() {
   # this name: never move or rename it.
   install -Dm755 "${srcdir}/pocknix-game-launch"           "${pkgdir}/usr/bin/pocknix-game-launch"
   install -Dm644 "${srcdir}/pocknix-steam-env"             "${pkgdir}/usr/lib/pocknix/pocknix-steam-env"
+  install -Dm644 "${srcdir}/pocknix-steam-channel"         "${pkgdir}/usr/lib/pocknix/pocknix-steam-channel"
   install -Dm755 "${srcdir}/pocknix-proton-wrapper"        "${pkgdir}/usr/lib/pocknix/pocknix-proton-wrapper"
   install -Dm644 "${srcdir}/fex-profiles.json"             "${pkgdir}/usr/share/pocknix/fex-profiles.json"
   install -Dm755 "${srcdir}/pocknix-guestos-mount"         "${pkgdir}/usr/lib/pocknix/pocknix-guestos-mount"

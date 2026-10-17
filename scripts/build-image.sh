@@ -233,7 +233,8 @@ bootstrap_steam_seed() {
       die "steam bake failed (pocknix-steam-install in chroot). Check network + retry (the bake is cached, so a retry resumes)."
     fi
     if ! chroot "${root}" test -f "${steam}/steamrtarm64/steamui.so" \
-       || ! chroot "${root}" test -f "${steam}/package/steam_client_steamdeck_publicbeta_linuxarm64.installed"; then
+       || ! chroot "${root}" bash -c '. /usr/lib/pocknix/pocknix-steam-channel &&
+              test -f "$1/package/steam_client_${POCKNIX_STEAM_CHANNEL}_linuxarm64.installed"' _ "${steam}"; then
       umount "${root}/dev/shm" 2>/dev/null || true
       die "steam bake incomplete (no steamui.so / .installed) — the seed is broken. Re-run (POCKNIX_REBOOTSTRAP_STEAM=1 forces a clean rebake)."
     fi

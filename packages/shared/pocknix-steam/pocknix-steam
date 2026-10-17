@@ -32,11 +32,8 @@ cd "${CLIENT_DIR}" 2>/dev/null || { echo "missing ${CLIENT_DIR}" >&2; exit 1; }
 # Marker Decky's CEF remote-debugging connection looks for.
 touch "${STEAM}/.cef-enable-remote-debugging" 2>/dev/null || true
 
-# Re-pin EVERY launch: the ARM64 Big-Picture client only works on steamdeck_publicbeta, and
-# anything that flips the channel leaves Steam reading "installed version 0", stuck on
-# "Installing update" with steamwebhelper crash-looping until this reasserts it.
-mkdir -p "${STEAM}/package"
-echo steamdeck_publicbeta > "${STEAM}/package/beta"
+. /usr/lib/pocknix/pocknix-steam-channel
+pocknix_steam_channel_guard "${STEAM}"
 
 # Must precede Steam, which enumerates controllers once at startup; desktop mode leaves the pad
 # on xb360, and only a Deck target gives Steam Input the Steam-native pad (Guide, QAM, L4/L5).
@@ -99,6 +96,14 @@ if [ "${POCKNIX_PANEL_ROTATE_SHADER:-0}" = "1" ]; then
   GS_ROTATE=(--force-composition-rotation)
 fi
 
+# Steam's startup file check is what completes a switch back to an already-used channel: the
+# restart-time install leaves the previous build's files in place. SD boots skip it for start time.
+VERIFY=()
+root_disk="$(lsblk -ndo PKNAME "$(findmnt -nvo SOURCE /)" 2>/dev/null || true)"
+if [ "$(cat "/sys/block/${root_disk}/device/type" 2>/dev/null)" = SD ]; then
+  VERIFY=(-noverifyfiles)
+fi
+
 # Do NOT pin the client itself: scx_lavd places the bursty threads itself and needs the littles free
 # for batch work. Game launches get the big cores through steam-launch-wrapper instead.
 . /usr/lib/pocknix/pocknix-steam-env
@@ -117,5 +122,5 @@ env -u WAYLAND_DISPLAY \
   gamescope "${GS_OUTPUT[@]}" -W "${GS_W}" -H "${GS_H}" -r "${REFRESH}" --rt --xwayland-count 2 --mangoapp --backend drm \
     --force-orientation "${ORIENT}" "${GS_ROTATE[@]}" -e -- \
     /usr/lib/pocknix/pocknix-steam-splash "${GS_W}x${GS_H}" -- \
-    env LD_LIBRARY_PATH="${LDLP}" "${CLIENT}" -gamepadui -steamos3 -steampal -steamdeck -noverifyfiles -noshaders \
+    env LD_LIBRARY_PATH="${LDLP}" "${CLIENT}" -gamepadui -steamos3 -steampal -steamdeck "${VERIFY[@]}" -noshaders \
   >"${GS_LOG}" 2>&1
