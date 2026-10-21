@@ -161,7 +161,8 @@ Defaults are tuned for the RP6, but you can change per-emulator settings any tim
   Eden or Ryujinx for Switch): each has its own in-app settings menu. Launch the emulator
   from the desktop to reach its full configuration UI.
 
-Pocknix sets each emulator up once, the first time it is installed. After that the settings are
+Pocknix sets each emulator up once, the first time it is installed (an Eden or Ryujinx build you
+drop in: the first time it launches). After that the settings are
 yours: updates never change them. **Pocknix Tools** has a *Restore emulator default settings*
 entry that puts one emulator, or all of them, back to the current Pocknix defaults, keeping your
 old file as a `.bak-<date>` copy.

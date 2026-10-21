@@ -1,7 +1,8 @@
 #!/bin/bash
 # pocknix-roms-init - login-time setup for the emulation layer, run as 'deck' by its user unit.
 # A seed is copied only when its target is absent: an update never rewrites a user's settings,
-# --reset <name> is the way to re-apply ours. A failure must never fail a login.
+# --reset <name> is the way to re-apply ours; --seed <name> seeds one emulator now (its launcher
+# calls this). A failure must never fail a login.
 set -u
 
 SHARE=/usr/share/pocknix-emulation
@@ -242,11 +243,18 @@ case "${1:-}" in
     exit 0 ;;
   --reset)
     shift
-    [ "$#" -gt 0 ] || { echo "usage: pocknix-roms-init --reset <${EMULATORS[*]// /|}|all>" >&2; exit 2; }
+    [ "$#" -gt 0 ] || { echo "usage: pocknix-roms-init --reset <$(IFS="|"; echo "${EMULATORS[*]}")|all>" >&2; exit 2; }
     [ "$1" = all ] && set -- "${present[@]}"
     for e in "$@"; do
       case " ${present[*]} " in *" ${e} "*) ;; *) echo "pocknix-roms-init: ${e} is not installed" >&2; continue ;; esac
       "reset_${e}"; "seed_${e}" || true
+    done
+    exit 0 ;;
+  --seed)
+    shift
+    [ "$#" -gt 0 ] || { echo "usage: pocknix-roms-init --seed <$(IFS="|"; echo "${EMULATORS[*]}")>" >&2; exit 2; }
+    for e in "$@"; do
+      case " ${present[*]} " in *" ${e} "*) "seed_${e}" || true ;; *) echo "pocknix-roms-init: ${e} is not installed" >&2 ;; esac
     done
     exit 0 ;;
 esac

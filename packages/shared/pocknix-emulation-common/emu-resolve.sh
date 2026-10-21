@@ -60,3 +60,7 @@ emu_missing() {  # $1 name: the user-facing "not installed" exit
   echo "pocknix: $1 is not installed. Drop its AppImage into ${EMU_DROP}/$1/ (see ~/Emulation/README.txt)." >&2
   exit 1
 }
+
+# Copying a drop-in-only build in fires no pacman seeder hook, so its launcher seeds first. Steam's
+# preload env is dropped here too: a seed that breaks under it would fail silently, for good.
+emu_seed() { env -u LD_PRELOAD -u LD_LIBRARY_PATH /usr/bin/pocknix-roms-init --seed "$1" || true; }

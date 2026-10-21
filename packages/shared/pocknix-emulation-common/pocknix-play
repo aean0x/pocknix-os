@@ -28,7 +28,9 @@ run_core() {
 }
 
 run_emu() {  # $1 = emulator name; remaining args = emulator flags (rom appended by caller)
-  local app; app="$(emu_path "$1")" || emu_missing "$1"; shift
+  local app; app="$(emu_path "$1")" || emu_missing "$1"
+  case "$1" in eden|ryujinx) emu_seed "$1" ;; esac
+  shift
   case "${app}" in
     *.AppImage|*.appimage)
       # Steam injects LD_PRELOAD + its runtime LD_LIBRARY_PATH into shortcuts: AppImages with
