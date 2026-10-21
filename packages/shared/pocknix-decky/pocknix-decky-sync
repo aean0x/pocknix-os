@@ -1,8 +1,9 @@
 #!/bin/bash
 # pocknix-decky-sync — seed Decky Loader + OS-shipped plugins into deck's homebrew dir.
 # Decky self-updates inside ~/homebrew, so the loader is replaced only when the OS bundles a
-# strictly newer version; a user's self-updated loader must never be downgraded. OS-shipped
-# plugins are system UI and get re-copied every boot; other plugin dirs are left alone.
+# strictly newer version or the installed one is not aarch64; a user's self-updated loader must
+# never be downgraded. OS-shipped plugins are system UI and get re-copied every boot; other
+# plugin dirs are left alone.
 set -euo pipefail
 
 user_name=deck
@@ -13,6 +14,9 @@ src=/usr/share/decky-plugins
 
 loader_needs_seed() {
     [[ ! -x "${homebrew}/services/PluginLoader" ]] && return 0
+    # ELF e_machine b7 = aarch64. A loader that self-updated while running under FEX fetched
+    # the x86_64 asset of its version, which the unit can no longer exec.
+    [[ "$(od -An -tx1 -j18 -N1 "${homebrew}/services/PluginLoader" | tr -d ' ')" == b7 ]] || return 0
     [[ -f "${loader_version_src}" ]] || return 1
     [[ -f "${homebrew}/services/.loader.version" ]] || return 0
 
@@ -41,7 +45,8 @@ if loader_needs_seed && [[ -x "${loader_src}" ]]; then
 fi
 
 if [[ ! -f "${homebrew}/settings/loader.json" ]]; then
-    # Default new installs to Decky's prerelease channel: stable Decky lacks the Steam-on-ARM fixes.
+    # Default new installs to Decky's prerelease channel, paired with the Steam beta client
+    # default: Decky's fixes for a new client build land in prereleases first.
     printf '{\n  "branch": 1\n}\n' >"${homebrew}/settings/loader.json"
 fi
 

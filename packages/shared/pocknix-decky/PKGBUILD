@@ -1,35 +1,33 @@
-# pocknix-decky — Decky Loader (QAM plugin framework) + the Pocknix Control plugin.
+# pocknix-decky — Decky Loader (QAM plugin framework, native arm64) + the Pocknix Control plugin.
 # Everything ships under /usr/share; pocknix-decky-sync seeds deck's ~/homebrew at boot.
 # The plugin frontend (dist/index.js) is prebuilt and committed — no node at package build time.
 pkgname=pocknix-decky
 pkgver=0.1.0
-pkgrel=44
-pkgdesc="Decky Loader (under FEX, namespaced binfmt) + Pocknix Control QAM plugin"
+pkgrel=45
+pkgdesc="Decky Loader + Pocknix Control QAM plugin"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
 license=('GPL-2.0-or-later')
 # Every game's launch options name pocknix-game-launch; older pocknix-steam releases lack it.
-depends=('fex-emu' 'fex-rootfs' 'pocknix-steam>=0.1.0-67')
-_loaderver=v3.2.10
-source=('pocknix-decky-run' 'pocknix-decky-sync' 'pocknix-decky-killall' 'pocknix-decky-sync.service'
-        'pocknix-decky-loader.service' 'PluginLoader.json'
-        "PluginLoader-${_loaderver}::https://github.com/SteamDeckHomebrew/decky-loader/releases/download/${_loaderver}/PluginLoader")
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
-            'c2cf316a53e1c1d318c6dda8821c827e5db275922987f9097956d7a1576e8258')
+depends=('pocknix-steam>=0.1.0-67')
+# strip truncates the PyInstaller archive appended after the ELF sections.
+options=('!strip')
+_loaderver=v3.3.0
+source=('pocknix-decky-sync' 'pocknix-decky-sync.service' 'pocknix-decky-loader.service'
+        "PluginLoader-${_loaderver}::https://github.com/SteamDeckHomebrew/decky-loader/releases/download/${_loaderver}/PluginLoader-arm64")
+sha256sums=('SKIP' 'SKIP' 'SKIP'
+            '8ef5dcf36cbbbb6e97201a6baed5d79c4cc44ec27789fc9af1c5b6ae8f0b25b6')
 
 package() {
   install -Dm755 "${srcdir}/PluginLoader-${_loaderver}" "${pkgdir}/usr/share/decky-loader/PluginLoader"
   printf '%s\n' "${_loaderver}" > "${srcdir}/loader.version"
   install -Dm644 "${srcdir}/loader.version"          "${pkgdir}/usr/share/decky-loader/.loader.version"
 
-  install -Dm755 "${srcdir}/pocknix-decky-run"       "${pkgdir}/usr/lib/pocknix/pocknix-decky-run"
   install -Dm755 "${srcdir}/pocknix-decky-sync"      "${pkgdir}/usr/lib/pocknix/pocknix-decky-sync"
-  install -Dm755 "${srcdir}/pocknix-decky-killall"   "${pkgdir}/usr/lib/pocknix/decky-bin/killall"
   install -Dm644 "${srcdir}/pocknix-decky-sync.service"   "${pkgdir}/usr/lib/systemd/system/pocknix-decky-sync.service"
   install -Dm644 "${srcdir}/pocknix-decky-loader.service" "${pkgdir}/usr/lib/systemd/system/pocknix-decky-loader.service"
   # Decky's self-updater restarts plugin_loader.service; the symlink aliases it to ours.
   ln -s pocknix-decky-loader.service "${pkgdir}/usr/lib/systemd/system/plugin_loader.service"
-  install -Dm644 "${srcdir}/PluginLoader.json"       "${pkgdir}/usr/share/fex-emu/AppConfig/PluginLoader.json"
 
   local plug="${startdir}/pocknix-control" dest="${pkgdir}/usr/share/decky-plugins/PocknixControl"
   install -d -m755 "${dest}"

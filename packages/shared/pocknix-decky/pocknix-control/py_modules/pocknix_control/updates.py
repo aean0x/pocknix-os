@@ -23,9 +23,7 @@ _check_lock = threading.Lock()
 
 
 def _pacman(args, timeout):
-    # Never call pacman in-process: this python is an x86_64 FEX guest, so a bare "pacman"
-    # resolves into the FEX rootfs overlay - a foreign pacman on a stock pacman.conf (no
-    # [pocknix] repo, so pins vanish) whose download sandbox also dies under emulation.
+    # pacman under PID 1, like every host tool (see sharing.py).
     return run_cmd(
         ["systemd-run", "--quiet", "--collect", "--wait", "--pipe", "/usr/bin/pacman", *args],
         timeout=timeout,

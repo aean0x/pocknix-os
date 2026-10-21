@@ -66,8 +66,8 @@ for mp in $(lsblk -nro NAME "$DISK" | tail -n +2); do
     umount -l "/dev/${mp}" 2>/dev/null || true
 done
 
-# A service in a private mount ns (e.g. Decky's loader) keeps an inherited copy of the mount and
-# holds the device busy; the init-ns umount above does not propagate into private namespaces.
+# A service in a private mount ns keeps an inherited copy of the mount and holds the device
+# busy; the init-ns umount above does not propagate into private namespaces.
 declare -A ns_seen
 for proc in /proc/[0-9]*; do
     ns="$(readlink "${proc}/ns/mnt" 2>/dev/null)" || continue

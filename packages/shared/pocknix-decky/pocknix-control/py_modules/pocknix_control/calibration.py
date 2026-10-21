@@ -63,7 +63,7 @@ STEPS = [
 
 
 def _host(args, timeout=10):
-    # x86_64 FEX guest: busctl must run as the host binary under PID 1 (see sharing.py).
+    # busctl under PID 1, like every host tool (see sharing.py).
     return run_cmd(["systemd-run", "--quiet", "--collect", "--wait", "--pipe", *args], timeout=timeout)
 
 

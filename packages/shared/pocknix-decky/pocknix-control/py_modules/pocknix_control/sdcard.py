@@ -81,9 +81,8 @@ def format_sdcard(label):
     if not _format_lock.acquire(blocking=False):
         raise RuntimeError("A format is already in progress")
     try:
-        # systemd-run, not a direct call: run in our private mount namespace the formatter's
-        # umount detaches the card only locally, leaving the init-ns mount live under mkfs.
-        # PID 1 also gives it a clean env, free of the PyInstaller LD_LIBRARY_PATH poisoning.
+        # systemd-run, not a direct call: PID 1 gives the formatter a clean env, free of the
+        # PyInstaller LD_LIBRARY_PATH poisoning, outside the loader's cgroup.
         proc = run_cmd(
             ["systemd-run", "--quiet", "--collect", "--wait", "--pipe",
              FORMATTER, "--device", SD_DISK, "--label", label, "--force"],
