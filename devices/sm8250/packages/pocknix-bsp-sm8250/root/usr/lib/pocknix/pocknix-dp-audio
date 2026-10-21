@@ -1,0 +1,306 @@
+#!/usr/bin/env python3
+"""Route PipeWire audio to the dock while DisplayPort is up.
+
+hw:RetroidPocket,3 opens only while the DP link is trained. A UCM
+device on it makes PipeWire drop the HiFi profile. This process creates
+the sink after the link is up and removes it when the dock drops.
+
+Headphones stay above the dock. The speaker loudness filter stays on
+the internal speaker.
+
+A back-to-back restart of the DisplayPort DSP port times out the right
+channel. A silence stream holds the port while the dock is up. The TV
+plays S16_LE. s24-32le prepares and stays silent.
+
+Sleep is blocked only while the dock link is up. The RetroidPocket
+card is required.
+"""
+
+import os
+import subprocess
+import threading
+import time
+
+CARD = "/proc/asound/RetroidPocket"
+
+SINK = "pocknix_dp"
+DEVICE = "hw:RetroidPocket,3"
+SPEAKER = "alsa_output.platform-sound.HiFi__Speaker__sink"
+MIXER_NUMID = "numid=203"
+JACK_NAME = "DP0 Jack"
+STATUS = "/sys/class/drm/card0-DP-1/status"
+ENABLED = "/sys/class/drm/card0-DP-1/enabled"
+
+
+def run(args):
+    # pactl can emit a non-UTF8 byte. A strict decode killed the watcher.
+    result = subprocess.run(args, capture_output=True)
+    result.stdout = result.stdout.decode("utf-8", errors="replace")
+    result.stderr = result.stderr.decode("utf-8", errors="replace")
+    return result
+
+
+def read_text(path):
+    try:
+        with open(path) as fh:
+            return fh.read().strip()
+    except OSError:
+        return ""
+
+
+def jack_on():
+    result = run(["amixer", "-D", "hw:0", "contents"])
+    for block in result.stdout.split("numid=")[1:]:
+        if f"name='{JACK_NAME}'" in block[:200] and "values=on" in block[:400]:
+            return True
+    return False
+
+
+def link_up():
+    if jack_on():
+        return True
+    return read_text(STATUS) == "connected" and read_text(ENABLED) == "enabled"
+
+
+def sink_index(name):
+    result = run(["pactl", "list", "short", "sinks"])
+    for line in result.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2 and parts[1] == name:
+            return parts[0]
+    return None
+
+
+def module_index():
+    result = run(["pactl", "list", "short", "modules"])
+    for line in result.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2 and parts[1] == "module-alsa-sink" and f"sink_name={SINK}" in line:
+            return parts[0]
+    return None
+
+
+def set_mixer(value):
+    run(["amixer", "-D", "hw:0", "cset", MIXER_NUMID, value])
+
+
+silence_proc = None
+silence_lock = threading.Lock()
+inhibit_proc = None
+inhibit_lock = threading.Lock()
+
+
+def stop_silence():
+    global silence_proc
+    with silence_lock:
+        proc = silence_proc
+        silence_proc = None
+    if proc is None:
+        return
+    if proc.stdin is not None:
+        try:
+            proc.stdin.close()
+        except OSError:
+            pass
+    proc.terminate()
+    try:
+        proc.wait(timeout=1)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+
+def silence_writer(proc):
+    # One second of stereo s16le silence. The write blocks while the sink
+    # consumes it, so this does not spin.
+    chunk = bytes(48000 * 2 * 2)
+    try:
+        while proc.poll() is None:
+            proc.stdin.write(chunk)
+            proc.stdin.flush()
+    except (BrokenPipeError, OSError, ValueError):
+        return
+
+
+def start_silence():
+    global silence_proc
+    stop_silence()
+    proc = subprocess.Popen(
+        [
+            "pw-cat", "-p", "--raw",
+            "--format", "s16",
+            "--rate", "48000",
+            "--channels", "2",
+            "--channel-map", "FL,FR",
+            "--target", SINK,
+            "-",
+        ],
+        stdin=subprocess.PIPE,
+    )
+    threading.Thread(target=silence_writer, args=(proc,), daemon=True).start()
+    with silence_lock:
+        silence_proc = proc
+    print("dock port held open", flush=True)
+
+
+def stop_inhibit():
+    global inhibit_proc
+    with inhibit_lock:
+        proc = inhibit_proc
+        inhibit_proc = None
+    if proc is None:
+        return
+    proc.terminate()
+    try:
+        proc.wait(timeout=1)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+
+def start_inhibit():
+    global inhibit_proc
+    with inhibit_lock:
+        if inhibit_proc is not None and inhibit_proc.poll() is None:
+            return
+    proc = subprocess.Popen(
+        [
+            "systemd-inhibit",
+            "--what=sleep:idle",
+            "--who=pocknix-dp-audio",
+            "--why=DisplayPort dock is connected",
+            "--mode=block",
+            "kde-inhibit",
+            "--power",
+            "--screenSaver",
+            "sleep",
+            "infinity",
+        ]
+    )
+    with inhibit_lock:
+        inhibit_proc = proc
+    print("sleep blocked while docked", flush=True)
+
+
+def load_sink():
+    set_mixer("1")
+    result = run([
+        "pactl", "load-module", "module-alsa-sink",
+        f"device={DEVICE}",
+        f"sink_name={SINK}",
+        "format=s16le",
+        "rate=48000",
+        "channels=2",
+        "channel_map=front-left,front-right",
+        "sink_properties="
+        "node.name=pocknix_dp "
+        "node.description=Dock\\ DisplayPort "
+        "node.nick=DisplayPort "
+        "audio.position=FL,FR "
+        "priority.session=900 "
+        "priority.driver=900 "
+        "api.alsa.use-chmap=false "
+        "api.alsa.disable-mmap=true "
+        "api.alsa.period-size=480 "
+        "api.alsa.period-num=8",
+    ])
+    if result.returncode != 0:
+        set_mixer("0")
+        err = (result.stderr or result.stdout).strip()
+        print(f"dock sink not created: {err}", flush=True)
+        return False
+    print(f"dock audio on (module {result.stdout.strip()})", flush=True)
+    prefer_dock()
+    start_silence()
+    start_inhibit()
+    return True
+
+
+def default_sink():
+    result = run(["pactl", "get-default-sink"])
+    return result.stdout.strip()
+
+
+def prefer_dock():
+    if sink_index(SINK) is None:
+        return
+    # Headphones stay selected.
+    if "Headphones" in default_sink():
+        print("headphones stay default", flush=True)
+        return
+    dock = sink_index(SINK)
+    run(["wpctl", "set-default", dock])
+    print(f"default -> dock ({dock})", flush=True)
+
+
+def drop_sink():
+    stop_silence()
+    stop_inhibit()
+    if default_sink() == SINK:
+        speaker = sink_index(SPEAKER)
+        if speaker:
+            run(["wpctl", "set-default", speaker])
+            print(f"default -> speaker ({speaker})", flush=True)
+    mod = module_index()
+    if mod is not None:
+        run(["pactl", "unload-module", mod])
+        print(f"dock audio off (module {mod})", flush=True)
+    set_mixer("0")
+
+
+def main():
+    announced = False
+    down_since = None
+    # A failed start removes the node. Wait before creating it again.
+    gone_since = None
+    seen_sink = False
+    while True:
+        try:
+            if not os.path.isdir(CARD):
+                if not announced:
+                    print("waiting for RetroidPocket", flush=True)
+                    announced = True
+                time.sleep(0.7)
+                continue
+            want = link_up()
+            present = sink_index(SINK) is not None
+            if want:
+                down_since = None
+                if present:
+                    seen_sink = True
+                    gone_since = None
+                    start_inhibit()
+                    with silence_lock:
+                        proc = silence_proc
+                    if proc is None or proc.poll() is not None:
+                        start_silence()
+                else:
+                    now = time.monotonic()
+                    if seen_sink and gone_since is None:
+                        gone_since = now
+                    elif (not seen_sink) or (now - gone_since >= 2.5):
+                        if not load_sink():
+                            time.sleep(3)
+                        else:
+                            seen_sink = True
+                        gone_since = None
+                        announced = False
+            elif present:
+                # The link status can flicker for one poll. Wait before removing the sink.
+                now = time.monotonic()
+                if down_since is None:
+                    down_since = now
+                elif now - down_since >= 2.5:
+                    drop_sink()
+                    seen_sink = False
+                    gone_since = None
+                    announced = False
+                    down_since = None
+            elif not announced:
+                print("waiting for DisplayPort", flush=True)
+                announced = True
+        except Exception as exc:
+            print(f"watcher error: {exc}", flush=True)
+        time.sleep(0.7)
+
+
+if __name__ == "__main__":
+    main()

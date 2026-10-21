@@ -1,0 +1,13 @@
+[Unit]
+Description=Switch audio to the dock when DisplayPort is up
+After=pipewire-pulse.service wireplumber.service
+Wants=pipewire-pulse.service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/pocknix/pocknix-dp-audio
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
