@@ -20,7 +20,7 @@ def atomically_write(path, text, mode=None):
 
 
 def _clean_env():
-    # PyInstaller points LD_LIBRARY_PATH at the bundle's own extracted x86_64 libs, so any
+    # PyInstaller points LD_LIBRARY_PATH at the bundle's own extracted libs, so any
     # child re-resolving against them dies on symbol mismatches. It stashes the real value in
     # LD_LIBRARY_PATH_ORIG.
     env = os.environ.copy()
