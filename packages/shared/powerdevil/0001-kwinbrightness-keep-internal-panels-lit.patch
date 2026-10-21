@@ -1,0 +1,43 @@
+From: virtudude <virtudude@protonmail.com>
+Subject: [PATCH] Keep internal displays visible at minimum brightness
+
+Plasma's lowest brightness turns some built-in panels fully off.
+
+KWinDisplayBrightness reports a safe minimum of 0, so every slider and
+brightness key may ask kwin for 0.0. kwin maps that to raw level 1 of the
+backlight it drives (lerp(1, max, 0.0)), and DCS-dimmed panels are black
+there: the RP6's vtdr6130 sits at 4/4095 on its DSI node, the Nova
+(il97680a) and Thor (ch13726a) go dark the same way.
+
+Internal panels now report max/20 (500 of kwin's 10000) as the safe
+minimum. ScreenBrightnessController clamps every write to it, so the lowest
+setting lands at 5% of the backlight's range (RP6: 52/1023 on the pwm node,
+208/4095 on the DSI node, lit). External displays keep 0.
+
+The org.kde.ScreenBrightness D-Bus API subtracts the minimum, so desktop
+Plasma's applet still reads 0-100%. The legacy BrightnessControl API, which
+Plasma Mobile's quick-settings slider uses, passes raw values: the bottom 5%
+of that slider snaps back to the floor.
+
+Drop when upstream powerdevil reports a non-zero safe minimum for internal
+kwin outputs, or kwin's own floor for internal panels keeps them lit.
+---
+ daemon/controllers/kwinbrightness.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/daemon/controllers/kwinbrightness.cpp b/daemon/controllers/kwinbrightness.cpp
+index d3136ab..f48fb07 100644
+--- a/daemon/controllers/kwinbrightness.cpp
++++ b/daemon/controllers/kwinbrightness.cpp
+@@ -151,7 +151,8 @@ QString KWinDisplayBrightness::label() const
+
+ int KWinDisplayBrightness::knownSafeMinBrightness() const
+ {
+-    return 0;
++    // KWin uses a 0-10,000 scale; keep handheld panels visible at 5%.
++    return isInternal() ? maxBrightness() / 20 : 0;
+ }
+
+ int KWinDisplayBrightness::maxBrightness() const
+--
+2.50.1
