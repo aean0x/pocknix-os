@@ -1,0 +1,15 @@
+pkgname=pocknix-emu-azahar
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="pocknix setup for Azahar (3DS): ES-DE wiring and preconfigured defaults"
+arch=('any')
+url="https://github.com/shuuri-labs/pocknix-os"
+license=('GPL-2.0-or-later')
+depends=('pocknix-emulation-common' 'azahar')
+source=('steam-azahar.conf' 'es-azahar')
+sha256sums=('SKIP' 'SKIP')
+
+package() {
+  install -Dm644 "${srcdir}/steam-azahar.conf" "${pkgdir}/usr/share/pocknix-emulation/steam/azahar.conf"
+  install -Dm755 "${srcdir}/es-azahar" "${pkgdir}/usr/lib/pocknix/es-azahar"
+}

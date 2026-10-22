@@ -1,0 +1,15 @@
+pkgname=pocknix-emu-rpcs3
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="pocknix setup for RPCS3 (PS3): ES-DE wiring and preconfigured defaults"
+arch=('any')
+url="https://github.com/shuuri-labs/pocknix-os"
+license=('GPL-2.0-or-later')
+depends=('pocknix-emulation-common' 'rpcs3-bin')
+source=('steam-rpcs3.conf' 'es-rpcs3')
+sha256sums=('SKIP' 'SKIP')
+
+package() {
+  install -Dm644 "${srcdir}/steam-rpcs3.conf" "${pkgdir}/usr/share/pocknix-emulation/steam/rpcs3.conf"
+  install -Dm755 "${srcdir}/es-rpcs3" "${pkgdir}/usr/lib/pocknix/es-rpcs3"
+}

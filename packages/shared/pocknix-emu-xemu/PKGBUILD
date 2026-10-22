@@ -1,0 +1,15 @@
+pkgname=pocknix-emu-xemu
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="pocknix setup for xemu (Xbox): ES-DE wiring and preconfigured defaults"
+arch=('any')
+url="https://github.com/shuuri-labs/pocknix-os"
+license=('GPL-2.0-or-later')
+depends=('pocknix-emulation-common' 'xemu-bin')
+source=('steam-xemu.conf' 'es-xemu')
+sha256sums=('SKIP' 'SKIP')
+
+package() {
+  install -Dm644 "${srcdir}/steam-xemu.conf" "${pkgdir}/usr/share/pocknix-emulation/steam/xemu.conf"
+  install -Dm755 "${srcdir}/es-xemu" "${pkgdir}/usr/lib/pocknix/es-xemu"
+}

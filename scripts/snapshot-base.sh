@@ -235,24 +235,34 @@ layer metapackage's depends= (packages/shared/pocknix-*), then re-run."
 
 # --- layer completeness ------------------------------------------------------
 # A layer's ALARM deps reach the base only if the image installs that layer or
-# base-extras.list hosts them; a layer the build left out (POCKNIX_EMULATION) would
+# base-extras.list hosts them; a layer the image leaves out (emulation) would
 # otherwise silently lose its deps from the snapshot.
 layer_missing=""
-for _meta in "${PACKAGES_DIR}"/shared/pocknix-core/PKGBUILD \
-             "${PACKAGES_DIR}"/shared/pocknix-*-full/PKGBUILD; do
-  [ -f "${_meta}" ] || continue
-  _deps="$(bash -c 'depends=(); source "$1" >/dev/null 2>&1; printf "%s\n" "${depends[@]}"' _ "${_meta}" 2>/dev/null)"
-  [ -n "${_deps}" ] || die "cannot read depends= from ${_meta} — the layer guard would be vacuous"
+_pkgbuild_deps() { bash -c 'depends=(); source "$1" >/dev/null 2>&1; printf "%s\n" "${depends[@]}"' _ "$1" 2>/dev/null; }
+# $1 PKGBUILD, $2 layer, $3 1 = also scan the shared packages it names: a meta whose
+# depends= are all ours (the per-emulator glue) would otherwise check nothing.
+_layer_scan() {
+  local _dep _sub
   while read -r _dep; do
     _dep="${_dep%%[<>=]*}"
     [ -n "${_dep}" ] || continue
-    [ -n "${ours[${_dep}]:-}" ] && continue
+    if [ -n "${ours[${_dep}]:-}" ]; then
+      _sub="${PACKAGES_DIR}/shared/${_dep}/PKGBUILD"
+      [ "$3" = 1 ] && [ -f "${_sub}" ] && _layer_scan "${_sub}" "$2 via ${_dep}" 0
+      continue
+    fi
     [ -n "${want[${_dep}]:-}" ] && continue
     [ -n "${prov[${_dep}]:-}" ] && continue
-    layer_missing+="  ${_dep} (needed by $(basename "$(dirname "${_meta}")"))"$'\n'
-  done <<< "${_deps}"
+    layer_missing+="  ${_dep} (needed by $2)"$'\n'
+  done < <(_pkgbuild_deps "$1")
+}
+for _meta in "${PACKAGES_DIR}"/shared/pocknix-core/PKGBUILD \
+             "${PACKAGES_DIR}"/shared/pocknix-*-full/PKGBUILD; do
+  [ -f "${_meta}" ] || continue
+  [ -n "$(_pkgbuild_deps "${_meta}")" ] || die "cannot read depends= from ${_meta} — the layer guard would be vacuous"
+  _layer_scan "${_meta}" "$(basename "$(dirname "${_meta}")")" 1
 done
-[ -z "${layer_missing}" ] || die "a layer metapackage names ALARM packages the base would not host:
+[ -z "${layer_missing}" ] || die "a layer metapackage, or a package it names, needs ALARM packages the base would not host:
 ${layer_missing}
 The image must have stopped installing that layer, so the harvest no longer sees
 its deps. Name them in config/packages/base-extras.list (hosted, not installed)

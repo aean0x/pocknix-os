@@ -1,5 +1,0 @@
-#!/bin/bash
-# ES-DE launch wrapper; es-armsx2 explains why the pin lives here.
-. /usr/lib/pocknix/emu-resolve.sh
-exe="$(emu_path eden)" || emu_missing eden
-exec taskset -c "$(big_cores)" "${exe}" "$@"

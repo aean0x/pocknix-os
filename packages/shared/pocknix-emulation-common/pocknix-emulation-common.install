@@ -1,0 +1,10 @@
+# Older images enabled the user unit with `systemctl --global enable`, a link pacman
+# never owned. rm, not systemctl: this also runs in the image-build chroot.
+_drop_unowned_wants() {
+  rm -f /etc/systemd/user/default.target.wants/pocknix-roms-init.service
+}
+# The old settings merge's template stash: root-owned, so the user-level seeder cannot drop it.
+_drop_seed_prev() { rm -rf /var/lib/pocknix/seed-prev; }
+# Fielded devices get this package as a fresh install (it took over from pocknix-emulation).
+post_install() { _drop_unowned_wants; _drop_seed_prev; }
+post_upgrade() { _drop_unowned_wants; _drop_seed_prev; }

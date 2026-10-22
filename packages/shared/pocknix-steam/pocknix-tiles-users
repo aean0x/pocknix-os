@@ -1,0 +1,16 @@
+#!/bin/bash
+# pocknix-tiles-users - the alpm Remove hook (as root, matched manifest paths on stdin): one
+# pocknix-tiles prune per logged-in user for the whole transaction. Detached: a wedged Steam must
+# not hold the pacman transaction behind a CDP timeout.
+[ -d /run/systemd/system ] || exit 0   # image-build chroot: no logind, no users
+cmd=(prune)
+while read -r target; do
+  f="/${target}"; n="${f##*/}"; n="${n%.conf}"
+  cmd+=("${n}" "$(sed -n 's/^exe=//p' "${f}" 2>/dev/null | head -n1)" "$(sed -n 's/^args=//p' "${f}" 2>/dev/null | head -n1)")
+done
+[ "${#cmd[@]}" -gt 1 ] || exit 0
+loginctl list-users --no-legend 2>/dev/null | awk '$1 >= 1000 { print $2 }' | while read -r u; do
+  systemd-run --machine="${u}@.host" --user --collect --no-block --quiet \
+    /usr/bin/pocknix-tiles "${cmd[@]}" >/dev/null 2>&1
+done
+exit 0

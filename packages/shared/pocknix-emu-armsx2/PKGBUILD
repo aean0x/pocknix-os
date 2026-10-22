@@ -1,0 +1,16 @@
+pkgname=pocknix-emu-armsx2
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="pocknix setup for ARMSX2 (PS2): ES-DE wiring and preconfigured defaults"
+arch=('any')
+url="https://github.com/shuuri-labs/pocknix-os"
+license=('GPL-2.0-or-later')
+depends=('pocknix-emulation-common' 'armsx2-bin')
+source=('steam-armsx2.conf' 'es-armsx2' 'armsx2-PCSX2.ini.in')
+sha256sums=('SKIP' 'SKIP' 'SKIP')
+
+package() {
+  install -Dm644 "${srcdir}/steam-armsx2.conf" "${pkgdir}/usr/share/pocknix-emulation/steam/armsx2.conf"
+  install -Dm755 "${srcdir}/es-armsx2" "${pkgdir}/usr/lib/pocknix/es-armsx2"
+  install -Dm644 "${srcdir}/armsx2-PCSX2.ini.in" "${pkgdir}/usr/share/pocknix-emulation/armsx2-PCSX2.ini.in"
+}
