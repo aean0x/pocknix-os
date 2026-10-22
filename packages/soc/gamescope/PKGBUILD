@@ -34,8 +34,9 @@ source=("gamescope::git+https://github.com/ValveSoftware/gamescope.git#commit=${
         '0011-steamcompmgr-skip-identity-colour-LUTs-in-the-composite.patch'
         '0012-libliftoff-treat-enodev-as-no-fit.patch'
         '0013-libliftoff-give-planes-the-layer-zpos.patch'
-        '0014-steamcompmgr-report-wayland-windows-to-steam.patch')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+        '0014-steamcompmgr-report-wayland-windows-to-steam.patch'
+        '0015-wlserver-pass-touch-through-to-native-wayland-windows.patch')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 prepare() {
   cd gamescope
@@ -50,6 +51,7 @@ prepare() {
   patch -p1 < "${srcdir}/0012-libliftoff-treat-enodev-as-no-fit.patch"
   patch -p1 < "${srcdir}/0013-libliftoff-give-planes-the-layer-zpos.patch"
   patch -p1 < "${srcdir}/0014-steamcompmgr-report-wayland-windows-to-steam.patch"
+  patch -p1 < "${srcdir}/0015-wlserver-pass-touch-through-to-native-wayland-windows.patch"
 }
 
 build() {
