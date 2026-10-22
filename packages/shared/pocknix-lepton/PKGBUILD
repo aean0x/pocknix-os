@@ -1,0 +1,28 @@
+# pocknix-lepton — the host side of Steam's Lepton (Android APK compat tool, app 3029110):
+# the host tools and paths its launch scripts assume. The guest vendor tree it bind-mounts from
+# /usr/share/guestos/android is pocknix-mesa-android's.
+pkgname=pocknix-lepton
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Host side of Steam's Lepton Android compatibility tool: bionic Mesa, Fossilize layer, helper paths"
+arch=('any')
+url="https://github.com/shuuri-labs/pocknix-os"
+license=('GPL-2.0-or-later')
+# crun, not runc: runc fails container init on Lepton's /dev/tty bind, and podman prefers crun
+# when both are installed. ./nodeps: runtime-only deps, kept out of the build chroot.
+depends=('pocknix-mesa-android'
+         'podman' 'crun' 'catatonit' 'passt'
+         'inotify-tools' 'attr' 'jq' 'patch' 'util-linux' 'android-tools')
+source=('steamvr' 'VkLayer_fossilize.json')
+sha256sums=('SKIP' 'SKIP')
+
+package() {
+  # Lepton reads layer manifests from any JSON under /usr/share/vulkan; the host loader only
+  # scans *_layer.d, so this one stays invisible to host Vulkan.
+  install -Dm644 "${srcdir}/VkLayer_fossilize.json" \
+    "${pkgdir}/usr/share/vulkan/guestos-android/VkLayer_fossilize.json"
+  install -Dm755 "${srcdir}/steamvr" "${pkgdir}/usr/bin/steamvr"
+  # Lepton hardcodes Debian's adb location.
+  install -d "${pkgdir}/usr/lib/android-sdk/platform-tools"
+  ln -s /usr/bin/adb "${pkgdir}/usr/lib/android-sdk/platform-tools/adb"
+}

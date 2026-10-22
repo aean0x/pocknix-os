@@ -2,12 +2,12 @@
 # x11+GLX stays enabled: Steam and desktop apps run under XWayland and need GLX/EGL-x11.
 # epoch=2 outranks ALARM's epoch=1 mesa.
 pkgbase=mesa
-pkgname=(mesa vulkan-freedreno)
+pkgname=(mesa vulkan-freedreno pocknix-mesa-android)
 epoch=2
 pkgver=26.2.4
 # differs from pkgver only for RCs: the tarball keeps the hyphen makepkg forbids in pkgver
 _srcver=${pkgver}
-pkgrel=1
+pkgrel=2
 pkgdesc="Mesa trimmed for Qualcomm handhelds: freedreno GL + turnip Vulkan, SoC-tuned (${_srcver})"
 arch=('aarch64')
 url="https://www.mesa3d.org/"
@@ -19,17 +19,48 @@ makedepends=(
   expat libdrm libglvnd libdisplay-info spirv-tools systemd-libs vulkan-icd-loader
   wayland wayland-protocols zlib zstd
   xorgproto libx11 libxcb libxext libxshmfence libxxf86vm libxrandr xcb-util-keysyms
+  clang lld llvm cmake
 )
 # upstream considers LTO broken until explicit notice
 options=(!lto)
-source=("https://archive.mesa3d.org/mesa-${_srcver}.tar.xz")
-sha256sums=('bce5f7fbebb934373b86c999a064d52fb5065878dc57f287f95346648ec832e9')
+# The NDK's own clang is x86_64-only, so the host clang links against the NDK sysroot and
+# its prebuilt aarch64-android compiler-rt instead. Lepton's rootfs is Android 11 (API 30).
+_ndkver=r28c
+_androidapi=30
+# libdrm.wrap's pin in this mesa release; bionic has no libdrm, so meson builds the fallback.
+_libdrmver=2.4.133
+# Lepton aborts without the Fossilize capture layer; rapidjson is Fossilize's submodule at
+# that commit.
+_fossilizecommit=556da9ff7d7616704dda515756219ab1dab693ec
+_rapidjsoncommit=8f4c021fa2f1e001d2376095928fc0532adf2ae6
+source=("https://archive.mesa3d.org/mesa-${_srcver}.tar.xz"
+        "https://dl.google.com/android/repository/android-ndk-${_ndkver}-linux.zip"
+        "https://dri.freedesktop.org/libdrm/libdrm-${_libdrmver}.tar.xz"
+        "fossilize-${_fossilizecommit}.tar.gz::https://github.com/ValveSoftware/Fossilize/archive/${_fossilizecommit}.tar.gz"
+        "rapidjson-${_rapidjsoncommit}.tar.gz::https://github.com/miloyip/rapidjson/archive/${_rapidjsoncommit}.tar.gz")
+noextract=("android-ndk-${_ndkver}-linux.zip" "libdrm-${_libdrmver}.tar.xz")
+sha256sums=('bce5f7fbebb934373b86c999a064d52fb5065878dc57f287f95346648ec832e9'
+            'dfb20d396df28ca02a8c708314b814a4d961dc9074f9a161932746f815aa552f'
+            'fc68f9d0ba2ea63c9432a299e14fea09fad7a8a66e8039fcd7802ca59f77b4f5'
+            '2802294470007bd71bc36b169bebde25d63008c4ad65a84d288741b33d7d27e1'
+            '3c8e1044b9b3226ff839663ff482b00750ca7dedb53026f8d8a31999865b8466')
 
 prepare() {
   cd "mesa-${_srcver}"
   # package release in the version string so Chromium/CEF (steamwebhelper) invalidates
   # its GPU cache across our rebuilds.
   echo "${pkgver}-pocknix${epoch}.${pkgrel}" > VERSION
+  # meson takes a hash-matching tarball from packagecache instead of downloading it
+  install -Dm644 "${srcdir}/libdrm-${_libdrmver}.tar.xz" -t subprojects/packagecache
+
+  cd "${srcdir}"
+  local _ndkllvm="android-ndk-${_ndkver}/toolchains/llvm/prebuilt/linux-x86_64"
+  bsdtar -xf "android-ndk-${_ndkver}-linux.zip" "${_ndkllvm}/sysroot" "${_ndkllvm}/lib/clang"
+  # Headers must match the compiler that reads them (host clang); runtime archives must be
+  # the NDK's, since the host clang ships none for android.
+  rm -rf android-rd && mkdir -p android-rd/lib
+  cp -r "$(clang -print-resource-dir)/include" android-rd/
+  cp -r "${_ndkllvm}"/lib/clang/*/lib/linux android-rd/lib/
 }
 
 build() {
@@ -69,6 +100,85 @@ build() {
     -Dmicrosoft-clc=disabled \
     -Dbuild-tests=false
   meson compile -C build
+
+  _build_android "${_rocknix_tune}"
+}
+
+_build_android() {
+  local _ndk="${srcdir}/android-ndk-${_ndkver}/toolchains/llvm/prebuilt/linux-x86_64"
+  local _cc="'--target=aarch64-linux-android${_androidapi}', '--sysroot=${_ndk}/sysroot', '-resource-dir=${srcdir}/android-rd'"
+  # Only -march carries over: sm8250's big.LITTLE -mtune spelling is GCC-only.
+  local _march="" _marchs="" _w
+  for _w in $1; do case "${_w}" in -march=*) _march="${_w}" ;; esac; done
+  [ -n "${_march}" ] && _marchs="'${_march}', "
+  # Static libc++, no exceptions or unwind tables: the outputs need no libc++_shared.so and import
+  # no unwinder, so they load against the image's bionic libs alone.
+  cat > "${srcdir}/android-cross.ini" <<END
+[binaries]
+c = ['clang', ${_cc}]
+cpp = ['clang++', ${_cc}]
+ar = 'llvm-ar'
+strip = 'llvm-strip'
+c_ld = 'lld'
+cpp_ld = 'lld'
+
+[built-in options]
+c_args = [${_marchs%, }]
+cpp_args = [${_marchs}'-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables']
+cpp_link_args = ['-static-libstdc++']
+
+[host_machine]
+system = 'android'
+cpu_family = 'aarch64'
+cpu = 'aarch64'
+endian = 'little'
+END
+
+  # makepkg's glibc CFLAGS/LDFLAGS must not reach the bionic objects. gbm-backends-path is
+  # baked in: gralloc dlopens dri_gbm from there, and the default path makes it fail to init.
+  # nodownload: optional fallbacks (expat, the decode tools' libxml2/libarchive) stay unfound
+  # instead of being fetched mid-build.
+  env -u CFLAGS -u CXXFLAGS -u CPPFLAGS -u LDFLAGS \
+  meson setup build-android "mesa-${_srcver}" --cross-file "${srcdir}/android-cross.ini" \
+    --wrap-mode=nodownload \
+    --buildtype=release \
+    -Db_ndebug=true \
+    -Dplatforms=android \
+    -Dplatform-sdk-version=${_androidapi} \
+    -Dandroid-stub=true \
+    -Dandroid-strict=false \
+    -Dandroid-libbacktrace=disabled \
+    -Dgallium-drivers=freedreno,zink \
+    -Dvulkan-drivers=freedreno \
+    -Dfreedreno-kmds=msm \
+    -Degl=enabled \
+    -Dgbm=enabled \
+    -Dgbm-backends-path=/vendor/lib64 \
+    -Dllvm=disabled \
+    -Dallow-fallback-for=libdrm \
+    -Dbuild-tests=false
+  meson compile -C build-android
+
+  # Not the NDK's cmake toolchain file (it hardcodes the x86_64 prebuilt compilers), so ANDROID
+  # is set by hand: the cmake var for liblog, the macro for the shm_open guard.
+  env -u CFLAGS -u CXXFLAGS -u CPPFLAGS -u LDFLAGS \
+  cmake -S "Fossilize-${_fossilizecommit}" -B build-fossilize -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_SYSTEM_NAME=Linux \
+    -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+    -DCMAKE_C_COMPILER=clang \
+    -DCMAKE_CXX_COMPILER=clang++ \
+    -DCMAKE_C_COMPILER_TARGET=aarch64-linux-android${_androidapi} \
+    -DCMAKE_CXX_COMPILER_TARGET=aarch64-linux-android${_androidapi} \
+    -DCMAKE_SYSROOT="${_ndk}/sysroot" \
+    -DCMAKE_C_FLAGS="-resource-dir=${srcdir}/android-rd ${_march} -DANDROID" \
+    -DCMAKE_CXX_FLAGS="-resource-dir=${srcdir}/android-rd ${_march} -DANDROID" \
+    -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld -static-libstdc++" \
+    -DANDROID=ON \
+    -DFOSSILIZE_RAPIDJSON_INCLUDE_PATH="${srcdir}/rapidjson-${_rapidjsoncommit}/include" \
+    -DFOSSILIZE_CLI=OFF \
+    -DFOSSILIZE_TESTS=OFF
+  cmake --build build-fossilize --target VkLayer_fossilize
 }
 
 # _pick: park files from $pkgdir in a side dir for the second package().
@@ -125,4 +235,28 @@ package_vulkan-freedreno() {
   chmod 0644 "${pkgdir}/usr/share/pocknix/vk-arm/${pkgver}/icd.json"
 
   install -Dm644 "mesa-${_srcver}/docs/license.rst" -t "${pkgdir}/usr/share/licenses/${pkgname}"
+}
+
+package_pocknix-mesa-android() {
+  pkgdesc="Mesa (freedreno + zink + turnip) and the Fossilize layer built against bionic, as an Android vendor tree"
+  depends=()
+  # bionic ELF: makepkg's glibc-oriented strip/debug split has nothing to do here
+  options=(!strip !debug)
+
+  # Android's loaders match these by filename, not soname. Real files in the tree Lepton binds
+  # into its container's /vendor: it mounts only regular files from there, never symlinks.
+  local b=build-android d="${pkgdir}/usr/share/guestos/android/vendor"
+  local v="$d/lib64"
+  install -Dm644 $b/src/freedreno/vulkan/libvulkan_freedreno.so "$v/hw/vulkan.freedreno.so"
+  install -Dm644 $b/src/gallium/targets/dri/libgallium_dri.so   "$v/libgallium_dri.so"
+  install -Dm644 $b/src/gbm/libgbm_mesa.so                      "$v/libgbm_mesa.so"
+  install -Dm644 $b/src/gbm/backends/dri/dri_gbm.so             "$v/dri_gbm.so"
+  install -Dm644 $b/src/egl/libEGL.so                           "$v/egl/libEGL_mesa.so"
+  install -Dm644 $b/src/mesa/glapi/es2api/libGLESv2.so          "$v/egl/libGLESv2_mesa.so"
+  install -Dm644 $b/src/mesa/glapi/es1api/libGLESv1_CM.so       "$v/egl/libGLESv1_CM_mesa.so"
+  install -Dm644 build-fossilize/layer/libVkLayer_fossilize.so "$d/vulkan_layers/libVkLayer_fossilize.so"
+
+  install -Dm644 "mesa-${_srcver}/docs/license.rst" -t "${pkgdir}/usr/share/licenses/${pkgname}"
+  install -Dm644 "Fossilize-${_fossilizecommit}/LICENSE" \
+    "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE.fossilize"
 }
