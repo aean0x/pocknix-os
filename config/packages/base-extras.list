@@ -40,7 +40,9 @@ kmenuedit
 polkit-kde-agent
 
 # --- Lepton runtime (Steam's Android APK tool; pocknix-lepton depends on these) ---
-# runc, not crun (crun needs criu -> a protobuf the base lacks); netavark, not cni-plugins.
+# runc only because podman needs an oci-runtime and crun's criu needs a newer protobuf than
+# the base; Lepton itself needs crun. netavark, not cni-plugins (containers-common wants
+# container-network-stack>1).
 podman
 catatonit
 conmon
