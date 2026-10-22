@@ -6,7 +6,7 @@
 pkgname=gamescope
 epoch=1
 pkgver=3.16.31.rocknix.20260927.f6916aa
-pkgrel=4
+pkgrel=5
 _commit=f6916aacdecb4476f05746fef4dc49a650c28f05
 install=gamescope.install
 pkgdesc="SteamOS session compositing WM — patched (for msm handhelds)"
@@ -33,8 +33,9 @@ source=("gamescope::git+https://github.com/ValveSoftware/gamescope.git#commit=${
         '0010-steamcompmgr-elapsed-time-fps-limiter.patch'
         '0011-steamcompmgr-skip-identity-colour-LUTs-in-the-composite.patch'
         '0012-libliftoff-treat-enodev-as-no-fit.patch'
-        '0013-libliftoff-give-planes-the-layer-zpos.patch')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+        '0013-libliftoff-give-planes-the-layer-zpos.patch'
+        '0014-steamcompmgr-report-wayland-windows-to-steam.patch')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 prepare() {
   cd gamescope
@@ -48,6 +49,7 @@ prepare() {
   patch -p1 < "${srcdir}/0011-steamcompmgr-skip-identity-colour-LUTs-in-the-composite.patch"
   patch -p1 < "${srcdir}/0012-libliftoff-treat-enodev-as-no-fit.patch"
   patch -p1 < "${srcdir}/0013-libliftoff-give-planes-the-layer-zpos.patch"
+  patch -p1 < "${srcdir}/0014-steamcompmgr-report-wayland-windows-to-steam.patch"
 }
 
 build() {
