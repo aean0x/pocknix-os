@@ -38,3 +38,16 @@ plasma-desktop
 systemsettings
 kmenuedit
 polkit-kde-agent
+
+# --- Lepton runtime (Steam's Android APK tool; pocknix-lepton depends on these) ---
+# runc, not crun (crun needs criu -> a protobuf the base lacks); netavark, not cni-plugins.
+podman
+catatonit
+conmon
+containers-common
+netavark
+aardvark-dns
+runc
+libpathrs
+passt
+inotify-tools
