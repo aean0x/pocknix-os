@@ -1,0 +1,4 @@
+# With no density Android falls back to about 180 dpi, which leaves its UI half size on a
+# handheld panel. ro. props take the first value set, so this must run before SurfaceFlinger.
+on early-init
+    setprop ro.sf.lcd_density 320

@@ -13,8 +13,9 @@ license=('GPL-2.0-or-later')
 depends=('pocknix-mesa-android'
          'podman' 'crun' 'catatonit' 'passt'
          'inotify-tools' 'attr' 'jq' 'patch' 'util-linux' 'android-tools')
-source=('steamvr' 'VkLayer_fossilize.json')
-sha256sums=('SKIP' 'SKIP')
+source=('steamvr' 'VkLayer_fossilize.json' 'pocknix-lepton.rc'
+        'android.software.freeform_window_management.xml')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
   # Lepton reads layer manifests from any JSON under /usr/share/vulkan; the host loader only
@@ -22,6 +23,11 @@ package() {
   install -Dm644 "${srcdir}/VkLayer_fossilize.json" \
     "${pkgdir}/usr/share/vulkan/guestos-android/VkLayer_fossilize.json"
   install -Dm755 "${srcdir}/steamvr" "${pkgdir}/usr/bin/steamvr"
+  # Lepton binds every regular file under guestos/android to the same path in its container.
+  install -Dm644 "${srcdir}/pocknix-lepton.rc" \
+    "${pkgdir}/usr/share/guestos/android/vendor/etc/init/pocknix-lepton.rc"
+  install -Dm644 "${srcdir}/android.software.freeform_window_management.xml" \
+    -t "${pkgdir}/usr/share/guestos/android/system/etc/permissions"
   # Lepton hardcodes Debian's adb location.
   install -d "${pkgdir}/usr/lib/android-sdk/platform-tools"
   ln -s /usr/bin/adb "${pkgdir}/usr/lib/android-sdk/platform-tools/adb"
