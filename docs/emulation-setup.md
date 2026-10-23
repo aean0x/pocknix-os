@@ -143,6 +143,17 @@ art, use **Steam ROM Manager**. It needs Steam closed while it saves, so it runs
    device.
 4. Close it and return to Game Mode from the desktop: the games are in your library.
 
+Its window is sized to fit your screen. If part of it is still cut off, try a smaller scale once
+from a desktop terminal (`POCKNIX_SRM_SCALE=1.4 steam-rom-manager`), then keep the one that fits:
+
+```
+mkdir -p ~/.config/plasma-workspace/env
+echo 'export POCKNIX_SRM_SCALE=1.4' > ~/.config/plasma-workspace/env/srm-scale.sh
+```
+
+It applies from the next switch to Desktop Mode, the tile included. Delete the file to go back to
+the automatic size.
+
 Avoid SRM's own emulator presets: they start the emulators directly and skip the Pocknix
 launch settings (CPU pinning, RetroArch frame pacing). *Restore emulator default settings* in
 Pocknix Tools also restores the Pocknix SRM parsers.
