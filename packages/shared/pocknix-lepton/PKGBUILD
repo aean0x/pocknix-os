@@ -3,19 +3,25 @@
 # /usr/share/guestos/android is pocknix-mesa-android's.
 pkgname=pocknix-lepton
 pkgver=0.1.0
-pkgrel=1
-pkgdesc="Host side of Steam's Lepton Android compatibility tool: bionic Mesa, Fossilize layer, helper paths"
+pkgrel=2
+pkgdesc="Host side of Steam's Lepton Android compatibility tool: bionic Mesa, Fossilize layer, keyboard, helper paths"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
-license=('GPL-2.0-or-later')
+license=('GPL-2.0-or-later' 'Apache-2.0')   # ours + AOSP LatinIME, repackaged
+options=('!strip')   # the prebuilt Android lib ships as built
 # crun, not runc: runc fails container init on Lepton's /dev/tty bind, and podman prefers crun
 # when both are installed. ./nodeps: runtime-only deps, kept out of the build chroot.
 depends=('pocknix-mesa-android'
          'podman' 'crun' 'catatonit' 'passt'
          'inotify-tools' 'attr' 'jq' 'patch' 'util-linux' 'android-tools')
+_imever=armada-0b3da6b
+# Lepton's image has no input method, so text fields never raise an on-screen keyboard.
+# Prebuilt AOSP LatinIME, see README.provenance.
 source=('steamvr' 'VkLayer_fossilize.json' 'pocknix-lepton.rc'
-        'android.software.freeform_window_management.xml')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
+        'android.software.freeform_window_management.xml'
+        "https://pocknix.shuuri.net/mirror/lepton-latinime-${_imever}.tar.gz")
+sha512sums=('SKIP' 'SKIP' 'SKIP' 'SKIP'
+            '8801ceee148b1048c3b1d04807a4b2d44dbe91795a33ba7e440319cb05df21084c8df620c47cc1e9f6aa0abc525321ee79ee7147b0a675ea67620ed6ca08feac')
 
 package() {
   # Lepton reads layer manifests from any JSON under /usr/share/vulkan; the host loader only
@@ -28,6 +34,11 @@ package() {
     "${pkgdir}/usr/share/guestos/android/vendor/etc/init/pocknix-lepton.rc"
   install -Dm644 "${srcdir}/android.software.freeform_window_management.xml" \
     -t "${pkgdir}/usr/share/guestos/android/system/etc/permissions"
+  # The app's lib dir links to the system copy, which a file bind cannot follow: both get the file.
+  local p="${pkgdir}/usr/share/guestos/android/system/product"
+  install -Dm644 "${srcdir}/latinime/LatinIME.apk" -t "${p}/app/LatinIME"
+  install -Dm644 "${srcdir}/latinime/libjni_latinime.so" -t "${p}/app/LatinIME/lib/arm64"
+  install -Dm644 "${srcdir}/latinime/libjni_latinime.so" -t "${p}/lib64"
   # Lepton hardcodes Debian's adb location.
   install -d "${pkgdir}/usr/lib/android-sdk/platform-tools"
   ln -s /usr/bin/adb "${pkgdir}/usr/lib/android-sdk/platform-tools/adb"
