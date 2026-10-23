@@ -1,0 +1,18 @@
+# lepton-latinime-armada-0b3da6b.tar.gz (pocknix mirror)
+
+AOSP LatinIME (Android's stock keyboard), prebuilt for Lepton's Android 11 (API 30) image:
+
+    latinime/LatinIME.apk          sha256 b5770c0e22ebb8fb4617cc3f9567932502a0427f6cf82fdd2e5579df035ab3fd
+    latinime/libjni_latinime.so    sha256 f9ed465328c2b9d969ef8e62ff36d81437a19d21e47873aff33bcf427df0b199
+
+Built by armada (github.com/armada-os/armada) from Valve's Lepton Android tree, tag v3.0.3
+(0ea2492b), with their packages/lepton/build-android.sh; taken from their packages/lepton/prebuilt/
+at commit 0b3da6b0639b089392e6824689faac9f46fac720, both hashes matching their prebuilt.sha256.
+Building it ourselves needs an x86_64 host with the full Android tree.
+
+Packed 2026-10-23:
+
+    tar --owner=0 --group=0 --numeric-owner --sort=name --mtime=2026-10-04T00:00:00Z -cf - latinime | gzip -n9
+
+sha512 pinned in the PKGBUILD. LatinIME is Apache-2.0. Mirrored at https://pocknix.shuuri.net/mirror/
+so the build does not depend on armada's repository layout.
