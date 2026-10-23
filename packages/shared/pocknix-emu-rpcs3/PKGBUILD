@@ -1,6 +1,6 @@
 pkgname=pocknix-emu-rpcs3
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc="pocknix setup for RPCS3 (PS3): ES-DE wiring and preconfigured defaults"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"

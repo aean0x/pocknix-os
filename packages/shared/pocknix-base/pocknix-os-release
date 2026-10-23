@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # Bump at each image cut.
-POCKNIX_VERSION=0.4.0
+POCKNIX_VERSION=0.5.0
 
 osr=/usr/lib/os-release
 lock=/usr/share/pocknix/pocknix-base.lock

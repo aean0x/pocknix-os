@@ -3,7 +3,7 @@
 # cemu's 'wxwidgets-gtk3>=3.3', so pacman falls through to this provider.
 pkgname=wxwidgets-pocknix
 pkgver=3.3.2
-pkgrel=3
+pkgrel=4
 pkgdesc="wxWidgets 3.3 (gtk3, lean: no webview/media) — required by cemu, ALARM only has 3.2"
 arch=('aarch64')
 url="https://wxwidgets.org"

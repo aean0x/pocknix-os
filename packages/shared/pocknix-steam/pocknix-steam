@@ -37,7 +37,7 @@ pocknix_steam_channel_guard "${STEAM}"
 
 # Must precede Steam, which enumerates controllers once at startup; desktop mode leaves the pad
 # on xb360, and only a Deck target gives Steam Input the Steam-native pad (Guide, QAM, L4/L5).
-# deck-uhid, not USB/IP `deck`: vhci vetoes suspend (see bsp-common inputplumber-sleep-pre).
+# deck-uhid, not USB/IP `deck`: vhci_hcd refuses system suspend while a USB/IP device is attached.
 if command -v pocknix-gamepad-target >/dev/null 2>&1; then
   pocknix-gamepad-target deck-uhid || true
 fi

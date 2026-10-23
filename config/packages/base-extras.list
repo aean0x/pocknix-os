@@ -26,9 +26,7 @@ glu
 boost-libs           # the source-built emulators (dolphin-emu, azahar, cemu) from here down
 crypto++
 enet
-fmt
 libspng
-mbedtls3
 pugixml
 sfml
 soundtouch
@@ -40,17 +38,215 @@ systemsettings
 kmenuedit
 polkit-kde-agent
 
-# --- Lepton runtime (Steam's Android APK tool; pocknix-lepton depends on these) ---
-# runc only because podman needs an oci-runtime and crun's criu needs a newer protobuf than
-# the base; Lepton itself needs crun. netavark, not cni-plugins (containers-common wants
-# container-network-stack>1).
-podman
-catatonit
-conmon
-containers-common
-netavark
-aardvark-dns
-runc
-libpathrs
-passt
-inotify-tools
+# --- game streaming ---
+moonlight-qt
+
+# --- desktops (opt-in: hosted only, no image installs them) ---
+# GNOME, COSMIC and Hyprland for desktop mode's session picker. The full closure is listed
+# because the guard checks one dependency level; derive changes with pacman -Sp in a root
+# whose local db is the base, not from the guard.
+# shared: needed by more than one desktop (or by printing too)
+gnome-keyring
+xdg-desktop-portal-gtk
+gcr
+gcr-4
+geoclue
+gnome-desktop-common
+gsound
+gvfs
+libcdio
+libcdio-paranoia
+libdbusmenu-glib
+libdbusmenu-gtk3
+libnma-common
+playerctl
+# GNOME
+gnome-shell
+gnome-control-center
+gnome-console
+nautilus
+xdg-desktop-portal-gnome
+aalib                # their deps from here down
+aom
+bluez-obex
+bolt
+colord
+colord-gtk-common
+colord-gtk4
+cracklib
+cups-pk-helper
+egl-wayland
+eglexternalplatform
+enchant
+exempi
+freeglut
+gd
+geocode-glib
+gexiv2
+gexiv2-common
+gjs
+glycin-gtk4
+gnome-autoar
+gnome-bluetooth-3.0
+gnome-color-manager
+gnome-desktop-4
+gnome-keybindings
+gnome-online-accounts
+gnome-session
+gnome-settings-daemon
+graphviz
+gsfonts
+gssdp
+gst-plugins-bad-libs
+gst-plugins-good
+gtk4
+gts
+gupnp
+gupnp-dlna
+gupnp-igd
+gweather-locations
+harfbuzz-icu
+hyphen
+ibus
+imlib2
+js140
+libadwaita
+libavif
+libcaca
+libcue
+libde265
+libdv
+libgdm
+libgoa
+libgsf
+libgtop
+libgusb
+libgweather-4
+libgxps
+libheif
+libibus
+libical
+libiptcdata
+libmanette
+libmediainfo
+libmms
+libnautilus-extension
+libnice
+libnma-gtk4
+libosinfo
+libportal
+libportal-gtk4
+libpwquality
+librest
+libyuv
+libzen
+localsearch
+ministream
+mutter
+netpbm
+osinfo-db
+poppler-glib
+python-argcomplete
+rav1e
+startup-notification
+tecla
+tinyxml2
+totem-pl-parser
+uchardet
+vmaf
+vte-common
+vte4
+wavpack
+webkitgtk-6.0
+woff2
+xdg-user-dirs-gtk
+# COSMIC
+cosmic-session
+cosmic-terminal
+acpid                # their deps from here down
+adw-gtk-theme
+cosmic-app-library
+cosmic-applets
+cosmic-bg
+cosmic-comp
+cosmic-files
+cosmic-greeter
+cosmic-icon-theme
+cosmic-idle
+cosmic-launcher
+cosmic-notifications
+cosmic-osd
+cosmic-panel
+cosmic-randr
+cosmic-screenshot
+cosmic-settings
+cosmic-settings-daemon
+cosmic-sound-theme
+cosmic-workspaces
+fd
+greetd               # cosmic-greeter hard-depends on it; never enabled, pocknix-session is the DM
+greetd-agreety       # greetd needs a greetd-greeter and the guard only counts hosted providers
+jemalloc
+libnma
+nm-connection-editor
+pop-icon-theme
+pop-launcher
+qt6ct
+switcheroo-control
+ttf-opensans
+xdg-desktop-portal-cosmic
+# Hyprland
+hyprland
+xdg-desktop-portal-hyprland
+hyprpolkitagent
+kitty                # Hyprland's default config binds Super+Q to it
+hyprlauncher         # default config's Super+R menu
+nwg-displays         # GUI for Hyprland's monitor transform (the RP5 panel needs one)
+squeekboard          # Hyprland has no on-screen keyboard of its own
+waybar
+mako
+hyprshutdown
+grim                 # the screenshot portal shells out to grim + slurp
+slurp
+wl-clipboard
+aquamarine           # their deps from here down
+atkmm
+cairomm
+feedbackd
+glibmm
+gnome-desktop
+gpsd
+gtk-layer-shell
+gtkmm3
+hyprcursor
+hyprgraphics
+hyprland-guiutils
+hyprland-qt-support
+hyprlang
+hyprtoolkit
+hyprutils
+hyprwire
+iniparser
+kitty-shell-integration
+kitty-terminfo
+libgmobile
+libmpdclient
+librsync
+libsigc++
+muparser
+pangomm
+pps-tools
+python-i3ipc
+python-six
+python-xlib
+sdbus-cpp
+spdlog
+tomlplusplus
+wayland-protocols
+xcb-util-errors
+# printing (any desktop)
+cups
+cups-filters         # their deps from here down
+libcupsfilters
+libppd
+pdfio

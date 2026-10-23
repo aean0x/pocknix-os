@@ -39,6 +39,8 @@ abl_signed-SM8250.elf is NOT committed here - the PKGBUILD fetches it from the
 same pinned ROCKNIX ABL release the sm8550 package uses:
 
   release:  https://github.com/ROCKNIX/abl/releases/tag/v1.2
+            (repo deleted upstream by 2026-10-23; fetched from our mirror,
+             https://pocknix.shuuri.net/mirror/rocknix-abl-v1.2.tar.gz, same sha512)
   asset:    rocknix-abl-v1.2.tar.gz
   tarball sha512: b2d897b4f681f22d416201e332a5c27efc00b0139c3b0806126f8913182285e8
                   03b8a3726a7c9a1609956049d4b6d054b3529bd0f508d1a86ab9ab3bf79dca01

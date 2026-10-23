@@ -4,7 +4,7 @@
 # required here instead of turning into an orphan that `pacman -Rns $(pacman -Qdtq)` strips.
 pkgname=pocknix-emulation
 pkgver=0.1.0
-pkgrel=23
+pkgrel=24
 pkgdesc="pocknix emulation layer (old name, pulls in pocknix-emulation-full)"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"

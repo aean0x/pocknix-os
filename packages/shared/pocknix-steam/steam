@@ -10,6 +10,10 @@ STEAM="${HOME}/.local/share/Steam"
 CLIENT_DIR="${STEAM}/steamrtarm64"
 CLIENT="${CLIENT_DIR}/steam"
 
+# Same game-launch env as game mode. Before the LD_LIBRARY_PATH below, or compat tools get Steam's
+# private libs back as their SYSTEM_LD_LIBRARY_PATH.
+. /usr/lib/pocknix/pocknix-steam-env
+
 # Client's own dir FIRST: its bundled libvpx.so.6 must shadow the system one.
 export LD_LIBRARY_PATH="${CLIENT_DIR}:${STEAM}/lib/aarch64-linux-gnu"
 
@@ -37,8 +41,5 @@ fi
 
 . /usr/lib/pocknix/pocknix-steam-channel
 pocknix_steam_channel_guard "${STEAM}"
-
-# Same game-launch pin + CPU topology as game mode.
-. /usr/lib/pocknix/pocknix-steam-env
 
 exec "${CLIENT}" "$@"

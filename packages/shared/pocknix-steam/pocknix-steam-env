@@ -2,6 +2,7 @@
 # cores via Valve's steam-launch-wrapper (shortcuts included), and gives Wine a CPU topology over
 # the same cores: a topology that disagrees with the pin shows the game CPUs it may not use.
 # Values already in the env win. No guessed fallback: a board without the key is not pinned.
+# Also carries what Steam's compat tools need from the session (the tail of this file).
 . /usr/lib/pocknix/cores.sh
 _pocknix_list="$(pocknix_big_cores)"
 if [ -n "${_pocknix_list}" ]; then
@@ -11,3 +12,9 @@ if [ -n "${_pocknix_list}" ]; then
   export PROTON_CPU_TOPOLOGY="${PROTON_CPU_TOPOLOGY:-${_pocknix_topology}}"
 fi
 unset _pocknix_list _pocknix_topology
+# Steam starts compat tools (Lepton) with no PATH and restores these two for them instead. `-`, not
+# `:-`, for the library path: an empty one must stay empty.
+export SYSTEM_PATH="${SYSTEM_PATH:-${PATH}}"
+export SYSTEM_LD_LIBRARY_PATH="${SYSTEM_LD_LIBRARY_PATH-${LD_LIBRARY_PATH-}}"
+# Lepton runs Steam-launched Android apps headless, with no window, unless this is set.
+export APP_WANTS_FLATSCREEN="${APP_WANTS_FLATSCREEN:-true}"

@@ -2,7 +2,7 @@
 # build and upstream's Linux binaries are x86_64-only.
 pkgname=dolphin-emu
 pkgver=2609a
-pkgrel=1
+pkgrel=2
 pkgdesc="GameCube / Wii emulator (native aarch64 build)"
 arch=('aarch64')
 url="https://dolphin-emu.org"

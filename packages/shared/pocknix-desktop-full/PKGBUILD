@@ -3,13 +3,15 @@
 # Build with ./nodeps: makepkg -s would drag the whole KDE/Qt stack in to lay out nothing.
 pkgname=pocknix-desktop-full
 pkgver=0.1.0
-pkgrel=3
+pkgrel=4
 pkgdesc="pocknix optional layer: Plasma Mobile desktop session, KDE apps, Waydroid, Flatpak"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
 license=('GPL-2.0-or-later')
-depends=('pocknix-desktop'
-         'pocknix-desktop-plasma-mobile'   # the default flavour, named so no provider prompt
+# The default flavour comes FIRST: pacman resolves depends in order, and pocknix-desktop's
+# pocknix-desktop-flavour virtual would otherwise take the first provider (desktop Plasma).
+depends=('pocknix-desktop-plasma-mobile'
+         'pocknix-desktop'
          'xdg-user-dirs'
          'konsole'
          'kate'

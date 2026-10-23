@@ -2,7 +2,7 @@
 # provider. Build with ./nodeps: the flavour dep would drag a whole DE into the chroot.
 pkgname=pocknix-desktop
 pkgver=0.1.0
-pkgrel=31
+pkgrel=32
 pkgdesc="pocknix desktop session launcher, Flathub seeding and flatpak fixes"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
@@ -17,9 +17,8 @@ optdepends=('pocknix-desktop-plasma-mobile: Plasma Mobile flavour (default)'
 install='pocknix-desktop.install'
 source=('pocknix-desktop' 'pocknix-desktop-select' 'return-to-gamemode.desktop'
         'pocknix-flathub-setup' 'pocknix-flathub.service' 'pocknix-flathub-dispatcher'
-        'pocknix-x11.conf'
         'pocknix-fontcache-prune' '99-pocknix-fontcache.hook')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
   install -Dm755 "${srcdir}/pocknix-desktop"          "${pkgdir}/usr/bin/pocknix-desktop"
@@ -33,8 +32,6 @@ package() {
   # Dispatcher scripts must be root-owned and not group/world writable or NM refuses to run them.
   install -Dm755 "${srcdir}/pocknix-flathub-dispatcher" \
     "${pkgdir}/etc/NetworkManager/dispatcher.d/50-pocknix-flathub"
-  # No xorg-server in the base to create /tmp/.X11-unix for XWayland.
-  install -Dm644 "${srcdir}/pocknix-x11.conf"         "${pkgdir}/usr/lib/tmpfiles.d/pocknix-x11.conf"
   install -Dm755 "${srcdir}/pocknix-fontcache-prune" "${pkgdir}/usr/bin/pocknix-fontcache-prune"
   install -Dm644 "${srcdir}/99-pocknix-fontcache.hook" \
     "${pkgdir}/usr/share/libalpm/hooks/99-pocknix-fontcache.hook"

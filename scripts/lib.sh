@@ -182,6 +182,9 @@ SigLevel = Required DatabaseOptional
 Server = ${POCKNIX_BASE_URL}
 EOF
   else
-    cp -f "${CONFIG_DIR}/pacman.conf.in" "${out}"
+    # The tarball's mirrorlist geo-routes and can land on a slow or flaky mirror mid-build; this
+    # is the same mirror the snapshot harvests from, so one knob picks both.
+    sed "s|^Include = /etc/pacman.d/mirrorlist\$|Server = ${POCKNIX_ALARM_PKG_MIRROR}/\$repo|" \
+      "${CONFIG_DIR}/pacman.conf.in" > "${out}"
   fi
 }
