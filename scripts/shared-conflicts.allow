@@ -7,6 +7,8 @@ pocknix-desktop-plasma-mobile :: conflicts=pocknix-desktop<0.1.0-27 :: files tha
 pocknix-session :: conflicts=pocknix-desktop<0.1.0-27 :: steamos-session-select lived in pocknix-desktop before the split
 pocknix-base-lock :: replaces=mbedtls :: the base renamed mbedtls to mbedtls3 with no conflicts=, so the old copy must go
 pocknix-base-lock :: conflicts=mbedtls :: pairs the replaces= so the swap survives file collisions
+pocknix-base-lock :: replaces=gst-plugins-base :: base 20261023 drops it, and its exact gstreamer pins would block every locked -Syu
+pocknix-base-lock :: replaces=opencv :: base 20261023 drops it (kquickimageeditor 0.7), and it depends on gst-plugins-base
 pocknix-gamepad-calibration :: replaces=python-pyxel :: retires the GPcal app's runtime
 pocknix-gamepad-calibration :: conflicts=python-pyxel :: pairs the replaces=
 es-de :: conflicts=emulationstation-de :: provides the old name, one ES-DE install at a time
