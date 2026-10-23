@@ -199,6 +199,9 @@ package_mesa() {
     wayland zlib zstd
   )
   provides=("mesa-libgl=${epoch}:${pkgver}-${pkgrel}" opengl-driver)
+  # Also the per-SoC edge stage-check's reach follows to the split: pocknix-lepton, its only real
+  # dependent, sits in [pocknix-shared], which publishes after the per-SoC trees.
+  optdepends=("pocknix-mesa-android: Lepton's Android guest driver")
   conflicts=('mesa-libgl<17.0.1-2')
   replaces=('mesa-libgl<17.0.1-2')
 
