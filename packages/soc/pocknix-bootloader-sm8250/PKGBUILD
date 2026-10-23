@@ -15,7 +15,8 @@ source=('bootaa64.efi'
         'grubenv'
         'pocknix-update-grub'
         '95-pocknix-bootloader.hook'
-        "https://github.com/ROCKNIX/abl/releases/download/v${_ablver}/rocknix-abl-v${_ablver}.tar.gz"
+        # our mirror: the upstream ABL repo was deleted; sha512 = the original release
+        "https://pocknix.shuuri.net/mirror/rocknix-abl-v${_ablver}.tar.gz"
         'README'
         'flash_abl.sh.template'
         'backup_abl.sh'

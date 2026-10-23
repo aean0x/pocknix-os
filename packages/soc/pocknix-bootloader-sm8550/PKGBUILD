@@ -15,7 +15,8 @@ arch=('aarch64')
 options=('!strip')
 url="https://github.com/shuuri-labs/pocknix-os"
 license=('BSD-3-Clause')   # Qualcomm ABL (edk2 LinuxLoader); kit scripts GPL-2.0
-source=("https://github.com/ROCKNIX/abl/releases/download/v${_ablver}/rocknix-abl-v${_ablver}.tar.gz"
+# Our mirror: the upstream ABL repo was deleted. The sha512 below is the original release.
+source=("https://pocknix.shuuri.net/mirror/rocknix-abl-v${_ablver}.tar.gz"
         'README'
         'flash_abl.sh.template'
         'backup_abl.sh'
