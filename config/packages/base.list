@@ -73,6 +73,3 @@ udisks2              # Steam lists formattable drives only via UDisks2, once at 
 
 # --- memory / swap ---
 zram-generator
-
-# --- CPU scheduler (gaming) ---
-scx-scheds           # needs the SCHED_CLASS_EXT + DEBUG_INFO_BTF kernel (build-kernel.sh)

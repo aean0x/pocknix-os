@@ -10,6 +10,7 @@ license=('GPL-2.0-or-later')
 depends=('mesa'                     # epoch-2 trimmed/tuned freedreno build ([pocknix] outranks ALARM)
          'vulkan-freedreno'
          'inputplumber'             # BSP device configs target it
+         'scx-scheds'               # ours, via depends so [pocknix-shared] wins over a newer base copy
          'pocknix-sdcard-automount'
          'pocknix-snapshots'
          'pocknix-base'
