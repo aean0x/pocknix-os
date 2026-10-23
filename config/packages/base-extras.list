@@ -26,9 +26,7 @@ glu
 boost-libs           # the source-built emulators (dolphin-emu, azahar, cemu) from here down
 crypto++
 enet
-fmt
 libspng
-mbedtls3
 pugixml
 sfml
 soundtouch
@@ -60,7 +58,6 @@ libcdio
 libcdio-paranoia
 libdbusmenu-glib
 libdbusmenu-gtk3
-libexif
 libnma-common
 playerctl
 # GNOME
@@ -70,6 +67,7 @@ gnome-console
 nautilus
 xdg-desktop-portal-gnome
 aalib                # their deps from here down
+aom
 bluez-obex
 bolt
 colord
@@ -113,6 +111,7 @@ ibus
 imlib2
 js140
 libadwaita
+libavif
 libcaca
 libcue
 libde265
@@ -139,6 +138,7 @@ libportal
 libportal-gtk4
 libpwquality
 librest
+libyuv
 libzen
 localsearch
 ministream
@@ -147,6 +147,7 @@ netpbm
 osinfo-db
 poppler-glib
 python-argcomplete
+rav1e
 startup-notification
 tecla
 tinyxml2
@@ -239,7 +240,10 @@ python-i3ipc
 python-six
 python-xlib
 sdbus-cpp
+spdlog
 tomlplusplus
+wayland-protocols
+xcb-util-errors
 # printing (any desktop)
 cups
 cups-filters         # their deps from here down
