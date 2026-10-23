@@ -2,7 +2,7 @@
 # by repo order, so it must be rebased whenever a base cut moves Plasma.
 pkgname=powerdevil
 pkgver=6.8.1
-pkgrel=1
+pkgrel=2
 pkgdesc="Manages the power consumption settings of a Plasma Shell (built-in panels kept lit at minimum brightness)"
 arch=('aarch64')
 url="https://kde.org/plasma-desktop/"
