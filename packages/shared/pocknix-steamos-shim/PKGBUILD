@@ -2,7 +2,7 @@
 # (-steamos3 -steamdeck) shells out to; without them the OOBE "required update" step dead-ends.
 pkgname=pocknix-steamos-shim
 pkgver=0.1.0
-pkgrel=7
+pkgrel=8
 pkgdesc="SteamOS update/branch/timezone/format helper stubs for the Steam Deck UI on a non-SteamOS base (until real OTA)"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"

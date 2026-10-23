@@ -8,7 +8,7 @@
 pkgname=pocknix-bootloader-sm8550
 _ablver=1.2
 pkgver=${_ablver}
-pkgrel=1
+pkgrel=2
 pkgdesc="SM8550 qcom-abl boot payload: ROCKNIX ABL install kit (rocknix_abl)"
 arch=('aarch64')
 # !strip: a stripped bootloader is an unbootable one.

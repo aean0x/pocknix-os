@@ -2,7 +2,7 @@
 # upstream Rust is needed because the locked base carries no rust/cargo.
 pkgname=steamos-manager
 pkgver=26.4.1.r12.g8e2883d
-pkgrel=2
+pkgrel=3
 _commit=8e2883d0d7e2fc3994e822ca9853c03561ca6eec
 _rustver=1.99.0
 pkgdesc="SteamOS Manager daemon (Steam's system-integration D-Bus service)"
