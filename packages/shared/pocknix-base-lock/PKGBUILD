@@ -13,7 +13,9 @@ url="https://github.com/shuuri-labs/pocknix-os"
 license=('GPL-2.0-or-later')
 # Base 20260826 renamed mbedtls -> mbedtls3 with no conflicts= upstream: replaces=
 # drops the old copy in the same -Syu (default-yes under --noconfirm; conflicts= is not).
-replaces=('mbedtls')
+# Base 20261023 drops opencv (kquickimageeditor 0.7 no longer needs it) and with it
+# gst-plugins-base, whose exact gstreamer=1.28.6 pins would block the gstreamer upgrade.
+replaces=('mbedtls' 'gst-plugins-base' 'opencv')
 conflicts=('mbedtls')
 source=('pocknix-base.lock')
 sha256sums=('SKIP')
