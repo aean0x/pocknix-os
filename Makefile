@@ -6,6 +6,9 @@
 
 SHELL   := /bin/bash
 SCRIPTS := scripts
+# rm -rf follows a bind mount a killed build left in a chroot (localrepo, ccache) into the real dir.
+CHROOTS_UNMOUNTED := ! findmnt -rno TARGET 2>/dev/null | grep -q "^$(CURDIR)/build/pkgbuild-root" \
+  || { echo "a package chroot under build/ is still mounted: unmount it first"; exit 1; }
 
 .DEFAULT_GOAL := help
 
@@ -78,10 +81,12 @@ trim: ## Reclaim space: drop the regenerable kernel SOURCE trees (keeps KERNEL+m
 	@sudo rm -rf build/kernel/*/linux-* build/kernel/*/mkbootimg-src
 	@echo "trimmed kernel source tree (regenerated on next 'make kernel'); kept out/, rootfs, image, cache"
 
-clean: ## Remove build output: rootfs, image, kernel, package chroots (keeps download cache)
+clean: ## Remove build output: rootfs, image, kernel, package chroots (keeps download + compiler caches)
+	@$(CHROOTS_UNMOUNTED)
 	@sudo rm -rf build/rootfs build/image build/localrepo build/kernel build/pkgbuild-root*
-	@echo "cleaned build artifacts (download cache kept)"
+	@echo "cleaned build artifacts (download + compiler caches kept)"
 
 distclean: ## Remove all build output including caches
-	@sudo rm -rf build/rootfs build/image build/localrepo build/kernel build/pkgbuild-root* build/cache
+	@$(CHROOTS_UNMOUNTED)
+	@sudo rm -rf build/rootfs build/image build/localrepo build/kernel build/pkgbuild-root* build/cache build/ccache
 	@echo "removed all build output"
