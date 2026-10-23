@@ -4,7 +4,7 @@ _drop_stale_flathub_wants() {
   rm -f /etc/systemd/system/multi-user.target.wants/pocknix-flathub.service
 }
 
-# The hook only fires when fontconfig is next touched; prune here so this upgrade repairs the device.
+# The hook only fires on the next font change; prune here so this upgrade repairs the device.
 _prune_fontcache() {
   /usr/bin/pocknix-fontcache-prune 2>/dev/null || true
 }

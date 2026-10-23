@@ -1,0 +1,23 @@
+# Any fc-cache run that rewrites a dir's cache (stock fontconfig.hook's -s included) recreates the
+# links pocknix-fontcache-prune deletes. Hooks run in filename order: zz- sorts after
+# fontconfig.hook, and the triggers mirror its own, so the prune runs after every rewrite.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = fontconfig
+
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Path
+Target = etc/fonts/conf.d/*
+Target = usr/share/fonts/*
+Target = usr/share/fontconfig/conf.avail/*
+Target = usr/share/fontconfig/conf.default/*
+
+[Action]
+Description = pocknix: pruning stale-version fontconfig cache links...
+When = PostTransaction
+Exec = /usr/bin/pocknix-fontcache-prune
