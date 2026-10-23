@@ -1,15 +1,15 @@
 # powerdevil: Arch's build with a brightness floor for built-in panels; shadows the base copy
 # by repo order, so it must be rebased whenever a base cut moves Plasma.
 pkgname=powerdevil
-pkgver=6.7.4
-pkgrel=4
+pkgver=6.8.1
+pkgrel=1
 pkgdesc="Manages the power consumption settings of a Plasma Shell (built-in panels kept lit at minimum brightness)"
 arch=('aarch64')
 url="https://kde.org/plasma-desktop/"
 license=('LGPL-2.0-or-later')
 depends=('ddcutil' 'glibc' 'plasma-activities' 'kauth' 'kcmutils' 'kconfig' 'kcoreaddons' 'kcrash'
          'kdbusaddons' 'kglobalaccel' 'ki18n' 'kidletime' 'kirigami' 'kitemmodels' 'knotifications'
-         'kpackage' 'kservice' 'kxmlgui' 'libkscreen' 'libplasma' 'libstdc++' 'libxcb'
+         'kpackage' 'kservice' 'kxmlgui' 'libkscreen' 'libplasma' 'libstdc++'
          'plasma-workspace' 'qcoro' 'qt6-base' 'qt6-declarative' 'solid' 'systemd-libs' 'wayland')
 # No kdoctools: the base does not carry it, and CMake treats it as optional (handbook only).
 makedepends=('cmake' 'extra-cmake-modules' 'plasma-wayland-protocols')
@@ -18,7 +18,7 @@ optdepends=('kinfocenter: for the Energy Information KCM'
             'tlp: alternative power profiles support')
 source=("https://download.kde.org/stable/plasma/${pkgver}/${pkgname}-${pkgver}.tar.xz"
         '0001-kwinbrightness-keep-internal-panels-lit.patch')
-sha256sums=('cfd53172f168b5a80cba7ab85e7b929f6d7c7e0fa80ed0d48da140b5a7d698e3'
+sha256sums=('afcc785ebc9066cb2988ea9e2bdcd38fac994383e49b5cb2e64db3faa3603744'
             'SKIP')
 
 prepare() {
