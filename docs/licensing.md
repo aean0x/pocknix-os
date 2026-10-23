@@ -37,6 +37,7 @@ not and cannot relicense them. The main ones:
 | ROCKNIX ABL (fetched, pinned) | `packages/soc/pocknix-bootloader-*` | BSD-3-Clause (Qualcomm edk2 LinuxLoader) |
 | gamescope + patch set | `packages/soc/gamescope` | BSD-2-Clause (the patch set: GPL-2.0; origins in PATCHES.md) |
 | Mesa | `packages/soc/mesa` | MIT |
+| Mesa for Android + Fossilize layer | `packages/shared/pocknix-mesa-android` | MIT (Mesa, Fossilize), Apache-2.0 WITH LLVM-exception (static libc++, NDK compiler-rt) |
 | MangoHud | `packages/shared/mangohud` | MIT |
 | FEX-Emu | `packages/shared/fex-emu` | MIT |
 | alsa-ucm-conf material | `devices/*` BSPs | BSD-3-Clause |
