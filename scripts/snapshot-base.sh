@@ -63,7 +63,9 @@ log "harvest sources: ${sources[*]#"${BUILD_DIR}/"}"
 # Names owned by [pocknix]/[pocknix-shared] (all SoCs' localrepos + the shared
 # one): ours, never part of the ALARM base — mesa/gamescope replace ALARM
 # copies under the same name, so filter by NAME, not version.
-declare -A ours
+# Their provides are kept apart (ours_prov): a meta may depend on a virtual only our
+# packages provide (pocknix-desktop-flavour), and the dep guards must accept it.
+declare -A ours ours_prov
 for db in "${BUILD_DIR}"/localrepo/*/pocknix.db.tar.gz \
           "${BUILD_DIR}"/localrepo/shared/pocknix-shared.db.tar.gz; do
   [ -f "${db}" ] || continue
@@ -71,6 +73,10 @@ for db in "${BUILD_DIR}"/localrepo/*/pocknix.db.tar.gz \
     d="${d%%/*}"; [ -n "${d}" ] || continue
     ours["${d%-*-*}"]=1
   done < <(tar -tf "${db}" 2>/dev/null)
+  while IFS= read -r t; do
+    ours_prov["${t%%[<>=]*}"]=1
+  done < <(tar -xOf "${db}" --wildcards '*/desc' 2>/dev/null \
+             | awk '/^%PROVIDES%$/{f=1;next} /^%[A-Z0-9]+%$/{f=0} f&&NF')
 done
 [ "${#ours[@]}" -gt 0 ] || die "no [pocknix] db under ${BUILD_DIR}/localrepo — run 'sudo make packages' first"
 
@@ -126,12 +132,17 @@ extras=()
 [ -f "${EXTRAS_LIST}" ] || die "missing ${EXTRAS_LIST} (committed; empty is fine, absent is not)"
 mapfile -t extras < <(read_pkglist "${EXTRAS_LIST}")
 [ "${#extras[@]}" -eq 0 ] || log "extras to host: ${extras[*]}"
+# Marked before the sync-db pass so an extra's provides count: extras only join want
+# after it. Ours count too, through the ALARM entry under the same name.
+declare -A is_extra
+for x in ${extras[@]+"${extras[@]}"}; do is_extra["${x}"]=1; done
 
 # --- map names to repo files via the sync dbs the build used -----------------
 # The sync db desc carries %FILENAME% + %SHA256SUM%, so downloads are verified
 # against what pacman itself trusted. Rootfs dbs first (freshest -Syy).
 tmp="$(mktemp -d)"; trap 'rm -rf "${tmp}"' EXIT
 declare -A f_file f_sha f_repo s_ver x_deps prov seen_repo
+for t in "${!ours_prov[@]}"; do prov["${t}"]=ours; done
 for src in "${sources[@]}"; do
   for db in "${src}"/var/lib/pacman/sync/*.db; do
     [ -f "${db}" ] || continue
@@ -162,7 +173,8 @@ for src in "${sources[@]}"; do
       done
       while IFS='|' read -r provider token; do
         provider="${provider%-*-*}"
-        [ -n "${want[${provider}]:-}" ] || continue    # only hosted packages can satisfy anything
+        # only what a device can install (harvested, an extra, or ours) satisfies a dep
+        [ -n "${want[${provider}]:-}${is_extra[${provider}]:-}${ours[${provider}]:-}" ] || continue
         prov["${token%%[<>=]*}"]="${provider}"
       done < <(awk '/^%PROVIDES%$/{f=1;next} /^%[A-Z]+%$/{f=0}
                     f&&NF{n=split(FILENAME,a,"/"); print a[n-1]"|"$0}' "${tmp}/${repo}"/*/depends)
@@ -214,7 +226,7 @@ done
 ${extras_unknown}"
 
 # Second pass so one extra may depend on another. Served = ours (both our repos are
-# enabled on every device), hosted, or provided by something hosted.
+# enabled on every device), hosted, or provided by something hosted or ours.
 for x in ${extras[@]+"${extras[@]}"}; do
   for r in core extra alarm aur; do
     [ -n "${s_ver[${r}|${x}]:-}" ] && { xrepo="${r}"; break; }
