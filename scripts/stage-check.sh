@@ -4,7 +4,8 @@
 #   resolve  every depends= of every staged package is satisfiable
 #   reach    every staged name is in a layer/device meta's closure (NEW names FAIL);
 #            a hard dep in that closure nothing provides FAILs too
-#   rename   every DROP='d name is replaces='d by something still published
+#   rename   every DROP='d name is replaces='d by something still published, or the
+#            base serves it newer (a shadow handed back: -Syu upgrades onto the base copy)
 #   version  a swapped package is strictly newer than the live one
 #   shadow   a per-SoC copy of a shared name is not older than [pocknix-shared]
 #   order    no device can still hold a version a staged conflicts= range excludes
@@ -311,6 +312,14 @@ if [ -f "${MARKER}" ]; then
     [ -n "${added["${n}"]+x}" ] && continue
     if [ "${POCKNIX_REPO_SCOPE}" != "shared" ] && [ -n "${ver["${n}@shared"]+x}" ]; then
       note "moved" "${n} -> [pocknix-shared] ${ver["${n}@shared"]}"; continue
+    fi
+    if [ -n "${ver["${n}@base"]+x}" ]; then
+      if [ "$(vercmp "${ver["${n}@base"]}" "${dropped["${n}"]}")" -gt 0 ]; then
+        note "to-base" "${n} -> [pocknix-base] ${ver["${n}@base"]}"
+      else
+        FAIL "${n}: [pocknix-base] serves ${ver["${n}@base"]}, not newer than the dropped ${dropped["${n}"]} — devices keep the dropped copy"
+      fi
+      continue
     fi
     who=""; has_conflict=0
     for k in "${!repl[@]}"; do
