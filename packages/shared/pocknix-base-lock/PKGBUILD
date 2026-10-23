@@ -15,7 +15,10 @@ license=('GPL-2.0-or-later')
 # drops the old copy in the same -Syu (default-yes under --noconfirm; conflicts= is not).
 # Base 20261023 drops opencv (kquickimageeditor 0.7 no longer needs it) and with it
 # gst-plugins-base, whose exact-version gstreamer pins would block the gstreamer upgrade.
-replaces=('mbedtls' 'gst-plugins-base' 'opencv')
+# Versioned: only the old base's builds go. Rolling devices hold ALARM's newer ones as real
+# deps, and an unversioned replace would fail every -Syu there. Orphans whose ALARM version
+# never moved (blas, lapack, ...) cannot be told apart, so they stay.
+replaces=('mbedtls' 'gst-plugins-base<1.28.8' 'opencv<5.0.0-10' 'verdict<1.4.5-3')
 conflicts=('mbedtls')
 source=('pocknix-base.lock')
 sha256sums=('SKIP')
