@@ -66,8 +66,7 @@ devices/<soc>/
                                   #   frequencies the tables are checked against
   tuning.conf                     # userspace compiler tuning for the chip's per-SoC
                                   #   builds: POCKNIX_TUNE_CFLAGS (ROCKNIX's TARGET_CPU/FLAGS
-                                  #   composed as -march/-mtune), POCKNIX_FEX_TUNE_CPU (per
-                                  #   their fex package.mk mapping)
+                                  #   composed as -march/-mtune)
   packages/
     pocknix-bsp-<soc>/            # the family BSP: boards/ (family.conf, one conf per board,
                                   #   models = the table device.conf is rendered from;
@@ -105,7 +104,7 @@ plus `mkbootimg` on qcom-abl; the /flash deploy is bsp-common's and needs nothin
 + a grub.cfg.in template (see pocknix-bootloader-sm8250), on both styles the ROCKNIX ABL install kit
 copied to the SD boot FAT. Each SoC gets its own pacman repo tree
 (`build/localrepo/<soc>`, published at `POCKNIX_REPO_URL/<soc>`): the tuned packages
-(mesa, gamescope, fex-emu) share pkgnames across SoCs with different
+(mesa, gamescope) share pkgnames across SoCs with different
 binaries, so the repos must not mix. They build for every SoC already (`socs` = `all`), and
 packages gated by GPU generation (`packages/gpu/`, e.g. the a6xx `-dxvk2` protons) follow the
 profile's `GPU_GEN`: a new SoC on a known Adreno generation sets it and lists them in its meta;

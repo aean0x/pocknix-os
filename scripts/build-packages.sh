@@ -161,7 +161,6 @@ pkg_env() {  # $1 = package dir
   printf ' %s=%q' \
     POCKNIX_SOC "${SOC}" \
     POCKNIX_TUNE_CFLAGS "${POCKNIX_TUNE_CFLAGS}" \
-    POCKNIX_FEX_TUNE_CPU "${POCKNIX_FEX_TUNE_CPU}" \
     POCKNIX_BOOTLOADER "${BOOTLOADER}" \
     POCKNIX_KERNEL_PKG "${KERNEL_PKG}" \
     POCKNIX_KERNEL_VERSION "${KERNEL_VERSION}" \
@@ -256,8 +255,8 @@ build_one() {
   # depends= still ships in the .pkg metadata; -d only skips build-time resolution. A
   # ./nodeps marker opts in other packages whose runtime deps would drag a layer in.
   # Per-SoC tuning (devices/<soc>/tuning.conf via lib.sh) rides the makepkg environment
-  # (pkg_env): the tuned PKGBUILDs read POCKNIX_TUNE_CFLAGS/POCKNIX_FEX_TUNE_CPU
-  # (falling back to their sm8550 strings when unset, e.g. standalone makepkg).
+  # (pkg_env): the tuned PKGBUILDs read POCKNIX_TUNE_CFLAGS, falling back to their sm8550
+  # strings when unset (e.g. standalone makepkg).
   local mkflags="-s"
   case "${pkgdir}" in */devices/*/packages/*) mkflags="-d" ;; esac
   [ -f "${pkgdir}/nodeps" ] && mkflags="-d"

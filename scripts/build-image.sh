@@ -94,7 +94,7 @@ install_local_packages() {
   local lp
   for lp in fex-emu fex-rootfs; do
     chroot "${root}" pacman -Q "${lp}" >/dev/null 2>&1 || {
-      die "${lp} not installed — its local build wasn't in [pocknix]. Build it: 'make packages PKG=${lp}' (fex-rootfs downloads the ~1.1 GB Arch x86 squashfs once), confirm build/localrepo/${lp}-*.pkg.tar.* exists, then re-run."
+      die "${lp} not installed — its local build wasn't in [pocknix-shared]. Build it: 'make packages PKG=${lp}' (fex-rootfs downloads the ~1.1 GB Arch x86 squashfs once), confirm build/localrepo/shared/${lp}-*.pkg.tar.* exists, then re-run."
     }
   done
   # pocknix-desktop must come from [pocknix-shared] too (its flavour dep pulls in the whole DE).
