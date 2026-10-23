@@ -2,7 +2,7 @@
 #
 # fex-rootfs — the x86_64 Arch userland FEXServer FUSE-mounts as / for every translated x86
 # process, so x86 programs can resolve x86 libraries on our all-ARM device. Baked into the
-# package rather than fetched at first boot. Its Config.json ships from packages/soc/fex-emu.
+# package rather than fetched at first boot. Its Config.json ships from packages/shared/fex-emu.
 
 pkgname=fex-rootfs
 _rootfsdate=2026-01-08             # pinned dated image from FEX's rootfs CDN (immutable path)

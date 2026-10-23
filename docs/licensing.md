@@ -38,7 +38,7 @@ not and cannot relicense them. The main ones:
 | gamescope + patch set | `packages/soc/gamescope` | BSD-2-Clause (the patch set: GPL-2.0; origins in PATCHES.md) |
 | Mesa | `packages/soc/mesa` | MIT |
 | MangoHud | `packages/shared/mangohud` | MIT |
-| FEX-Emu | `packages/soc/fex-emu` | MIT |
+| FEX-Emu | `packages/shared/fex-emu` | MIT |
 | alsa-ucm-conf material | `devices/*` BSPs | BSD-3-Clause |
 | Valve DXVK build (fetched, pinned) | `packages/gpu/pocknix-dxvk2-donor` | zlib |
 | Proton-GE, Proton-CachyOS | `packages/gpu/proton-*-dxvk2` | BSD-3-Clause (Proton) plus each bundled component's own |
