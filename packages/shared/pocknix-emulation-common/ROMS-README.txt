@@ -45,7 +45,8 @@ matching subfolder and they are picked up automatically the next time ES-DE star
    For one tile per game, with cover art: open the Steam ROM Manager tile (it switches to
    Desktop Mode, where Steam is closed), Add Games, Save to Steam, close it and go back
    to Game Mode. Its own emulator presets bypass the Pocknix launch settings; use the
-   pocknix ones.
+   pocknix ones. Window cut off? Put  export POCKNIX_SRM_SCALE=1.4  (lower = smaller) in
+   ~/.config/plasma-workspace/env/srm-scale.sh; it applies from the next Desktop Mode.
 
 Saves and save-states live in ~/Emulation/Saves and ~/Emulation/States, so a single
 copy of this ~/Emulation folder is fully self-contained and portable.
