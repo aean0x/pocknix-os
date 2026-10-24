@@ -1,55 +1,39 @@
-# azahar — Nintendo 3DS emulator (the maintained Citra successor), built from source because
-# upstream's Linux release assets are x86_64-only. Desktop aarch64 Linux is the least-CI'd
-# upstream combination, so a version bump can need compile fixes.
+# azahar — Nintendo 3DS emulator (the maintained Citra successor), vendored from pkgforge-dev's
+# aarch64 AppImage: upstream's own AppImage is x86_64-only. pkgforge re-publishes the same Azahar
+# version under new date tags, so _tag pins the exact release, not just the version.
 pkgname=azahar
 pkgver=2126.2
-pkgrel=2
-pkgdesc="Azahar — 3DS emulator (Citra successor), native aarch64 build"
+pkgrel=3
+_tag=2126.2@2026-10-22_1792689914
+pkgdesc="Azahar — 3DS emulator (Citra successor), pkgforge-dev aarch64 AppImage (vendored)"
 arch=('aarch64')
 url="https://github.com/azahar-emu/azahar"
 license=('GPL-2.0-or-later')
-depends=('boost-libs' 'crypto++' 'enet' 'fmt' 'glslang' 'hicolor-icon-theme' 'libinih' 'libusb'
-         'openal' 'openssl' 'qt6-base' 'qt6-multimedia' 'sdl2' 'soundtouch')
-makedepends=('boost' 'catch2' 'cmake' 'doxygen' 'ffmpeg4.4' 'ninja' 'nlohmann-json' 'qt6-tools'
-             'rapidjson' 'spirv-headers' 'vulkan-headers')
-source=("https://github.com/azahar-emu/azahar/releases/download/${pkgver}/azahar-unified-source-${pkgver}.tar.xz")
-sha256sums=('85c8b56fac703df04720125044b8ff887997911858a6cde545dfb1107ba4cd26')
+depends=('fuse2')
+options=('!strip')   # AppImage = ELF runtime + DwarFS payload; strip would corrupt it
+_asset=Azahar-${pkgver}-anylinux-aarch64.AppImage
+source=("${_asset}::https://github.com/pkgforge-dev/Azahar-AppImage-Enhanced/releases/download/${_tag}/${_asset}"
+        'org.azahar_emu.Azahar.desktop')
+sha256sums=('49340d1ebbe79fa1b504848d0946884d2c9310d0716c9b7f16ee415221e6e43d'
+            'SKIP')
+noextract=("${_asset}")
 
 prepare() {
-  cd "azahar-unified-source-${pkgver}"
-  # The cubeb backends miss a <cstring> include.
-  sed -i '4i #include <cstring>' src/audio_core/{cubeb_input,cubeb_sink}.cpp
-}
-
-build() {
-  # The video-dump backend is compiled unconditionally against FFmpeg-4/5 APIs that FFmpeg 8
-  # removed, so CMAKE_INCLUDE_PATH steers headers to the ffmpeg4.4 compat package. Headers
-  # only: the libs are dlopen'd, so no ffmpeg4.4 at runtime just disables video dumping.
-  cmake -B build -S "azahar-unified-source-${pkgver}" -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=/usr \
-    -DCMAKE_INCLUDE_PATH=/usr/include/ffmpeg4.4 \
-    -DUSE_DISCORD_PRESENCE=OFF \
-    -DENABLE_TESTS=OFF \
-    -DUSE_SYSTEM_BOOST=ON \
-    -DUSE_SYSTEM_CATCH2=ON \
-    -DUSE_SYSTEM_CRYPTOPP=ON \
-    -DUSE_SYSTEM_ENET=ON \
-    -DUSE_SYSTEM_FFMPEG_HEADERS=ON \
-    -DUSE_SYSTEM_FMT=ON \
-    -DUSE_SYSTEM_GLSLANG=ON \
-    -DUSE_SYSTEM_INIH=ON \
-    -DUSE_SYSTEM_JSON=ON \
-    -DUSE_SYSTEM_LIBUSB=ON \
-    -DUSE_SYSTEM_OPENAL=ON \
-    -DUSE_SYSTEM_OPENSSL=ON \
-    -DUSE_SYSTEM_QT=ON \
-    -DUSE_SYSTEM_SDL2=ON \
-    -DUSE_SYSTEM_SOUNDTOUCH=ON \
-    -DUSE_SYSTEM_VULKAN_HEADERS=ON
-  ninja -C build
+  # --appimage-extract needs no FUSE, so the icon can be pulled in the build chroot.
+  cd "${srcdir}"
+  chmod u+x "${_asset}"
+  rm -rf AppDir
+  "./${_asset}" --appimage-extract org.azahar_emu.Azahar.png >/dev/null
+  [ -s AppDir/org.azahar_emu.Azahar.png ]  # fail the build if the icon vanished upstream
 }
 
 package() {
-  DESTDIR="${pkgdir}" ninja -C build install
+  # Path is fixed: emu-resolve.sh and es_find_rules.xml both hardcode it.
+  install -Dm755 "${srcdir}/${_asset}" "${pkgdir}/opt/pocknix/emulators/azahar/Azahar.AppImage"
+  # Same icon name and desktop ID as the source build: existing Steam tiles and menu
+  # favourites reference them, and an upgrade never rewrites either.
+  install -Dm644 "${srcdir}/AppDir/org.azahar_emu.Azahar.png" \
+    "${pkgdir}/usr/share/icons/hicolor/512x512/apps/org.azahar_emu.Azahar.png"
+  install -Dm644 "${srcdir}/org.azahar_emu.Azahar.desktop" \
+    "${pkgdir}/usr/share/applications/org.azahar_emu.Azahar.desktop"
 }

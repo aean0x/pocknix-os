@@ -46,7 +46,7 @@ emu_path() {  # $1 name -> prints the executable, or returns 1
     xemu)    f=/opt/pocknix/emulators/xemu/xemu.AppImage ;;
     dolphin) f=/opt/pocknix/emulators/dolphin/dolphin-emu.AppImage ;;
     cemu)    f=/opt/pocknix/emulators/cemu/Cemu.AppImage ;;
-    azahar)  f="$(command -v azahar 2>/dev/null)" ;;
+    azahar)  f=/opt/pocknix/emulators/azahar/Azahar.AppImage ;;
     ppsspp)  f="$(command -v PPSSPPSDL 2>/dev/null || command -v ppsspp 2>/dev/null)" ;;
     *)       f="" ;;
   esac
