@@ -250,3 +250,7 @@ cups-filters         # their deps from here down
 libcupsfilters
 libppd
 pdfio
+
+# --- package build chroots (build-packages.sh installs ccache into them) ---
+ccache
+hiredis              # ccache's only dep the base lacked
