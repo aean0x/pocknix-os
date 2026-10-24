@@ -22,13 +22,17 @@ for t in curl tar rsync; do need_tool "$t"; done
 BROOT="${BUILD_DIR}/pkgbuild-root-${SOC}"   # the makepkg build chroot (reused across runs)
 LOCALREPO="${LOCALREPO_DIR}"                # build/localrepo/${SOC} (set in lib.sh)
 LOCALREPO_SHARED="${LOCALREPO_SHARED_DIR}"  # build/localrepo/shared (set in lib.sh)
+# Outside the chroot so it outlives a chroot rebuild; both SoC chroots share it.
+CCACHE_HOST_DIR="${BUILD_DIR}/ccache"
+CCACHE_ON=0                                 # set by setup_chroot once the binary is there
 TARBALL="${CACHE_DIR}/${ALARM_TARBALL}"
 REPO_DB="pocknix.db.tar.gz"
 SHARED_REPO_DB="pocknix-shared.db.tar.gz"
 
 cleanup() { chroot_umount "${BROOT}" 2>/dev/null || true
             mountpoint -q "${BROOT}/localrepo" && umount "${BROOT}/localrepo" 2>/dev/null || true
-            mountpoint -q "${BROOT}/localrepo-shared" && umount "${BROOT}/localrepo-shared" 2>/dev/null || true; }
+            mountpoint -q "${BROOT}/localrepo-shared" && umount "${BROOT}/localrepo-shared" 2>/dev/null || true
+            mountpoint -q "${BROOT}/ccache" && umount "${BROOT}/ccache" 2>/dev/null || true; }
 trap cleanup EXIT
 
 # rm -rf follows bind mounts (even --one-file-system: same device), so a localrepo mount left
@@ -110,6 +114,25 @@ setup_chroot() {
   fi
   printf 'builder ALL=(ALL) NOPASSWD: ALL\n' > "${BROOT}/etc/sudoers.d/builder"
   chmod 0440 "${BROOT}/etc/sudoers.d/builder"
+
+  # ccache installs from the base like the rest of the chroot; a base without it builds uncached
+  # rather than failing. makepkg aborts when BUILDENV asks for ccache it cannot find, so the
+  # drop-in only exists next to the binary.
+  CCACHE_ON=0
+  rm -f "${BROOT}/etc/makepkg.conf.d/pocknix-ccache.conf"
+  if [ "${POCKNIX_CCACHE}" = "1" ]; then
+    if [ ! -x "${BROOT}/usr/bin/ccache" ]; then
+      chroot_mount "${BROOT}"
+      chroot "${BROOT}" pacman -S --noconfirm --needed ccache >/dev/null 2>&1 ||
+        warn "could not install ccache into the chroot: building without a compiler cache"
+      chroot_umount "${BROOT}"
+    fi
+    if [ -x "${BROOT}/usr/bin/ccache" ]; then
+      mkdir -p "${BROOT}/etc/makepkg.conf.d"
+      printf 'BUILDENV+=(ccache)\n' > "${BROOT}/etc/makepkg.conf.d/pocknix-ccache.conf"
+      CCACHE_ON=1
+    fi
+  fi
 
   # Local [pocknix] repo so a package can depend on another locally-built one. Points at
   # the bind-mounted /localrepo. SigLevel Never, same reason as build-image.sh's
@@ -257,11 +280,14 @@ build_one() {
   # Per-SoC tuning (devices/<soc>/tuning.conf via lib.sh) rides the makepkg environment
   # (pkg_env): the tuned PKGBUILDs read POCKNIX_TUNE_CFLAGS, falling back to their sm8550
   # strings when unset (e.g. standalone makepkg).
-  local mkflags="-s"
+  # Off must be CCACHE_DISABLE: meson wraps its compilers in any ccache on PATH whatever
+  # BUILDENV says.
+  local mkflags="-s" ccenv="CCACHE_DISABLE=1"
+  [ "${CCACHE_ON}" = "1" ] && ccenv="CCACHE_DIR=/ccache CCACHE_MAXSIZE=${POCKNIX_CCACHE_SIZE}"
   case "${pkgdir}" in */devices/*/packages/*) mkflags="-d" ;; esac
   [ -f "${pkgdir}/nodeps" ] && mkflags="-d"
   if ! chroot "${BROOT}" runuser -u builder -- \
-      bash -lc "cd /build/${name} && LC_ALL=C SRCDEST=/build/srccache ${env} makepkg ${mkflags} -f --noconfirm --nocheck --skippgpcheck"; then
+      bash -lc "cd /build/${name} && LC_ALL=C SRCDEST=/build/srccache ${ccenv} ${env} makepkg ${mkflags} -f --noconfirm --nocheck --skippgpcheck"; then
     warn "makepkg failed for ${name} — keeping any previous build in ${repo_dir##*/}"
     return 1
   fi
@@ -316,6 +342,11 @@ main() {
   mkdir -p "${BROOT}/localrepo" "${BROOT}/localrepo-shared"
   mount --bind "${LOCALREPO}" "${BROOT}/localrepo"
   mount --bind "${LOCALREPO_SHARED}" "${BROOT}/localrepo-shared"
+  if [ "${CCACHE_ON}" = "1" ]; then
+    mkdir -p "${CCACHE_HOST_DIR}" "${BROOT}/ccache"
+    mount --bind "${CCACHE_HOST_DIR}" "${BROOT}/ccache"
+    chroot "${BROOT}" chown builder:builder /ccache
+  fi
   # Initialize both dbs so the repos are valid even on the first/partial run
   # (one full re-add; per-package registration during the run adds only new artifacts).
   local rmount rdb
@@ -419,6 +450,7 @@ main() {
 
   umount "${BROOT}/localrepo"
   umount "${BROOT}/localrepo-shared"
+  mountpoint -q "${BROOT}/ccache" && umount "${BROOT}/ccache"
   chroot_umount "${BROOT}"
   trap - EXIT
 
