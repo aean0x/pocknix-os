@@ -147,7 +147,7 @@ setup_chroot() {
       "${BROOT}/etc/pacman.conf"
   fi
   # Same for [pocknix-shared]: makepkg -s must resolve shared siblings too
-  # (e.g. cemu -> wxwidgets-pocknix).
+  # (e.g. pocknix-emu-dolphin -> pocknix-emulation-common).
   if ! grep -q '^\[pocknix-shared\]' "${BROOT}/etc/pacman.conf"; then
     printf '\n[pocknix-shared]\nSigLevel = Never\nServer = file:///localrepo-shared\n' \
       >> "${BROOT}/etc/pacman.conf"
@@ -338,7 +338,8 @@ main() {
 
   chroot_mount "${BROOT}"
   # Keep both local repos bind-mounted throughout so makepkg -s can resolve inter-package
-  # local deps (e.g. cemu -> wxwidgets-pocknix) from [pocknix]/[pocknix-shared] as we go.
+  # local deps (e.g. pocknix-emu-dolphin -> pocknix-emulation-common) from [pocknix]/[pocknix-shared]
+  # as we go.
   mkdir -p "${BROOT}/localrepo" "${BROOT}/localrepo-shared"
   mount --bind "${LOCALREPO}" "${BROOT}/localrepo"
   mount --bind "${LOCALREPO_SHARED}" "${BROOT}/localrepo-shared"
