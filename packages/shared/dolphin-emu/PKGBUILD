@@ -1,39 +1,43 @@
-# dolphin-emu — GameCube/Wii emulator, built from source because ALARM carries no aarch64
-# build and upstream's Linux binaries are x86_64-only.
+# dolphin-emu — GameCube/Wii emulator, vendored from upstream's official arm64 AppImage. Only
+# master dev builds ship one (releases are Flatpak-only), so this tracks dev builds.
 pkgname=dolphin-emu
-pkgver=2609a
-pkgrel=2
-pkgdesc="GameCube / Wii emulator (native aarch64 build)"
+_build=2609-119
+pkgver=${_build/-/.}
+pkgrel=1
+pkgdesc="GameCube / Wii emulator (official arm64 dev AppImage, vendored)"
 arch=('aarch64')
 url="https://dolphin-emu.org"
 license=('GPL-2.0-or-later')
-depends=('bluez-libs' 'bzip2' 'curl' 'enet' 'ffmpeg' 'glslang' 'hidapi' 'libspng' 'libusb'
-         'libx11' 'libxi' 'libxrandr' 'lz4' 'lzo' 'pugixml' 'qt6-base' 'qt6-svg' 'sdl3' 'sfml'
-         'speexdsp' 'xxhash' 'xz' 'zlib-ng' 'zstd')
-makedepends=('alsa-lib' 'cmake' 'git' 'libevdev' 'libpulse' 'miniupnpc' 'ninja' 'python'
-             'vulkan-headers')
-options=('!lto' '!emptydirs')   # !lto per Arch upstream (miscompiles)
-source=("dolphin::git+https://github.com/dolphin-emu/dolphin.git#tag=${pkgver}")
-sha256sums=('SKIP')
+depends=('fuse2')
+options=('!strip')   # AppImage = ELF runtime + squashfs payload; strip would corrupt it
+_asset=dolphin-master-${_build}-arm64.AppImage
+# The CDN folder is the first two byte pairs of sha256 of the asset NAME:
+# printf %s <asset> | sha256sum -> 0594... -> 05/94.
+_dir=05/94
+source=("${_asset}::https://dl.dolphin-emu.org/builds/${_dir}/${_asset}"
+        'dolphin-emu.desktop')
+sha256sums=('39921f96f0c4b38c92a9a6a5924a176b1c6697fd03d8fa402664d8ea46dce6b1'
+            'SKIP')
+noextract=("${_asset}")
 
 prepare() {
-  cd dolphin
-  git submodule update --init --recursive
-}
-
-build() {
-  cmake -S dolphin -B build -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=/usr \
-    -DENABLE_ALSA=ON \
-    -DENABLE_AUTOUPDATE=OFF \
-    -DENABLE_TESTS=OFF \
-    -DENABLE_ANALYTICS=OFF \
-    -DUSE_SHARED_ENET=ON \
-    -DDISTRIBUTOR=pocknix
-  ninja -C build
+  # --appimage-extract needs no FUSE, so the icons can be pulled in the build chroot.
+  cd "${srcdir}"
+  chmod u+x "${_asset}"
+  rm -rf squashfs-root
+  "./${_asset}" --appimage-extract 'usr/share/icons/hicolor/*' >/dev/null
+  # fail the build if the icons vanished upstream
+  [ -s squashfs-root/usr/share/icons/hicolor/256x256/apps/dolphin-emu.png ]
+  [ -s squashfs-root/usr/share/icons/hicolor/scalable/apps/dolphin-emu.svg ]
 }
 
 package() {
-  DESTDIR="${pkgdir}" ninja -C build install
+  # Path is fixed: emu-resolve.sh and es_find_rules.xml both hardcode it.
+  install -Dm755 "${srcdir}/${_asset}" "${pkgdir}/opt/pocknix/emulators/dolphin/dolphin-emu.AppImage"
+  # Same icon name and desktop ID as the source build: existing Steam tiles and menu
+  # favourites reference them, and an upgrade never rewrites either.
+  local i="${srcdir}/squashfs-root/usr/share/icons/hicolor"
+  install -Dm644 "${i}/256x256/apps/dolphin-emu.png" "${pkgdir}/usr/share/icons/hicolor/256x256/apps/dolphin-emu.png"
+  install -Dm644 "${i}/scalable/apps/dolphin-emu.svg" "${pkgdir}/usr/share/icons/hicolor/scalable/apps/dolphin-emu.svg"
+  install -Dm644 "${srcdir}/dolphin-emu.desktop" "${pkgdir}/usr/share/applications/dolphin-emu.desktop"
 }
