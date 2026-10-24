@@ -10,9 +10,9 @@ wireguard-tools      # no openresolv for wg-quick DNS: conflicts with the base's
 samba
 
 # --- emulation layer (opt-in: no image installs it, Pocknix Tools does) ---
-# Its ALARM deps, the source-built emulators' included. Derive changes from an orphan set on a
-# device, not from the snapshot guard: that reads the metas' and their glue packages' depends=
-# only, never the emulators' own.
+# Its ALARM deps, plus those of the old emulator source builds. Derive changes from an orphan
+# set on a device, not from the snapshot guard: that reads the metas' and their glue packages'
+# depends= only, never the emulators' own.
 retroarch
 libretro-core-info
 ppsspp
@@ -23,7 +23,7 @@ jsoncpp
 miniupnpc
 glew
 glu
-boost-libs           # the source-built emulators (dolphin-emu, azahar, cemu) from here down
+boost-libs           # the old dolphin-emu/azahar/cemu source builds from here down
 crypto++
 enet
 libspng
