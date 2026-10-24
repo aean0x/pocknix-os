@@ -1,0 +1,12 @@
+# Cemu-29f2f1f-aarch64.AppImage (pocknix mirror)
+
+Cemu's own aarch64 AppImage, built by its GitHub Actions workflow (build.yml, artifact
+`cemu-appimage-arm`) from cemu-project/Cemu main at commit
+29f2f1fae4631e2317977debd9eacd55cc28dd7d (2026-10-22). Downloaded 2026-10-24 from
+https://cemu.info/ActionBuilds.php?download=12461763055 as a zip holding only this file, unzipped
+unchanged:
+
+    sha256 8a5bba185de0a89211164ba72ae93cf11899d548e5b0bc9f5f7cd19874dfb377
+
+sha512 pinned in the PKGBUILD. Cemu is MPL-2.0. Mirrored at https://pocknix.shuuri.net/mirror/
+because GitHub Actions artifacts expire after 90 days.

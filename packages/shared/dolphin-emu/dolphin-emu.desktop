@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Dolphin Emulator
+GenericName=Wii/GameCube Emulator
+Exec=/opt/pocknix/emulators/dolphin/dolphin-emu.AppImage
+Icon=dolphin-emu
+Terminal=false
+Categories=Game;Emulator;

@@ -62,6 +62,7 @@
   <!-- Wii U -->
   <emulator name="CEMU">
     <rule type="staticpath">
+      <entry>/opt/pocknix/emulators/cemu/Cemu.AppImage</entry>
       <entry>/usr/bin/Cemu</entry>
     </rule>
   </emulator>
@@ -69,6 +70,7 @@
   <!-- 3DS -->
   <emulator name="AZAHAR">
     <rule type="staticpath">
+      <entry>/opt/pocknix/emulators/azahar/Azahar.AppImage</entry>
       <entry>/usr/bin/azahar</entry>
     </rule>
   </emulator>

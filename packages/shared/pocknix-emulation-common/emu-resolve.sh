@@ -20,6 +20,9 @@ emu_path_names() {  # $1 name -> the binary names a normal install would put on 
     rpcs3)   echo "rpcs3" ;;
     vita3k)  echo "Vita3K vita3k" ;;
     xemu)    echo "xemu" ;;
+    dolphin) echo "dolphin-emu" ;;
+    cemu)    echo "Cemu cemu" ;;
+    azahar)  echo "azahar" ;;
     *)       echo "" ;;
   esac
 }
@@ -41,9 +44,9 @@ emu_path() {  # $1 name -> prints the executable, or returns 1
     rpcs3)   f=/opt/pocknix/emulators/rpcs3/rpcs3.AppImage ;;
     vita3k)  f=/opt/pocknix/emulators/vita3k/Vita3K.AppImage ;;
     xemu)    f=/opt/pocknix/emulators/xemu/xemu.AppImage ;;
-    dolphin) f="$(command -v dolphin-emu 2>/dev/null)" ;;
-    cemu)    f="$(command -v Cemu 2>/dev/null)" ;;
-    azahar)  f="$(command -v azahar 2>/dev/null)" ;;
+    dolphin) f=/opt/pocknix/emulators/dolphin/dolphin-emu.AppImage ;;
+    cemu)    f=/opt/pocknix/emulators/cemu/Cemu.AppImage ;;
+    azahar)  f=/opt/pocknix/emulators/azahar/Azahar.AppImage ;;
     ppsspp)  f="$(command -v PPSSPPSDL 2>/dev/null || command -v ppsspp 2>/dev/null)" ;;
     *)       f="" ;;
   esac

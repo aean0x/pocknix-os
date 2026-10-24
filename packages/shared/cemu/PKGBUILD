@@ -1,56 +1,40 @@
-# cemu — Wii U emulator, built from upstream main at a pinned commit: the releases are x86-only,
-# the AArch64 recompiler backend only exists on main. Bump = move _commit to a newer main commit
-# and set pkgver to <last release>.<commit date>.<short sha>, which vercmp orders by date.
+# cemu — Wii U emulator, vendored from upstream's aarch64 AppImage CI build of a pinned main
+# commit: releases are x86-only and the AArch64 recompiler exists only on main. CI artifacts
+# expire, so the AppImage is fetched from our mirror (provenance in README.provenance). Bump =
+# a newer main commit's cemu-appimage-arm, mirrored, with pkgver <last release>.<commit date>.<short sha>.
 pkgname=cemu
-pkgver=2.6.20261009.aa20e2f
-pkgrel=2
-_commit=aa20e2f86e93c9f625f048dbd2b6b993f1973180
-pkgdesc="Cemu — Wii U emulator (native aarch64 build with the ARM64 recompiler)"
+_sha=29f2f1f
+pkgver=2.6.20261022.${_sha}
+pkgrel=1
+pkgdesc="Cemu — Wii U emulator, upstream aarch64 AppImage with the ARM64 recompiler (vendored)"
 arch=('aarch64')
 url="https://cemu.info"
 license=('MPL2')
-options=('!strip')
-# The wxwidgets-gtk3>=3.3 constraint is what steers resolution to wxwidgets-pocknix: ALARM's
-# 3.2 cannot satisfy it. sdl3 (not sdl2): the pinned commit post-dates the SDL3 migration.
-depends=('boost-libs' 'fmt' 'libzip' 'libpng' 'pugixml' 'sdl3' 'wxwidgets-gtk3>=3.3'
-         'wayland' 'bluez-libs' 'libsodium' 'hidapi')
-makedepends=('git' 'cmake' 'clang' 'llvm' 'ninja' 'boost' 'glslang' 'glm' 'rapidjson'
-             'vulkan-headers' 'glu' 'libpulse' 'wayland-protocols')
-source=("cemu::git+https://github.com/cemu-project/Cemu.git#commit=${_commit}")
-sha256sums=('SKIP')
+depends=('fuse2')
+options=('!strip')   # AppImage = ELF runtime + squashfs payload; strip would corrupt it
+_asset=Cemu-${_sha}-aarch64.AppImage
+source=("https://pocknix.shuuri.net/mirror/${_asset}"
+        'Cemu.desktop')
+sha512sums=('5b51bef6f5d97d20050ec36fc71bbd2591176d993f23fd5c71a95d24dd1f64b645b8cb9d267288fcd5796dfec5cbdebc7b8cc2e8464fb428d4b803f11ec74357'
+            'SKIP')
+noextract=("${_asset}")
 
 prepare() {
-  cd cemu
-  git submodule update --init --recursive
-  # System fmt is linked (not header-only), there is no system cubeb, and glm's imported
-  # target is unnamespaced here.
-  sed -i '/FMT_HEADER_ONLY/d' src/Common/precompiled.h
-  sed -i '/find_package(cubeb)/d' CMakeLists.txt
-  sed -i 's/glm::glm/glm/' src/Common/CMakeLists.txt src/input/CMakeLists.txt
-}
-
-build() {
-  cd cemu
-  cmake -B build -G Ninja -Wno-dev \
-    -DCMAKE_POLICY_VERSION_MINIMUM=3.21.1 \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_C_COMPILER=clang \
-    -DCMAKE_CXX_COMPILER=clang++ \
-    -DCMAKE_CXX_FLAGS="${CXXFLAGS} -w" \
-    -DENABLE_VCPKG=OFF \
-    -DEMULATOR_VERSION_MAJOR=2 \
-    -DEMULATOR_VERSION_MINOR=6 \
-    -DEMULATOR_VERSION_PATCH=99
-  cmake --build build
+  # --appimage-extract needs no FUSE, so the icon can be pulled in the build chroot.
+  cd "${srcdir}"
+  chmod u+x "${_asset}"
+  rm -rf squashfs-root
+  "./${_asset}" --appimage-extract 'usr/share/icons/hicolor/128x128/apps/info.cemu.Cemu.png' >/dev/null
+  # fail the build if the icon vanished upstream
+  [ -s squashfs-root/usr/share/icons/hicolor/128x128/apps/info.cemu.Cemu.png ]
 }
 
 package() {
-  cd cemu
-  install -Dm755 bin/Cemu_release "${pkgdir}/usr/bin/Cemu"
-  ln -s Cemu "${pkgdir}/usr/bin/cemu"
-  # Upstream keeps gameProfiles/resources beside the binary; Cemu finds them under share.
-  install -dm755 "${pkgdir}/usr/share/Cemu"
-  find bin -mindepth 1 -maxdepth 1 ! -name 'Cemu_release' -exec cp -r {} "${pkgdir}/usr/share/Cemu/" \;
-  install -Dm644 src/resource/logo_icon.png "${pkgdir}/usr/share/icons/hicolor/128x128/apps/info.cemu.Cemu.png"
-  install -Dm644 dist/linux/info.cemu.Cemu.desktop "${pkgdir}/usr/share/applications/Cemu.desktop"
+  # Path is fixed: emu-resolve.sh and es_find_rules.xml both hardcode it.
+  install -Dm755 "${srcdir}/${_asset}" "${pkgdir}/opt/pocknix/emulators/cemu/Cemu.AppImage"
+  # Same icon name and desktop ID as the source build: existing Steam tiles and menu
+  # favourites reference them, and an upgrade never rewrites either.
+  install -Dm644 "${srcdir}/squashfs-root/usr/share/icons/hicolor/128x128/apps/info.cemu.Cemu.png" \
+    "${pkgdir}/usr/share/icons/hicolor/128x128/apps/info.cemu.Cemu.png"
+  install -Dm644 "${srcdir}/Cemu.desktop" "${pkgdir}/usr/share/applications/Cemu.desktop"
 }

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Cemu
+GenericName=Wii U Emulator
+Comment=Software to emulate Wii U games and applications on PC
+Exec=/opt/pocknix/emulators/cemu/Cemu.AppImage
+Icon=info.cemu.Cemu
+Terminal=false
+Categories=Game;Emulator;
+MimeType=application/x-wii-u-rom;
+StartupWMClass=Cemu
