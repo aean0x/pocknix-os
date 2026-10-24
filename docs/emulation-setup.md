@@ -61,7 +61,7 @@ The ROM directory can live anywhere, and ES-DE is the single source of truth. Go
 `/run/media/deck/<card label>/ROMs`). Move your files there, then rescan. `BIOS/`, `Saves/`, and `States/`
 stay in `~/Emulation`.
 
-Steam ROM Manager, Cemu and Ryujinx were pointed at the ROM folder when they were set up, and
+Steam ROM Manager, Dolphin, Cemu and Ryujinx were pointed at the ROM folder when they were set up, and
 keep the old one. Run *Restore emulator default settings* in **Pocknix Tools** for each of them
 (your old file is kept as a `.bak-<date>` copy), then *Add Games* and *Save to Steam* in Steam ROM
 Manager again so your game tiles use the new paths.

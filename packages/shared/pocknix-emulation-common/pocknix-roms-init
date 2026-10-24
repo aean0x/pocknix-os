@@ -69,7 +69,7 @@ render_all() {  # $1 template dir, $2 out dir
   local vs=2; [ "${REFRESH}" -ge 120 ] 2>/dev/null && vs=1
   [ -f "${src}/eden-qt-config.ini.in" ] && sed "s/^use_vsync=.*/use_vsync=${vs}/" "${src}/eden-qt-config.ini.in" > "${out}/qt-config.ini"
   [ -f "${src}/ryujinx-Config.json.in" ] && sed "s|__ROMS__|${ROMS}|g" "${src}/ryujinx-Config.json.in" > "${out}/Config.json"
-  [ -f "${src}/dolphin-Dolphin.ini.in" ] && cp "${src}/dolphin-Dolphin.ini.in" "${out}/Dolphin.ini"
+  [ -f "${src}/dolphin-Dolphin.ini.in" ] && sed "s|__ROMS__|${ROMS}|g" "${src}/dolphin-Dolphin.ini.in" > "${out}/Dolphin.ini"
   [ -f "${src}/dolphin-GFX.ini.in" ] && cp "${src}/dolphin-GFX.ini.in" "${out}/GFX.ini"
   [ -f "${src}/cemu-settings.xml.in" ] && sed "s|__ROMS__|${ROMS}|g" "${src}/cemu-settings.xml.in" > "${out}/settings.xml"
   # the largest 272-row multiple that fits the panel, +8 rows slack (4x on 1080 crops 8)

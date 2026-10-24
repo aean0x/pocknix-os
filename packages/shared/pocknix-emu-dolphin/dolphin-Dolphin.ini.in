@@ -1,5 +1,10 @@
 # Dolphin core config seed (-> ~/.config/dolphin-emu/Dolphin.ini). The confirm-stop dialog and
 # the analytics prompt are pre-answered: both are blocking modals with no way out in game mode.
+[General]
+ISOPaths = 2
+ISOPath0 = __ROMS__/gc
+ISOPath1 = __ROMS__/wii
+RecursiveISOPaths = True
 [Core]
 GFXBackend = OGL
 [Display]

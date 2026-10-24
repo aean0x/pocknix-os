@@ -53,8 +53,8 @@ copy of this ~/Emulation folder is fully self-contained and portable.
 
 MOVING YOUR ROMS (e.g. to an SD card): ES-DE Menu -> Other Settings -> ROM directory,
 pick the new location, move the files there. ES-DE follows straight away. Steam ROM
-Manager, Cemu and Ryujinx keep the old folder: Pocknix Tools -> Restore emulator default
-settings for each of them points it at the new one, then run Steam ROM Manager's Add
+Manager, Dolphin, Cemu and Ryujinx keep the old folder: Pocknix Tools -> Restore emulator
+default settings for each of them points it at the new one, then run Steam ROM Manager's Add
 Games + Save to Steam again so your game tiles use the new paths.
 
 SETTINGS: each emulator is set up once, when it is installed (an Eden or Ryujinx build
