@@ -2,7 +2,7 @@
 # gamescope launcher, and the ARM-Proton compat-tool plumbing.
 pkgname=pocknix-steam
 pkgver=0.1.0
-pkgrel=72
+pkgrel=74
 pkgdesc="Native ARM64 Steam Big Picture (gamescope) for the RP6 — installer + launcher"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
@@ -24,14 +24,17 @@ source=('pocknix-steam-install' 'pocknix-steam' 'pocknix-steam-splash' 'pocknix-
         'steam-256.png' 'steam-512.png' 'registry.vdf'
         'pocknix-proton-prep' 'pocknix-proton-prep.service'
         'pocknix-game-launch' 'pocknix-steam-env' 'pocknix-steam-channel' 'pocknix-proton-wrapper' 'fex-profiles.json'
-        'pocknix-guestos-mount' 'pocknix-guestos.service' 'graphics_provider.json')
+        'pocknix-guestos-mount' 'pocknix-guestos.service' 'graphics_provider.json'
+        'pocknix-steam-storage' 'pocknix_cdp.py')
 sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
-            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
   install -Dm755 "${srcdir}/pocknix-steam-install" "${pkgdir}/usr/bin/pocknix-steam-install"
   install -Dm755 "${srcdir}/pocknix-steam"         "${pkgdir}/usr/bin/pocknix-steam"
   install -Dm755 "${srcdir}/pocknix-steam-splash"  "${pkgdir}/usr/lib/pocknix/pocknix-steam-splash"
+  install -Dm755 "${srcdir}/pocknix-steam-storage" "${pkgdir}/usr/lib/pocknix/pocknix-steam-storage"
+  install -Dm644 "${srcdir}/pocknix_cdp.py"        "${pkgdir}/usr/lib/pocknix/pocknix_cdp.py"
   # here, not in the emulation packages: it must still run (and prune) after the layer is removed
   install -Dm755 "${srcdir}/pocknix-tiles"         "${pkgdir}/usr/bin/pocknix-tiles"
   install -Dm755 "${srcdir}/pocknix-tiles-users"   "${pkgdir}/usr/lib/pocknix/pocknix-tiles-users"

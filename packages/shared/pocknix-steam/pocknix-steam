@@ -29,7 +29,8 @@ fi
 # passes our cwd to the client: launching from $HOME gives "Could not load module 'bin/vgui2_s.dll'".
 cd "${CLIENT_DIR}" 2>/dev/null || { echo "missing ${CLIENT_DIR}" >&2; exit 1; }
 
-# Steam opens its CEF debugging port (Decky, pocknix-tiles) only if this exists at start.
+# Steam opens its CEF debugging port (Decky, pocknix-tiles, pocknix-steam-storage) only if this
+# exists at start.
 touch "${STEAM}/.cef-enable-remote-debugging" 2>/dev/null || true
 
 . /usr/lib/pocknix/pocknix-steam-channel
@@ -102,6 +103,11 @@ fi
 # Do NOT pin the client itself: scx_lavd places the bursty threads itself and needs the littles free
 # for batch work. Game launches get the big cores through steam-launch-wrapper instead.
 . /usr/lib/pocknix/pocknix-steam-env
+
+# Storage > Format exists only with drive adopt on, set here for game mode as a Steam Deck does.
+# pocknix-steam-storage keeps that page live across Steam restarts and exits with this launcher.
+export STEAM_ALLOW_DRIVE_ADOPT=1
+/usr/lib/pocknix/pocknix-steam-storage &
 
 # Log to a file, never the tty: tty1 is what shows between compositors on a session switch and
 # must stay blank. Do NOT exec gamescope either, since the session switch pkills it by name.
