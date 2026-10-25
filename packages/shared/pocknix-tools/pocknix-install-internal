@@ -4,9 +4,9 @@
 # Run ON THE DEVICE, as root, booted from the SD. Shrinks the Android `userdata` partition
 # on the internal disk, appends a FAT boot partition named POCKNIX plus a POCKNIX_ROOT
 # root, copies the current KERNEL onto the FAT and clones the running rootfs onto it.
-# The internal root gets the same filesystem as the running SD: btrfs with the snapshot
-# subvol layout, or ext4 from a pre-snapshot SD. Nothing before `userdata` (abl, xbl,
-# modem, persist) is touched. When it finishes: power off, remove the SD card, power on.
+# The internal root gets the running SD's btrfs snapshot subvol layout. Nothing before
+# `userdata` (abl, xbl, modem, persist) is touched. When it finishes: power off, remove
+# the SD card, power on.
 #
 # One-time gateway only. After install, update in place (pacman -S / -U a package; a kernel is
 # linux-pocknix-<soc>, deployed by pocknix-bsp-common's pacman hook), never re-run this.
