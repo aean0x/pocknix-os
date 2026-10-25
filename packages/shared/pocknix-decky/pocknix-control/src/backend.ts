@@ -1,5 +1,5 @@
 import { call } from "@decky/api";
-import type { CalibrationStatus, Config, ConfigExportResult, ConfigImportResult, ConfigPreview, LedConfig, LedSideKey, SdcardInfo, ShareStatus, SnapshotStatus, Tweaks, UpdateInfo, UpdateStatus } from "./types";
+import type { CalibrationStatus, Config, ConfigExportResult, ConfigImportResult, ConfigPreview, LedConfig, LedSideKey, ShareStatus, SnapshotStatus, Tweaks, UpdateInfo, UpdateStatus } from "./types";
 
 export const getConfig = () => call<[], Config>("get_config");
 export const setFanMode = (mode: string) => call<[string], Config>("set_fan_mode", mode);
@@ -17,8 +17,6 @@ export const setLed = (side: LedSideKey, r: number, g: number, b: number, bright
 export const setLedLinked = (linked: boolean) => call<[boolean], LedConfig>("set_led_linked", linked);
 export const setLedEnabled = (enabled: boolean) => call<[boolean], LedConfig>("set_led_enabled", enabled);
 export const setLedSides = (sides: boolean) => call<[boolean], LedConfig>("set_led_sides", sides);
-export const detectSdcard = () => call<[], SdcardInfo>("detect_sdcard");
-export const formatSdcard = (label: string) => call<[string], SdcardInfo>("format_sdcard", label);
 export const shareStatus = () => call<[], ShareStatus>("share_status");
 export const setShare = (on: boolean) => call<[boolean], ShareStatus>("set_share", on);
 export const installSamba = () => call<[], ShareStatus>("install_samba");

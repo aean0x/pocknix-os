@@ -37,8 +37,6 @@ const setLed = (side, r, g, b, brightness) => call("set_led", side, r, g, b, bri
 const setLedLinked = (linked) => call("set_led_linked", linked);
 const setLedEnabled = (enabled) => call("set_led_enabled", enabled);
 const setLedSides = (sides) => call("set_led_sides", sides);
-const detectSdcard = () => call("detect_sdcard");
-const formatSdcard = (label) => call("format_sdcard", label);
 const shareStatus = () => call("share_status");
 const setShare = (on) => call("set_share", on);
 const installSamba = () => call("install_samba");
@@ -796,7 +794,7 @@ function ConfigSection({ game, reload }) {
 }
 
 // Audio buffer (PULSE_LATENCY_MSEC): absorbs FEX-mixer overruns (SFX-burst crackle) at the
-// cost of audio latency — keep rhythm games on Game default. 60 measured ~10x fewer underruns.
+// cost of audio latency — keep rhythm games on Game default.
 const audioLatencyOptions = [
     { data: "", label: "Game default" },
     { data: "60", label: "60 ms" },
@@ -1108,95 +1106,8 @@ function FileSharing() {
                     } }) }))] }));
 }
 
-function cardSummary(card) {
-    if (!card)
-        return "Checking…";
-    if (!card.present)
-        return "No SD card detected";
-    if (card.bootDisk)
-        return "Booted from this card - formatting disabled";
-    const size = card.sizeBytes ? `${(card.sizeBytes / 1e9).toFixed(1)} GB` : "";
-    const state = card.fstype === "ext4" ? (card.mountpoint ? "mounted" : "") : "not formatted for Steam";
-    return [card.label || "unlabeled", size, card.fstype || "no filesystem", state].filter(Boolean).join(" · ");
-}
-// closeModal must not be forwarded to ConfirmModal: its OK handler would close the dialog
-// at once, and it has to stay open until the format finishes.
-function FormatConfirmModal({ summary, onConfirm, closeModal }) {
-    const [text, setText] = SP_REACT.useState("");
-    const [running, setRunning] = SP_REACT.useState(false);
-    const armedRef = SP_REACT.useRef(false);
-    const runningRef = SP_REACT.useRef(false);
-    armedRef.current = text.trim().toLowerCase() === "format";
-    runningRef.current = running;
-    const start = async () => {
-        if (!armedRef.current || runningRef.current)
-            return;
-        setRunning(true);
-        await onConfirm();
-        closeModal?.();
-    };
-    return (SP_JSX.jsx(DFL.ConfirmModal, { strTitle: "Format SD Card", strDescription: running
-            ? "Formatting… This can take a minute. Do not remove the card."
-            : `This erases ALL data on the card (${summary}) and formats it for Steam. Type "format" and press Enter to confirm.`, strOKButtonText: running ? "Formatting…" : "Erase and Format", bDestructiveWarning: true, bOKDisabled: !armedRef.current || running, bCancelDisabled: running, bDisableBackgroundDismiss: true, bHideCloseIcon: true, onCancel: () => {
-            if (!runningRef.current)
-                closeModal?.();
-        }, onOK: start, children: !running ? (SP_JSX.jsx(DFL.TextField, { value: text, focusOnMount: true, onChange: (event) => setText(event.target.value), onKeyDown: (event) => {
-                if (event.key === "Enter")
-                    start();
-            } })) : null }));
-}
-function SdCard() {
-    const [card, setCard] = SP_REACT.useState(null);
-    const [label, setLabel] = SP_REACT.useState("SDCARD");
-    const [busy, setBusy] = SP_REACT.useState(false);
-    const [status, setStatus] = SP_REACT.useState("");
-    const busyRef = SP_REACT.useRef(false);
-    busyRef.current = busy;
-    SP_REACT.useEffect(() => {
-        let cancelled = false;
-        const refresh = async () => {
-            if (busyRef.current)
-                return;
-            try {
-                const next = await detectSdcard();
-                if (!cancelled && !busyRef.current)
-                    setCard(next);
-            }
-            catch (error) {
-                if (!cancelled)
-                    setStatus(String(error));
-            }
-        };
-        refresh();
-        const timer = window.setInterval(refresh, 5000);
-        return () => {
-            cancelled = true;
-            window.clearInterval(timer);
-        };
-    }, []);
-    const runFormat = async () => {
-        if (busyRef.current)
-            return;
-        setBusy(true);
-        setStatus("");
-        try {
-            const next = await formatSdcard(label);
-            setCard(next);
-        }
-        catch (error) {
-            setStatus(String(error));
-        }
-        finally {
-            setBusy(false);
-        }
-    };
-    const confirmFormat = () => DFL.showModal(SP_JSX.jsx(FormatConfirmModal, { summary: cardSummary(card), onConfirm: runFormat }));
-    return (SP_JSX.jsxs(DFL.PanelSection, { title: "SD CARD", children: [SP_JSX.jsx(DFL.Field, { label: "Card", description: cardSummary(card) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: "Label", value: label, disabled: busy || !!card?.bootDisk, onChange: (event) => setLabel(event.target.value.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 16)) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", disabled: !card?.present || busy || !!card?.bootDisk, onClick: confirmFormat, children: busy ? "Formatting…" : "Format SD Card" }) }), status ? SP_JSX.jsx(DFL.Field, { label: "", description: status }) : null] }));
-}
-
-// SD card last: the only destructive action, kept away from the casual toggles
 function Library() {
-    return (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(AddGameSection, {}), SP_JSX.jsx(FileSharing, {}), SP_JSX.jsx(SdCard, {})] }));
+    return (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(AddGameSection, {}), SP_JSX.jsx(FileSharing, {})] }));
 }
 
 const SHOWN_UPDATES = 8;

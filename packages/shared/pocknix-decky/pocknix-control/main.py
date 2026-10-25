@@ -5,7 +5,6 @@ from pocknix_control.config import build_config
 from pocknix_control.configio import apply_config, config_dir, export_config, read_config
 from pocknix_control.led import restore_led, set_led, set_led_enabled, set_led_linked, set_led_sides
 from pocknix_control.modes import set_fan_mode, set_lavd_mode
-from pocknix_control.sdcard import detect_sdcard, format_sdcard
 from pocknix_control.sharing import install_samba, set_share, share_status
 from pocknix_control.snapshots import reboot_system, snapshot_status, start_rollback
 from pocknix_control.touch import sync_touch
@@ -38,12 +37,6 @@ class Plugin:
         elif appid == self._running_appid:
             self._running_appid = None
         await asyncio.to_thread(sync_touch, self._running_appid)
-
-    async def detect_sdcard(self):
-        return await asyncio.to_thread(detect_sdcard)
-
-    async def format_sdcard(self, label):
-        return await asyncio.to_thread(format_sdcard, label)
 
     async def share_status(self):
         return await asyncio.to_thread(share_status)
