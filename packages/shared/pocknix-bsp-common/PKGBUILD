@@ -3,8 +3,8 @@
 # live in devices/<name>/packages/pocknix-bsp-<name>, which depends on this package.
 pkgname=pocknix-bsp-common
 pkgver=0.1.0
-pkgrel=27
-pkgdesc="pocknix shared board support: sleep.d dispatcher, suspend hooks, power-key policy, session udev rules, wheel sudo, fan/scheduler daemons, ABL updater, second-screen touch policy, power profiles daemon, realtime priority ladder, deck session limits, kernel /flash deploy"
+pkgrel=28
+pkgdesc="pocknix shared board support: sleep.d dispatcher, suspend hooks, power-key policy, session udev rules, wheel sudo, fan/scheduler daemons, ABL updater, second-screen touch policy, power profiles daemon, realtime priority ladder, deck session limits, kernel /flash deploy, coredump storage cap"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
 license=('GPL-2.0-or-later')
@@ -20,7 +20,7 @@ backup=('etc/security/limits.d/60-pocknix-deck.conf')
 source=('pocknix-sleep' 'sdam-debug-pre' 'sdam-debug-post'
         'drain-log-pre' 'drain-log-post'
         'usb-role-sleep-pre' 'usb-role-sleep-post'
-        '20-pocknix-powerkey.conf'
+        '20-pocknix-powerkey.conf' '50-pocknix-coredump.conf'
         '90-pocknix-backlight.rules' '60-pocknix-controllers.rules'
         '10-pocknix-wheel'
         'pocknix-fancontrol' 'pocknix-fan-mode' 'pocknix-lavd-mode'
@@ -42,7 +42,7 @@ sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
-            'SKIP' 'SKIP')
+            'SKIP' 'SKIP' 'SKIP')
 
 package() {
   install -Dm755 "${srcdir}/pocknix-sleep" \
@@ -64,6 +64,8 @@ package() {
 
   install -Dm644 "${srcdir}/20-pocknix-powerkey.conf" \
     "${pkgdir}/usr/lib/systemd/logind.conf.d/20-pocknix-powerkey.conf"
+  install -Dm644 "${srcdir}/50-pocknix-coredump.conf" \
+    "${pkgdir}/usr/lib/systemd/coredump.conf.d/50-pocknix-coredump.conf"
 
   install -Dm644 "${srcdir}/90-pocknix-backlight.rules" \
     "${pkgdir}/usr/lib/udev/rules.d/90-pocknix-backlight.rules"

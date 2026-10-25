@@ -1,29 +1,33 @@
 # pocknix-snapshots — pre-update btrfs snapshots plus a rollback that needs no boot
 # menu: two alpm hooks wrap every pacman transaction, and pocknix-rollback switches the
-# fs default subvolume. Every entry point no-ops when / is not btrfs (build chroot,
-# pre-snapshot ext4 installs).
+# fs default subvolume. Every entry point no-ops when / is not btrfs (the image-build
+# chroot).
 pkgname=pocknix-snapshots
 pkgver=0.1.0
-pkgrel=7
+pkgrel=8
 pkgdesc="pocknix pre-update btrfs snapshots and rollback (subvolume set-default)"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
 license=('GPL-2.0-or-later')
-depends=('btrfs-progs' 'jq' 'util-linux')
+depends=('btrfs-progs' 'jq' 'util-linux' 'pacman-contrib')
 backup=('etc/pocknix/snapshots.conf')
+install=pocknix-snapshots.install
 source=('05-pocknix-snapshot.hook' '99-pocknix-snapshot-post.hook'
+        '95-pocknix-paccache.hook'
         'snapshot-lib.sh'
         'pocknix-snapshot-pre' 'pocknix-snapshot-post'
         'pocknix-snapshots' 'pocknix-rollback'
         'pocknix-rollback-repair' 'pocknix-rollback-repair.service'
         'snapshots.conf' '50-pocknix-snapshots.rules')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
   install -Dm644 "${srcdir}/05-pocknix-snapshot.hook" \
     "${pkgdir}/usr/share/libalpm/hooks/05-pocknix-snapshot.hook"
   install -Dm644 "${srcdir}/99-pocknix-snapshot-post.hook" \
     "${pkgdir}/usr/share/libalpm/hooks/99-pocknix-snapshot-post.hook"
+  install -Dm644 "${srcdir}/95-pocknix-paccache.hook" \
+    "${pkgdir}/usr/share/libalpm/hooks/95-pocknix-paccache.hook"
 
   install -Dm644 "${srcdir}/snapshot-lib.sh" "${pkgdir}/usr/lib/pocknix/snapshot-lib.sh"
 

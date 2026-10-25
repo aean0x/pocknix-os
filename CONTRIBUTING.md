@@ -138,9 +138,10 @@ systemctl restart <the-unit-you-touched>      # if applicable
 journalctl -b -u <the-unit-you-touched>       # check it came up clean
 ```
 
-**Keep a rollback.** The previous package is still in `/var/cache/pacman/pkg/`; reinstall it
-with `pacman -U /var/cache/pacman/pkg/<old-file>` if the new one misbehaves. A reboot back
-into a known-good state beats debugging a wedged session.
+**Keep a rollback.** Every `pacman -U` takes a snapshot first, and the package cache is emptied
+afterwards, so the way back is `sudo pocknix-rollback` and a reboot (see
+[docs/snapshots.md](docs/snapshots.md)). A reboot back into a known-good state beats debugging a
+wedged session.
 
 Notes that will save you an hour:
 

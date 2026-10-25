@@ -1,6 +1,6 @@
 # Living in alpm is what makes every update path (QAM, pocknix-update, a plain -Syu
 # over ssh) snapshot-protected. No AbortOnFail: a snapshot that fails or is skipped
-# (ext4 install, build chroot, low disk space) must never block the update itself.
+# (build chroot, low disk space) must never block the update itself.
 [Trigger]
 Operation = Install
 Operation = Upgrade

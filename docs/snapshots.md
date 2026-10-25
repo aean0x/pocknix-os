@@ -5,8 +5,8 @@ with one button (or one command) and a reboot. **A rollback never touches your g
 settings**: only the system itself goes back. If the update included a new kernel, the previous
 kernel comes back too.
 
-Snapshots are skipped when storage is nearly full. The update still installs; you just cannot
-undo that one.
+Pocknix keeps the snapshots from the last two updates. Snapshots are skipped when storage is
+nearly full. The update still installs; you just cannot undo that one.
 
 ## Using it
 
@@ -38,8 +38,8 @@ restored older state, `--to` a newer snapshot moves you forward again. The QAM o
 offers the *last* update (the common case); anything deeper is for Pocknix Tools or the CLI. Times are
 stored in UTC but always displayed in local time.
 
-Rolling back a rollback works the same way - every rollback creates a fresh root from an
-immutable read-only snapshot, and the abandoned root is kept (one deep) for inspection.
+Every rollback creates a fresh root from an immutable read-only snapshot. The system you
+rolled back from is deleted at the next update, so to undo a rollback, update again.
 After a rollback the QAM shows a *"System was rolled back"* notice and hides the rollback
 button (you are already on that snapshot's state); the next update clears the notice,
 takes a fresh snapshot, and brings the button back.

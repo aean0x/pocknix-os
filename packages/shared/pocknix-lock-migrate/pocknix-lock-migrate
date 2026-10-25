@@ -39,6 +39,10 @@ EOF
 
 converge() {
   [ -f "${MARKER}" ] || exit 0
+  # the conflict retry below is several transactions: one snapshot session covers them
+  if [ -z "${POCKNIX_SNAPSHOT_SESSION:-}" ]; then
+    exec pocknix-snapshots session "$0" converge
+  fi
   # pacman refuses the transaction when a versioned dep pins a downgraded lib; record
   # the blocker, or the retry-on-reconnect just looks like a stall
   local out rc=0

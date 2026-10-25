@@ -112,6 +112,16 @@ install_local_packages() {
       die "${KERNEL_PKG} failed to install — check the pacman output above."
     }
     log "kernel OK: $(chroot "${root}" pacman -Q "${KERNEL_PKG}")"
+    # The tarball's linux-firmware meta pulls ~900 MB of x86/PCIe vendor blobs no Qualcomm
+    # handheld loads; removable only once linux-aarch64 (its dependant) is gone. The splits
+    # base.list keeps arrived as the meta's deps and --needed left them so: mark them
+    # explicit first, or -Rs takes them along.
+    if chroot "${root}" pacman -Q linux-firmware >/dev/null 2>&1; then
+      local fw
+      mapfile -t fw < <(read_pkglist "${CONFIG_DIR}/packages/base.list" | grep '^linux-firmware-')
+      chroot "${root}" pacman -D --asexplicit "${fw[@]}"
+      chroot "${root}" pacman -Rs --noconfirm linux-firmware
+    fi
   else
     die "${KERNEL_PKG} not in [pocknix] — run 'make kernel' first (build-packages.sh stages build/kernel/out into the package), then re-run. Without it the rootfs has no matching modules for the booted kernel."
   fi

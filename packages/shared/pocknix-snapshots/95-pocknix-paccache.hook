@@ -1,0 +1,15 @@
+# Empty the pacman cache after every transaction: the pre-update snapshot already holds
+# the replaced packages' files, so a cached copy is the same rollback paid for twice.
+# Not in the image-build chroot (no systemd): make snapshot harvests that cache.
+# Non-fatal by design.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = Emptying the pacman package cache...
+When = PostTransaction
+Exec = /usr/bin/sh -c '[ -d /run/systemd/system ] || exit 0; /usr/bin/paccache -rk0 >/dev/null 2>&1; /usr/bin/paccache -ruk0 >/dev/null 2>&1; exit 0'

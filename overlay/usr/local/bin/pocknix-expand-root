@@ -1,6 +1,6 @@
 #!/bin/bash
 # pocknix-expand-root — on first boot, grow the root partition to fill the whole card, then
-# grow the root filesystem online (btrfs on current images; ext4 on pre-snapshot installs).
+# grow the root btrfs filesystem online.
 # The SD image is built as rootfs + SD_SLACK_MIB of slack, so flashed to a bigger card it
 # leaves the rest unallocated; without this the root fills up fast (e.g. mid-Steam-download).
 # Runs once (guarded by a flag); idempotent + safe to re-run.
@@ -33,7 +33,7 @@ if [ "${rc}" -ne 0 ] && [ "${rc}" -ne 2 ]; then
 fi
 
 # Online-grow the root fs to the (possibly) larger partition. No-op if already full.
-# btrfs resizes a MOUNTED fs by mountpoint (not device node); ext4 keeps resize2fs.
+# btrfs resizes a MOUNTED fs by mountpoint (not device node).
 case "$(findmnt -nro FSTYPE /)" in
   btrfs) btrfs filesystem resize max / || log "btrfs resize returned non-zero (already at max?)" ;;
   *)     resize2fs "${src}" || log "resize2fs returned non-zero (already at max?)" ;;

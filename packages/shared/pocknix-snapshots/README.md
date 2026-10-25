@@ -29,11 +29,19 @@ plain `pacman -Syu` over ssh:
   `/.snapshots/<id>/snapshot` + metadata in `info.json` (date, targets, whether a kernel
   was in the transaction). Skipped when free space is below
   `POCKNIX_SNAPSHOT_MIN_FREE_MIB` - **never blocks the update**.
+- `95-pocknix-paccache` (PostTransaction): empties the pacman cache. The snapshot already
+  holds the replaced packages' files, so a cached copy would be a second rollback path.
 - `99-pocknix-snapshot-post` (PostTransaction): marks the transaction committed, touches
   `/run/pocknix/reboot-required` when a kernel changed, prunes old snapshots.
 
-Retention: the newest `POCKNIX_SNAPSHOT_KEEP` snapshots + **1** abandoned root. Both tunables and
-their defaults live in `/etc/pocknix/snapshots.conf`.
+One snapshot per transaction, except inside `pocknix-snapshots session <command>`: every
+transaction the command runs folds into the session's snapshot (targets merged, kernel flag
+OR'd). An updater that runs more than one transaction must wrap itself in it, or one
+update fills the retention (`pocknix-lock-migrate converge` does).
+
+Retention: the newest `POCKNIX_SNAPSHOT_KEEP` snapshots and **no** abandoned root: the root a
+rollback left behind is deleted at the first prune after the reboot, so undoing a rollback means
+updating again. The tunables and their defaults live in `/etc/pocknix/snapshots.conf`.
 
 ## The kernel gap
 
