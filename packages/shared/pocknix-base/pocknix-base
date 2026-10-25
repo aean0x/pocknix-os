@@ -122,7 +122,7 @@ EOF
     echo "snapshot. Software installed while rolling may block this if it pins newer"
     echo "libraries — the converge names it and this command can be re-run after"
     echo "removing it. Anything that survives but was built against newer libraries"
-    echo "may need removal too (the btrfs snapshot from unlock still covers a full"
+    echo "may need removal too (the snapshot this converge takes covers a full"
     echo "pocknix-rollback)."
     echo
     rm -f "${FLAG}"

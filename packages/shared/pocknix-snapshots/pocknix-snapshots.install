@@ -1,0 +1,14 @@
+# Image-built devices carry an unowned overlay copy of the cache hook in /etc, and an
+# /etc hook masks the packaged one of the same name. Removed before the post hooks
+# load, so the packaged hook already runs in this transaction.
+_prune_superseded() {
+  rm -f /etc/pacman.d/hooks/95-pocknix-paccache.hook
+}
+
+post_install() {
+  _prune_superseded
+}
+
+post_upgrade() {
+  _prune_superseded
+}
