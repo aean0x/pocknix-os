@@ -68,6 +68,17 @@ hold **Volume −** to open the boot menu and set **Switch boot source** to **In
 Switch it back to **SD Card** whenever you want to boot the SD again; nothing on either disk
 changes.
 
+### Then use the microSD slot for games
+
+Booting from internal frees the slot for a games card. Format it in Steam, the same as on a Steam
+Deck: **Settings → Storage**, highlight the card, then **Options (Y) → Format**.
+
+> **Formatting erases everything on the card.** Steam asks you to confirm before it starts.
+
+The card is formatted the way a Steam Deck does it (ext4 with casefolding), mounts automatically,
+and Steam makes it the default install location right away. Cards formatted this way also work in
+a real Steam Deck, and vice versa. The card pocknix boots from never shows up there to format.
+
 ---
 
 ## Uninstall from internal

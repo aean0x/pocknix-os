@@ -111,16 +111,6 @@ export interface ConfigImportResult {
   enabled?: boolean;
 }
 
-export interface SdcardInfo {
-  present: boolean;
-  bootDisk?: boolean;
-  device?: string;
-  sizeBytes?: number;
-  fstype?: string;
-  label?: string;
-  mountpoint?: string;
-}
-
 export interface LedSide {
   r: number;
   g: number;
