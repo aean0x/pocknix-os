@@ -7,7 +7,8 @@ case "$1" in
   off) verb=stop ;;
   *) echo "usage: pocknix-speaker-dsp on|off" >&2; exit 2 ;;
 esac
-mkdir -p "${STATE%/*}" && printf '%s\n' "$1" > "${STATE}.tmp" && mv "${STATE}.tmp" "${STATE}" || exit 1
+mkdir -p "${STATE%/*}" && printf '%s\n' "$1" > "${STATE}.tmp" && mv "${STATE}.tmp" "${STATE}" || {
+  echo "pocknix-speaker-dsp: cannot write ${STATE} (run as root)" >&2; exit 1; }
 loginctl list-users --no-legend 2>/dev/null | awk '$1 >= 1000 { print $2 }' | while read -r u; do
   systemctl --machine="${u}@.host" --user "${verb}" pocknix-speaker-dsp.service 2>/dev/null
 done

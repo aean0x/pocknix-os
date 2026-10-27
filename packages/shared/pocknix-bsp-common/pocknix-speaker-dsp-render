@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """pocknix-speaker-dsp-render - write the speaker DSP's PipeWire config for this board.
 
-usage: pocknix-speaker-dsp-render --available | --check | <output.conf>
-
 --available exits 0 when device.conf names both a speaker profile and the speaker sink; --check
 also wants the switch on (the unit's ExecCondition). Otherwise the config is written: high-pass + EQ ->
 stereo widening -> post gain + limiter, as a smart filter on the speaker sink only, so
@@ -13,6 +11,7 @@ import re
 import subprocess
 import sys
 
+USAGE = "usage: pocknix-speaker-dsp-render --available | --check | <output.conf>"
 PROFILES = "/usr/share/pocknix/speaker-dsp"
 SWITCH = "/var/lib/pocknix/speaker-dsp"
 
@@ -33,7 +32,7 @@ BQ = {"PK": "bq_peaking", "LSC": "bq_lowshelf", "HSC": "bq_highshelf"}
 
 def board_keys():
     out = subprocess.run(["sh", "-c", READ_KEYS], capture_output=True, text=True, check=True)
-    profile, sink = (out.stdout.split("\n") + ["", ""])[:2]
+    profile, sink = out.stdout.split("\n")[:2]
     return profile.strip(), sink.strip()
 
 
@@ -45,11 +44,15 @@ def enabled():
         return True
 
 
-def load_profile(name):
+def profile_path(name):
     if not re.fullmatch(r"[A-Za-z0-9._-]+", name):
         raise ValueError(f"bad profile name {name!r}")
-    keys, bands = dict(DEFAULTS), []
-    with open(os.path.join(PROFILES, name + ".conf"), encoding="utf-8") as f:
+    return os.path.join(PROFILES, name + ".conf")
+
+
+def load_profile(path):
+    label, keys, bands = os.path.basename(path), dict(DEFAULTS), []
+    with open(path, encoding="utf-8") as f:
         for n, raw in enumerate(f, 1):
             line = raw.split("#", 1)[0].strip()
             if not line:
@@ -61,15 +64,24 @@ def load_profile(name):
                 continue
             key, sep, value = line.partition("=")
             if not sep or key.strip() not in DEFAULTS:
-                raise ValueError(f"{name}.conf:{n}: not a known KEY=value or Filter line")
-            keys[key.strip()] = float(value)
+                raise ValueError(f"{label}:{n}: not a known KEY=value or Filter line")
+            try:
+                keys[key.strip()] = float(value)
+            except ValueError:
+                raise ValueError(f"{label}:{n}: {key.strip()} wants a number, got {value.strip()!r}") from None
     return keys, bands
 
 
-def render(profile, sink):
-    keys, bands = load_profile(profile)
+def indent(items, n):
+    pad = " " * n
+    return "\n".join(pad + line for item in items for line in item.split("\n"))
+
+
+def render(path, sink):
+    keys, bands = load_profile(path)
     filters = []
     if keys["HIGHPASS"] > 0:
+        # q 0.707: Butterworth, the flattest passband above the corner.
         filters.append(f'{{ type = bq_highpass freq = {keys["HIGHPASS"]:g} q = 0.707 }}')
     filters += [f"{{ type = {t} freq = {fc:g} gain = {g:g} q = {q:g} }}" for t, fc, g, q in bands]
 
@@ -97,7 +109,7 @@ def render(profile, sink):
         f'  control = {{ "Input gain (dB)" = {keys["POST_GAIN"]:g} "Limit (dB)" = {keys["LIMIT"]:g}'
         f' "Release time (s)" = {keys["RELEASE"]:g} }} }}')
 
-    return f"""# Rendered by pocknix-speaker-dsp-render from {PROFILES}/{profile}.conf.
+    return f"""# Rendered by pocknix-speaker-dsp-render from {path}.
 context.spa-libs = {{
   audio.convert.* = audioconvert/libspa-audioconvert
   support.*       = support/libspa-support
@@ -141,23 +153,20 @@ context.modules = [
 """
 
 
-def indent(items, n):
-    pad = " " * n
-    return "\n".join(pad + line for item in items for line in item.split("\n"))
-
-
 def main():
     if len(sys.argv) != 2:
-        sys.exit(__doc__.split("\n\n")[1])
-    profile, sink = board_keys()
+        sys.exit(USAGE)
     try:
+        profile, sink = board_keys()
         if sys.argv[1] in ("--available", "--check"):
-            # Loading the profile here turns a broken one into a skip with one log line,
-            # not a unit that fails and restarts.
-            ok = profile and sink and (sys.argv[1] == "--available" or enabled())
-            sys.exit(0 if ok and load_profile(profile) else 1)
-        text = render(profile, sink)
-    except (OSError, ValueError) as e:
+            if not (profile and sink) or (sys.argv[1] == "--check" and not enabled()):
+                sys.exit(1)
+            # Validating here turns a broken profile into a skip with one log line, not a unit
+            # that fails and restarts.
+            load_profile(profile_path(profile))
+            sys.exit(0)
+        text = render(profile_path(profile), sink)
+    except (OSError, ValueError, subprocess.CalledProcessError) as e:
         sys.exit(f"pocknix-speaker-dsp-render: {e}")
     tmp = sys.argv[1] + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:

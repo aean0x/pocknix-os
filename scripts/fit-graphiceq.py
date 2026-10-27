@@ -15,9 +15,6 @@ import random
 import sys
 
 RATE = 48000
-# Cut-only bands store gain as log(-dB): smooth all the way to 0 dB, where a clamped dB value
-# would pin the optimiser to the wall and waste the band.
-CUT_ONLY = False
 
 
 def parse_points(text):
@@ -58,13 +55,15 @@ def peaking_db(fc, gain, q, cos_w):
     return out
 
 
-def unpack(x):
-    gain = (lambda u: -math.exp(u)) if CUT_ONLY else (lambda g: g)
+# x holds log(Hz), gain, log(Q) per band. Cut-only bands store gain as log(-dB): smooth all the
+# way to 0 dB, where a clamped dB value would pin the optimiser to the wall and waste the band.
+def unpack(x, cut_only):
+    gain = (lambda u: -math.exp(u)) if cut_only else (lambda g: g)
     return [(math.exp(x[i]), gain(x[i + 1]), math.exp(x[i + 2])) for i in range(0, len(x), 3)]
 
 
-def clamp(x, lo, hi):
-    glo, ghi = (math.log(0.05), math.log(30.0)) if CUT_ONLY else (-30.0, 12.0)
+def clamp(x, lo, hi, cut_only):
+    glo, ghi = (math.log(0.05), math.log(30.0)) if cut_only else (-30.0, 12.0)
     out = list(x)
     for i in range(0, len(out), 3):
         out[i] = min(max(out[i], math.log(lo)), math.log(hi))
@@ -73,17 +72,17 @@ def clamp(x, lo, hi):
     return out
 
 
-def response(x, cos_w):
+def response(x, cos_w, cut_only):
     model = [0.0] * len(cos_w)
-    for fc, g, q in unpack(x):
+    for fc, g, q in unpack(x, cut_only):
         for i, v in enumerate(peaking_db(fc, g, q, cos_w)):
             model[i] += v
     return model
 
 
-def make_cost(cos_w, want, weight, lo, hi):
+def make_cost(cos_w, want, weight, lo, hi, cut_only):
     def cost(x):
-        model = response(clamp(x, lo, hi), cos_w)
+        model = response(clamp(x, lo, hi, cut_only), cos_w, cut_only)
         return sum(k * (m - w) ** 2 for m, w, k in zip(model, want, weight))
     return cost
 
@@ -106,9 +105,9 @@ def nelder_mead(f, x0, step, iters):
             pts[-1], vals[-1] = ref, fr
         else:
             con = [cen[j] + 0.5 * (pts[-1][j] - cen[j]) for j in range(n)]
-            fc = f(con)
-            if fc < vals[-1]:
-                pts[-1], vals[-1] = con, fc
+            fcon = f(con)
+            if fcon < vals[-1]:
+                pts[-1], vals[-1] = con, fcon
             else:
                 for i in range(1, n + 1):
                     pts[i] = [pts[0][j] + 0.5 * (pts[i][j] - pts[0][j]) for j in range(n)]
@@ -126,8 +125,7 @@ def main():
     args = ap.parse_args()
 
     pts = parse_points(args.curve)
-    global CUT_ONLY
-    CUT_ONLY = max(g for _, g in pts) <= 0
+    cut_only = max(g for _, g in pts) <= 0
     # 100 Hz-20 kHz at 1/24 octave; outside the speaker band errors count a tenth, enough to stop
     # bands spilling past the curve's ends.
     grid, f = [], 100.0
@@ -136,37 +134,43 @@ def main():
         f *= 2 ** (1 / 24)
     cos_w = [(math.cos(2 * math.pi * g / RATE), math.cos(4 * math.pi * g / RATE)) for g in grid]
     want = [target(pts, g) for g in grid]
-    weight = [1.0 if args.lo <= g <= args.hi else 0.1 for g in grid]
-    cost = make_cost(cos_w, want, weight, args.lo, args.hi)
+    inband = [i for i, g in enumerate(grid) if args.lo <= g <= args.hi]
+    weight = [0.1] * len(grid)
+    for i in inband:
+        weight[i] = 1.0
+    cost = make_cost(cos_w, want, weight, args.lo, args.hi, cut_only)
+    # Seeded: the same curve always fits to the same lines, so a refit is a clean diff.
     random.seed(1)
 
     # Greedy: each new band starts on the largest remaining in-band error, then all bands are refit.
     # Cut-only bands start where the most cut is still missing: a band placed on an over-cut spot
     # pins at 0 dB and is wasted.
     x = []
-    inband = [i for i, g in enumerate(grid) if args.lo <= g <= args.hi]
     for _ in range(args.bands):
-        model = response(x, cos_w)
-        if CUT_ONLY:
+        model = response(x, cos_w, cut_only)
+        if cut_only:
             k = min(inband, key=lambda i: want[i] - model[i])
         else:
             k = max(inband, key=lambda i: abs(want[i] - model[i]))
         r = want[k] - model[k]
         if abs(r) < 0.3:
             break
-        x += [math.log(grid[k]), math.log(max(-r, 0.3)) if CUT_ONLY else r, math.log(2.0)]
+        x += [math.log(grid[k]), math.log(max(-r, 0.3)) if cut_only else r, math.log(2.0)]
         best, bestv = x, cost(x)
         for _ in range(2):
+            # Initial simplex per band: log Hz, gain (1.5 dB, or a ~4.5x factor on a cut-only
+            # log(-dB)), log Q.
             step = [0.15 + 0.1 * random.random(), 1.5, 0.3] * (len(x) // 3)
             cand, v = nelder_mead(cost, best, step, 150 * len(x))
             if v < bestv:
                 best, bestv = cand, v
-        x = clamp(best, args.lo, args.hi)
+        x = clamp(best, args.lo, args.hi, cut_only)
 
-    bands = sorted(unpack(x))
-    model = response(x, cos_w)
-    err = [abs(m - w) for m, w, g in zip(model, want, grid) if args.lo <= g <= args.hi]
-    out = [abs(m - w) for m, w, g in zip(model, want, grid) if not args.lo <= g <= args.hi]
+    bands = sorted(unpack(x, cut_only))
+    model = response(x, cos_w, cut_only)
+    outband = set(range(len(grid))) - set(inband)
+    err = [abs(model[i] - want[i]) for i in inband]
+    out = [abs(model[i] - want[i]) for i in sorted(outband)]
     for n, (fc, g, q) in enumerate(bands, 1):
         print(f"Filter {n}: ON PK Fc {fc:.0f} Hz Gain {g:.1f} dB Q {q:.2f}")
     print(f"fit {args.lo:.0f}-{args.hi:.0f} Hz: max error {max(err):.2f} dB, "

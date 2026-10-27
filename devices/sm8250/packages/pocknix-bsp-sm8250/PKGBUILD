@@ -7,7 +7,7 @@ pkgdesc="pocknix board support: SM8250 family (RP5, RP Flip 2) — runtime board
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
 license=('GPL-2.0-or-later')
-# The speaker DSP that replaces the old loudness filter ships in bsp-common.
+# An older bsp-common has no speaker DSP renderer, so the board profiles would sit unused.
 depends=('pocknix-bsp-common>=0.1.0-29')
 install=pocknix-bsp-sm8250.install
 # Exactly one device BSP may be installed (wrong-device guard for a shared repo).

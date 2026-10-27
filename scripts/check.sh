@@ -135,6 +135,10 @@ done
 if out="$(python3 "${POCKNIX_ROOT}/scripts/check-power-profiles.py" 2>&1)"; then note "power profiles" "ok"
 else note "power profiles" "BROKEN"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
 
+# --- speaker DSP profiles: every board's profile exists, parses and renders ---
+if out="$(python3 "${POCKNIX_ROOT}/scripts/check-speaker-dsp.py" 2>&1)"; then note "speaker DSP profiles" "ok"
+else note "speaker DSP profiles" "BROKEN"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
+
 # --- code comments: no dead repo paths, provenance or ledger facts ------------
 if out="$(python3 "${POCKNIX_ROOT}/scripts/check-comments.py" 2>&1)"; then note "code comments" "ok"
 else note "code comments" "STALE"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
