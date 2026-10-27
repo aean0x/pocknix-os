@@ -18,3 +18,6 @@ export SYSTEM_PATH="${SYSTEM_PATH:-${PATH}}"
 export SYSTEM_LD_LIBRARY_PATH="${SYSTEM_LD_LIBRARY_PATH-${LD_LIBRARY_PATH-}}"
 # Lepton runs Steam-launched Android apps headless, with no window, unless this is set.
 export APP_WANTS_FLATSCREEN="${APP_WANTS_FLATSCREEN:-true}"
+# Remote Play / Steam Link decode on iris stays solid green unless Steam resets the V4L2 decoder after
+# the source change's LAST buffer; this opts Steam into that reset.
+export STEAMLINK_V4L2_RESET_AFTER_LAST_BUF="${STEAMLINK_V4L2_RESET_AFTER_LAST_BUF:-1}"
