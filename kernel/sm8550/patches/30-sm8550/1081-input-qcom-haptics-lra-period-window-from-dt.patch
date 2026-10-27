@@ -1,0 +1,95 @@
+From: shuuri-labs <61762328+shuuri-labs@users.noreply.github.com>
+Subject: [PATCH] input: qcom-hv-haptics: check the calibrated LRA period against qcom,lra-period-us
+
+hw_init accepted only a calibrated resonance of 185-215 Hz and otherwise
+forced a 205 Hz open-loop period. That window fits one actuator: the RP6
+LRA calibrates at ~173 Hz, so every boot recalibrated three times and then
+drove it ~30 Hz off resonance.
+
+Check the calibrated period against the board's qcom,lra-period-us with a
+10% tolerance instead, and fall back to that period when calibration stays
+out of range. ERM boards return before this check.
+---
+ drivers/input/misc/qcom-hv-haptics.c | 45 ++++++++++++++++++------------------
+ 1 file changed, 23 insertions(+), 22 deletions(-)
+
+diff --git a/drivers/input/misc/qcom-hv-haptics.c b/drivers/input/misc/qcom-hv-haptics.c
+index 50b7dfa..3d2149c 100644
+--- a/drivers/input/misc/qcom-hv-haptics.c
++++ b/drivers/input/misc/qcom-hv-haptics.c
+@@ -362,13 +362,11 @@
+ #define DEFAULT_SWEEP_STEP_DURATION_MS		100
+ #define DEFAULT_AMPLITUDE_FOR_SWEEP		0xFF
+ 
+-// b/311643110
+-// The spec of LRA's f0 is 200 ± 10%
+-// But there is a 5 Hz shift in SW value compared to the f0 measured by IMU.
+-#define LRA_SPEC_MIN_FREQUENCY 185
+-#define LRA_SPEC_MAX_FREQUENCY 215
+-#define LRA_SPEC_DEFAULT_FREQUENCY 205
+-#define LRA_SPEC_DEFAULT_PERIOD_US (USEC_PER_SEC / LRA_SPEC_DEFAULT_FREQUENCY)
++/*
++ * A calibrated LRA period within this many percent of the board's
++ * qcom,lra-period-us is trusted; 10% is the usual LRA resonance tolerance.
++ */
++#define LRA_PERIOD_TOLERANCE_PCT 10
+ 
+ enum hap_status_sel {
+ 	CAL_TLRA_CL_STS = 0x00,
+@@ -3367,12 +3365,19 @@ static int haptics_config_wa(struct haptics_chip *chip)
+ 	return 0;
+ }
+ 
++static bool haptics_cl_lra_period_in_range(const struct haptics_hw_config *config)
++{
++	u32 nominal = config->t_lra_us;
++
++	return config->cl_t_lra_us >= nominal * (100 - LRA_PERIOD_TOLERANCE_PCT) / 100 &&
++	       config->cl_t_lra_us <= nominal * (100 + LRA_PERIOD_TOLERANCE_PCT) / 100;
++}
++
+ static int haptics_start_lra_calibrate(struct haptics_chip *chip);
+ static int haptics_hw_init(struct haptics_chip *chip)
+ {
+ 	int rc;
+ 	int retry = 0;
+-	u32 cl_f_lra;
+ 
+ 	rc = haptics_config_wa(chip);
+ 	if (rc < 0)
+@@ -3400,25 +3405,21 @@ static int haptics_hw_init(struct haptics_chip *chip)
+ 	rc = haptics_init_lra_period_config(chip);
+ 	if (rc < 0)
+ 		return rc;
+-	// Workaround for b/339117433 since we can't reproduce it
+-	cl_f_lra = USEC_PER_SEC / chip->config.cl_t_lra_us;
+-	dev_info(chip->dev, "lra frequency detected at boot: %d Hz\n", cl_f_lra);
+-	while ((cl_f_lra < LRA_SPEC_MIN_FREQUENCY || cl_f_lra > LRA_SPEC_MAX_FREQUENCY) &&
+-				retry < 3) {
++	dev_info(chip->dev, "lra period detected at boot: %u us\n",
++		 chip->config.cl_t_lra_us);
++	while (!haptics_cl_lra_period_in_range(&chip->config) && retry < 3) {
+ 		haptics_start_lra_calibrate(chip);
+-		cl_f_lra = USEC_PER_SEC / chip->config.cl_t_lra_us;
+ 		retry++;
+-		dev_info(chip->dev, "frequency after [%d] calibration: %d Hz\n", retry, cl_f_lra);
++		dev_info(chip->dev, "lra period after [%d] calibration: %u us\n",
++			 retry, chip->config.cl_t_lra_us);
+ 	}
+ 
+-	if (cl_f_lra < LRA_SPEC_MIN_FREQUENCY ||
+-			cl_f_lra > LRA_SPEC_MAX_FREQUENCY) {
+-		// HACK: forced set the frequency
+-		rc = haptics_config_openloop_lra_period(chip, LRA_SPEC_DEFAULT_PERIOD_US);
+-		chip->config.cl_t_lra_us = LRA_SPEC_DEFAULT_PERIOD_US;
++	if (!haptics_cl_lra_period_in_range(&chip->config)) {
++		rc = haptics_config_openloop_lra_period(chip, chip->config.t_lra_us);
++		chip->config.cl_t_lra_us = chip->config.t_lra_us;
+ 		dev_err(chip->dev,
+-			"lra frequency is still out of range, forced set to %d Hz, ret: %d\n",
+-			LRA_SPEC_DEFAULT_FREQUENCY, rc);
++			"lra period still out of range, using qcom,lra-period-us %u us, ret: %d\n",
++			chip->config.t_lra_us, rc);
+ 	}
+ 
+ 	rc = haptics_init_preload_pattern_effect(chip);
