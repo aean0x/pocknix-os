@@ -1,0 +1,67 @@
+From: Jan-Michael Brummer <jan.brummer@xxxxxxxxx>
+Subject: [PATCH 2/2] power: supply: qcom_battmgr: expose CHARGE_NOW on SM8350-class firmware
+
+The SM8350-class firmware does not implement a dedicated 'charge now'
+property. It does however report BATT_CHG_COUNTER, and on this class of
+firmware that value is the remaining charge in uAh rather than a
+monotonic counter. Measured on a Fairphone 5 with charge_full at
+4116000 uAh:
+
+BATT_CHG_COUNTER reported capacity counter / charge_full
+2434614 59% 59.1%
+3525354 85% 85.6%
+
+Map POWER_SUPPLY_PROP_CHARGE_NOW onto the same firmware property and
+store the value in status.capacity, which the CHARGE_NOW/ENERGY_NOW case
+of qcom_battmgr_bat_get_property() already reads.
+
+Together with the preceding patch this gives userspace both the full
+charge and the current charge. UPower now derives an energy level and
+runtime estimates in both directions:
+
+state: discharging state: charging
+energy: 14.4347 Wh energy: 15.6003 Wh
+energy-full: 16.8807 Wh energy-full: 18.1505 Wh
+energy-rate: 3.39313 W energy-rate: 7.3492 W
+time to empty: 4.3 hours time to full: 20.8 minutes
+
+Signed-off-by: Jan-Michael Brummer <jan.brummer@xxxxxxxxx>
+---
+--- a/drivers/power/supply/qcom_battmgr.c
++++ b/drivers/power/supply/qcom_battmgr.c
+@@ -441,6 +441,7 @@ static const u8 sm8350_bat_prop_map[] = {
+ 	[POWER_SUPPLY_PROP_CYCLE_COUNT] = BATT_CYCLE_COUNT,
+ 	[POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN] =  BATT_CHG_FULL_DESIGN,
+ 	[POWER_SUPPLY_PROP_CHARGE_FULL] = BATT_CHG_FULL,
++	[POWER_SUPPLY_PROP_CHARGE_NOW] = BATT_CHG_COUNTER,
+ 	[POWER_SUPPLY_PROP_MODEL_NAME] = BATT_MODEL_NAME,
+ 	[POWER_SUPPLY_PROP_TIME_TO_FULL_AVG] = BATT_TTF_AVG,
+ 	[POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG] = BATT_TTE_AVG,
+@@ -878,6 +879,7 @@ static const enum power_supply_property sm8350_bat_props[] = {
+ 	POWER_SUPPLY_PROP_CYCLE_COUNT,
+ 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
+ 	POWER_SUPPLY_PROP_CHARGE_FULL,
++	POWER_SUPPLY_PROP_CHARGE_NOW,
+ 	POWER_SUPPLY_PROP_MODEL_NAME,
+ 	POWER_SUPPLY_PROP_TIME_TO_FULL_AVG,
+ 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG,
+@@ -910,6 +912,7 @@ static const enum power_supply_property sm8550_bat_props[] = {
+ 	POWER_SUPPLY_PROP_CYCLE_COUNT,
+ 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
+ 	POWER_SUPPLY_PROP_CHARGE_FULL,
++	POWER_SUPPLY_PROP_CHARGE_NOW,
+ 	POWER_SUPPLY_PROP_MODEL_NAME,
+ 	POWER_SUPPLY_PROP_TIME_TO_FULL_AVG,
+ 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG,
+@@ -1442,7 +1445,10 @@ static void qcom_battmgr_sm8350_callback(struct qcom_battmgr *battmgr,
+ 			battmgr->info.technology = le32_to_cpu(resp->intval.value);
+ 			break;
+ 		case BATT_CHG_COUNTER:
+-			battmgr->info.charge_count = le32_to_cpu(resp->intval.value);
++			val = le32_to_cpu(resp->intval.value);
++			battmgr->info.charge_count = val;
++			/* the firmware reports the remaining charge here */
++			battmgr->status.capacity = val;
+ 			break;
+ 		case BATT_CYCLE_COUNT:
+ 			battmgr->info.cycle_count = le32_to_cpu(resp->intval.value);

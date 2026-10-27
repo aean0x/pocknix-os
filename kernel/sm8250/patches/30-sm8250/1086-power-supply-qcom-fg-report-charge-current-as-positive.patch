@@ -1,0 +1,28 @@
+From: shuuri-labs <61762328+shuuri-labs@users.noreply.github.com>
+Subject: [PATCH] power: supply: qcom_fg: report charge current as positive
+
+The gauge's current register counts discharge as positive, and CURRENT_NOW
+passed it through, so the battery read +0.9 A on battery and -1.2 A while
+charging. The power supply ABI counts charge as positive, and UPower calls
+any battery with negative current discharging, so Steam showed the device
+as not charging a moment after it was plugged in. Negate the reported
+value; the driver's own current-based status fallback keeps the raw sign.
+---
+--- a/drivers/power/supply/qcom_fg.c
++++ b/drivers/power/supply/qcom_fg.c
+@@ -923,7 +923,14 @@
+ 		ret = chip->ops->get_capacity(chip, &val->intval);
+ 		break;
+ 	case POWER_SUPPLY_PROP_CURRENT_NOW:
+-		ret = chip->ops->get_current(chip, &val->intval);
++		/*
++		 * The gauge counts discharge as positive; the ABI and UPower (which
++		 * calls negative current discharging) want charge positive. Negate
++		 * here only: the STATUS fallback above reads the raw sign.
++		 */
++		ret = chip->ops->get_current(chip, &temp);
++		if (!ret)
++			val->intval = -temp;
+ 		break;
+ 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+ 		ret = chip->ops->get_voltage(chip, &val->intval);
