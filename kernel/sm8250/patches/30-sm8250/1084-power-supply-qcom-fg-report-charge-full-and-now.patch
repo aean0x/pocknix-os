@@ -1,0 +1,47 @@
+From: shuuri-labs <61762328+shuuri-labs@users.noreply.github.com>
+Subject: [PATCH] power: supply: qcom_fg: report CHARGE_FULL and CHARGE_NOW
+
+The gauge exposes CAPACITY and CHARGE_FULL_DESIGN but no charge level, so
+UPower reads the battery as 0 Wh and never computes a time to empty or to
+full: it takes charge units only when CHARGE_FULL exists, and then needs
+CHARGE_NOW. Report CHARGE_FULL as the design capacity (this driver reads
+no learned capacity) and CHARGE_NOW as the state of charge times it. The design capacity
+comes from the board's monitored-battery node; without one both return
+-ENODATA.
+---
+--- a/drivers/power/supply/qcom_fg.c
++++ b/drivers/power/supply/qcom_fg.c
+@@ -861,6 +861,8 @@
+ 	POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN,
+ 	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
+ 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
++	POWER_SUPPLY_PROP_CHARGE_FULL,
++	POWER_SUPPLY_PROP_CHARGE_NOW,
+ 	POWER_SUPPLY_PROP_PRESENT,
+ 	POWER_SUPPLY_PROP_TEMP,
+ 	POWER_SUPPLY_PROP_TEMP_MIN,
+@@ -935,6 +937,24 @@
+ 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+ 		val->intval = chip->batt_info->charge_full_design_uah;
+ 		break;
++	case POWER_SUPPLY_PROP_CHARGE_FULL:
++	case POWER_SUPPLY_PROP_CHARGE_NOW:
++		/*
++		 * This driver reads only a state of charge, no learned capacity.
++		 * UPower derives energy and a runtime only when both of these exist,
++		 * so take them from the design capacity.
++		 */
++		if (chip->batt_info->charge_full_design_uah <= 0)
++			return -ENODATA;
++		if (psp == POWER_SUPPLY_PROP_CHARGE_FULL) {
++			val->intval = chip->batt_info->charge_full_design_uah;
++			break;
++		}
++		ret = chip->ops->get_capacity(chip, &temp);
++		if (!ret)
++			val->intval = mult_frac(chip->batt_info->charge_full_design_uah,
++						temp, 100);
++		break;
+ 	case POWER_SUPPLY_PROP_PRESENT:
+ 		val->intval = 1;
+ 		break;
