@@ -1,0 +1,7 @@
+# audio-heal plants the codec gains once per boot; re-plant them now so the running card
+# matches the new rules before the next boot rather than after it. Until then it is quiet,
+# never too hot.
+post_upgrade() {
+  [ -d /run/systemd/system ] && systemctl start --no-block pocknix-sm8250-audio-heal.service
+  return 0
+}

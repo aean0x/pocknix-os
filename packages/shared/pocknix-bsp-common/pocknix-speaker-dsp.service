@@ -1,0 +1,14 @@
+[Unit]
+Description=pocknix speaker DSP (EQ, stereo widening, limiter on the internal speakers)
+# A PipeWire client of its own, so switching it never restarts PipeWire: that would cut
+# every open stream, and Steam only reconnects on its own restart.
+After=pipewire.service
+BindsTo=pipewire.service
+
+[Service]
+Type=simple
+ExecCondition=/usr/lib/pocknix/pocknix-speaker-dsp-render --check
+ExecStartPre=/usr/lib/pocknix/pocknix-speaker-dsp-render %t/pocknix-speaker-dsp.conf
+ExecStart=/usr/bin/pipewire -c %t/pocknix-speaker-dsp.conf
+Restart=on-failure
+Slice=session.slice

@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+"""pocknix-speaker-dsp-render - write the speaker DSP's PipeWire config for this board.
+
+--available exits 0 when device.conf names both a speaker profile and the speaker sink; --check
+also wants the switch on (the unit's ExecCondition). Otherwise the config is written: high-pass + EQ ->
+stereo widening -> post gain + limiter, as a smart filter on the speaker sink only, so
+headphones, DisplayPort and Bluetooth bypass it.
+"""
+import os
+import re
+import subprocess
+import sys
+
+USAGE = "usage: pocknix-speaker-dsp-render --available | --check | <output.conf>"
+PROFILES = "/usr/share/pocknix/speaker-dsp"
+SWITCH = "/var/lib/pocknix/speaker-dsp"
+
+READ_KEYS = r'''
+for f in /usr/lib/pocknix/device.conf /etc/pocknix/device.conf; do
+  [ -r "${f}" ] && . "${f}"
+done
+printf '%s\n%s\n' "${POCKNIX_SPEAKER_PROFILE:-}" "${POCKNIX_SPEAKER_SINK:-}"
+'''
+
+# Defaults for keys a profile leaves out: no high-pass, no widening, no post gain.
+DEFAULTS = {"HIGHPASS": 0.0, "WIDTH": 1.0, "POST_GAIN": 0.0, "LIMIT": -0.1, "RELEASE": 0.5}
+# REW / AutoEQ parametric export: "Filter 1: ON PK Fc 700 Hz Gain -16.0 dB Q 1.20".
+FILTER = re.compile(r"Filter\s+\d+:\s+(ON|OFF)\s+(PK|LSC|HSC)\s+Fc\s+([\d.]+)\s+Hz"
+                    r"\s+Gain\s+(-?[\d.]+)\s+dB\s+Q\s+([\d.]+)$")
+BQ = {"PK": "bq_peaking", "LSC": "bq_lowshelf", "HSC": "bq_highshelf"}
+
+
+def board_keys():
+    out = subprocess.run(["sh", "-c", READ_KEYS], capture_output=True, text=True, check=True)
+    profile, sink = out.stdout.split("\n")[:2]
+    return profile.strip(), sink.strip()
+
+
+def enabled():
+    try:
+        with open(SWITCH, encoding="utf-8") as f:
+            return f.read().strip() != "off"
+    except OSError:
+        return True
+
+
+def profile_path(name):
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", name):
+        raise ValueError(f"bad profile name {name!r}")
+    return os.path.join(PROFILES, name + ".conf")
+
+
+def load_profile(path):
+    label, keys, bands = os.path.basename(path), dict(DEFAULTS), []
+    with open(path, encoding="utf-8") as f:
+        for n, raw in enumerate(f, 1):
+            line = raw.split("#", 1)[0].strip()
+            if not line:
+                continue
+            m = FILTER.fullmatch(line)
+            if m:
+                if m.group(1) == "ON":
+                    bands.append((BQ[m.group(2)], float(m.group(3)), float(m.group(4)), float(m.group(5))))
+                continue
+            key, sep, value = line.partition("=")
+            if not sep or key.strip() not in DEFAULTS:
+                raise ValueError(f"{label}:{n}: not a known KEY=value or Filter line")
+            try:
+                keys[key.strip()] = float(value)
+            except ValueError:
+                raise ValueError(f"{label}:{n}: {key.strip()} wants a number, got {value.strip()!r}") from None
+    return keys, bands
+
+
+def indent(items, n):
+    pad = " " * n
+    return "\n".join(pad + line for item in items for line in item.split("\n"))
+
+
+def render(path, sink):
+    keys, bands = load_profile(path)
+    filters = []
+    if keys["HIGHPASS"] > 0:
+        # q 0.707: Butterworth, the flattest passband above the corner.
+        filters.append(f'{{ type = bq_highpass freq = {keys["HIGHPASS"]:g} q = 0.707 }}')
+    filters += [f"{{ type = {t} freq = {fc:g} gain = {g:g} q = {q:g} }}" for t, fc, g, q in bands]
+
+    # A 0 dB peaking band has b == a: an exact pass-through for a profile with no EQ.
+    filters = filters or ["{ type = bq_peaking freq = 1000 gain = 0 q = 1 }"]
+    nodes = [
+        "{ type = builtin name = eq label = param_eq\n"
+        "  config = { filters = [\n    " + "\n    ".join(filters) + "\n  ] } }",
+    ]
+    if keys["WIDTH"] != 1.0:
+        # Mid/side width: L' = (1+w)/2 L + (1-w)/2 R. Anti-phase content gains up to
+        # 20*log10(w) here, which is why widening sits before the limiter.
+        a, b = (1 + keys["WIDTH"]) / 2, (1 - keys["WIDTH"]) / 2
+        nodes += [
+            f'{{ type = builtin name = wl label = mixer control = {{ "Gain 1" = {a:g} "Gain 2" = {b:g} }} }}',
+            f'{{ type = builtin name = wr label = mixer control = {{ "Gain 1" = {b:g} "Gain 2" = {a:g} }} }}',
+        ]
+        links = ['{ output = "eq:Out 1" input = "wl:In 1" }', '{ output = "eq:Out 2" input = "wl:In 2" }',
+                 '{ output = "eq:Out 1" input = "wr:In 1" }', '{ output = "eq:Out 2" input = "wr:In 2" }',
+                 '{ output = "wl:Out" input = "lim:Input 1" }', '{ output = "wr:Out" input = "lim:Input 2" }']
+    else:
+        links = ['{ output = "eq:Out 1" input = "lim:Input 1" }', '{ output = "eq:Out 2" input = "lim:Input 2" }']
+    nodes.append(
+        "{ type = ladspa name = lim plugin = fast_lookahead_limiter_1913 label = fastLookaheadLimiter\n"
+        f'  control = {{ "Input gain (dB)" = {keys["POST_GAIN"]:g} "Limit (dB)" = {keys["LIMIT"]:g}'
+        f' "Release time (s)" = {keys["RELEASE"]:g} }} }}')
+
+    return f"""# Rendered by pocknix-speaker-dsp-render from {path}.
+context.spa-libs = {{
+  audio.convert.* = audioconvert/libspa-audioconvert
+  support.*       = support/libspa-support
+}}
+context.modules = [
+  {{ name = libpipewire-module-rt args = {{ }} flags = [ ifexists nofail ] }}
+  {{ name = libpipewire-module-protocol-native }}
+  {{ name = libpipewire-module-client-node }}
+  {{ name = libpipewire-module-adapter }}
+  {{ name = libpipewire-module-filter-chain
+    args = {{
+      node.description = "Speakers (DSP)"
+      media.name       = "Speakers (DSP)"
+      filter.graph = {{
+        nodes = [
+{indent(nodes, 10)}
+        ]
+        links = [
+{indent(links, 10)}
+        ]
+        inputs  = [ "eq:In 1" "eq:In 2" ]
+        outputs = [ "lim:Output 1" "lim:Output 2" ]
+      }}
+      capture.props = {{
+        node.name      = "pocknix_speaker_dsp"
+        media.class    = Audio/Sink
+        audio.position = [ FL FR ]
+        filter.smart = true
+        filter.smart.name = "pocknix-speaker-dsp"
+        filter.smart.target = {{ node.name = "{sink}" }}
+      }}
+      playback.props = {{
+        node.name      = "pocknix_speaker_dsp_out"
+        node.passive   = true
+        audio.position = [ FL FR ]
+        stream.dont-remix = true
+      }}
+    }}
+  }}
+]
+"""
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit(USAGE)
+    try:
+        profile, sink = board_keys()
+        if sys.argv[1] in ("--available", "--check"):
+            if not (profile and sink) or (sys.argv[1] == "--check" and not enabled()):
+                sys.exit(1)
+            # Validating here turns a broken profile into a skip with one log line, not a unit
+            # that fails and restarts.
+            load_profile(profile_path(profile))
+            sys.exit(0)
+        text = render(profile_path(profile), sink)
+    except (OSError, ValueError, subprocess.CalledProcessError) as e:
+        sys.exit(f"pocknix-speaker-dsp-render: {e}")
+    tmp = sys.argv[1] + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(tmp, sys.argv[1])
+
+
+if __name__ == "__main__":
+    main()
