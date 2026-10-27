@@ -6,3 +6,4 @@
 dts/qcom/qcs8550-ayn-common.dtsi
 dts/qcom/qcs8550-ayn-odin2.dts
 dts/qcom/qcs8550-ayn-thor.dts
+dts/qcom/qcs8550-retroidpocket-rp6.dts
