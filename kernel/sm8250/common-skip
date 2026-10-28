@@ -1,0 +1,2 @@
+# kernel/common patches sm8250 leaves out, one name per line with its why.
+1037-media-iris-decode-in-stage-1-at-the-top-clock-by-default.patch # gen1 in stage 1 above 720p falls behind: a 1728x1080 60 fps stream froze
