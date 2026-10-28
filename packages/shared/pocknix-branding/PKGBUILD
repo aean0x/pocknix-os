@@ -1,11 +1,9 @@
-# pocknix-branding — Pocknix OS artwork: the plymouth boot theme, the Plasma splash, and
-# the desktop wallpaper. One package so the three stay in step; they share the same
-# wordmark and the same #202126 field, which is the point (boot -> splash -> desktop
-# reads as one surface instead of three unrelated screens).
+# Pocknix OS artwork: the plymouth boot theme and the Plasma splash. One package so the two
+# stay in step: same wordmark, same #202126 field, so boot -> splash reads as one surface.
 pkgname=pocknix-branding
 pkgver=0.1.0
-pkgrel=3
-pkgdesc="Pocknix OS branding: plymouth boot theme, Plasma splash, wallpaper"
+pkgrel=4
+pkgdesc="Pocknix OS branding: plymouth boot theme, Plasma splash"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
 license=('GPL-2.0-or-later')
@@ -15,10 +13,8 @@ install='pocknix-branding.install'
 # copied frames would drift from plymouth's own; output in our own dir survives a plymouth upgrade.
 makedepends=('plymouth')
 source=('watermark.png'
-        'Splash.qml' 'splash-metadata.json' 'wordmark.png'
-        'wallpaper-1920x1080.png' 'wallpaper-metadata.json'
-        'pocknix-branding-init' 'pocknix-branding-init.service')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+        'Splash.qml' 'splash-metadata.json' 'wordmark.png')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 _spinner=/usr/share/plymouth/themes/spinner
 
@@ -32,7 +28,7 @@ package() {
   # our wordmark replaces the Arch watermark; authored at 2x for DeviceScale=2
   install -Dm644 "${srcdir}/watermark.png" "${theme}/watermark.png"
 
-  # Name/Description/ImageDir must point at OUR dir, and the field matches the wallpaper
+  # Name/Description/ImageDir must point at OUR dir, and the field matches the splash
   # so plymouth does not flash black before handing over.
   sed -i -e '/^Name\[[^]]*\]=/d' \
          -e 's|^Name=.*|Name=Pocknix|' \
@@ -47,17 +43,4 @@ package() {
   install -Dm644 "${srcdir}/splash-metadata.json" "${splash}/metadata.json"
   install -Dm644 "${srcdir}/Splash.qml"           "${splash}/contents/splash/Splash.qml"
   install -Dm644 "${srcdir}/wordmark.png"         "${splash}/contents/splash/images/wordmark.png"
-
-  # --- wallpaper -----------------------------------------------------------------------
-  local wall="${pkgdir}/usr/share/wallpapers/PocknixOS"
-  install -Dm644 "${srcdir}/wallpaper-metadata.json"    "${wall}/metadata.json"
-  install -Dm644 "${srcdir}/wallpaper-1920x1080.png"    "${wall}/contents/images/1920x1080.png"
-
-  # --- first-login wallpaper seed ------------------------------------------------------
-  install -Dm755 "${srcdir}/pocknix-branding-init" "${pkgdir}/usr/bin/pocknix-branding-init"
-  install -Dm644 "${srcdir}/pocknix-branding-init.service" \
-    "${pkgdir}/usr/lib/systemd/user/pocknix-branding-init.service"
-  install -d "${pkgdir}/usr/lib/systemd/user/plasma-plasmashell.service.wants"
-  ln -s ../pocknix-branding-init.service \
-    "${pkgdir}/usr/lib/systemd/user/plasma-plasmashell.service.wants/pocknix-branding-init.service"
 }
