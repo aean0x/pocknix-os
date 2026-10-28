@@ -1,6 +1,6 @@
 pkgname=pocknix-emulation-common
 pkgver=0.1.0
-pkgrel=4
+pkgrel=5
 pkgdesc="pocknix emulation base: ~/Emulation layout, config seeder, pocknix-play launcher"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
