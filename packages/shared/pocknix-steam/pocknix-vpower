@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+# pocknix-vpower - mirrors UPower's battery state into /run/vpower for game mode's Steam.
+# Steam reads TimeToEmpty from UPower even while charging, so its charging ETA stays blank; when
+# these files exist it reads them instead. Event-driven only: no timers, no wakeups.
+import os
+
+import gi
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib  # noqa: E402
+
+ROOT = "/run/vpower"
+UPOWER = "org.freedesktop.UPower"
+DEVICE = ("State", "Percentage", "TimeToFull", "TimeToEmpty")
+
+# UPower Device.State: 1 charging, 2 discharging, 3 empty, 4 fully charged, 6 pending discharge.
+CHARGING, FULL = 1, 4
+DISCHARGING = (2, 3, 6)
+
+
+def write(name, value):
+    tmp = os.path.join(ROOT, f".{name}.tmp")
+    with open(tmp, "w") as f:
+        f.write(f"{value}\n")
+    os.replace(tmp, os.path.join(ROOT, name))
+
+
+def clear():
+    for name in ("ac_status", "battery_percent", "battery_status",
+                 "secs_until_battery_full", "secs_until_shutdown_request"):
+        try:
+            os.unlink(os.path.join(ROOT, name))
+        except FileNotFoundError:
+            pass
+
+
+def publish(display, root):
+    props = {n: display.get_cached_property(n) for n in DEVICE}
+    on_battery = root.get_cached_property("OnBattery")
+    # Empty cache = UPower is gone: Steam falls back to UPower itself, never to old numbers.
+    if on_battery is None or None in props.values():
+        clear()
+        return
+    state = props["State"].unpack()
+    to_full = props["TimeToFull"].unpack()
+    to_empty = props["TimeToEmpty"].unpack()
+    charging = state == CHARGING
+    discharging = state in DISCHARGING
+    write("ac_status", "Disconnected" if on_battery.unpack() else "Connected")
+    write("battery_percent", f"{props['Percentage'].unpack():.2f}")
+    write("battery_status", "Charging" if charging else "Discharging" if discharging
+          else "Full" if state == FULL else "Not charging")
+    # -1 is vpower's "unknown"; a 0 from UPower means it has no estimate yet.
+    write("secs_until_battery_full", to_full if charging and to_full > 0 else -1)
+    write("secs_until_shutdown_request", to_empty if discharging and to_empty > 0 else -1)
+
+
+def proxy(path, iface):
+    return Gio.DBusProxy.new_for_bus_sync(Gio.BusType.SYSTEM, Gio.DBusProxyFlags.NONE, None,
+                                          UPOWER, path, iface, None)
+
+
+def main():
+    display = proxy("/org/freedesktop/UPower/devices/DisplayDevice", "org.freedesktop.UPower.Device")
+    root = proxy("/org/freedesktop/UPower", "org.freedesktop.UPower")
+    # A UPower restart drops and reloads the cache; the name-owner notify is what reports it.
+    for p in (display, root):
+        p.connect("g-properties-changed", lambda *_: publish(display, root))
+        p.connect("notify::g-name-owner", lambda *_: publish(display, root))
+    publish(display, root)
+    GLib.MainLoop().run()
+
+
+if __name__ == "__main__":
+    main()

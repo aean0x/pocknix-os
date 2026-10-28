@@ -1,0 +1,11 @@
+[Unit]
+Description=pocknix: publish UPower battery estimates to Steam's /run/vpower (game mode)
+PartOf=pocknix-game-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/pocknix/pocknix-vpower
+# Steam prefers these files over UPower, so a dead or stopped bridge must not leave values behind.
+ExecStopPost=/usr/bin/rm -f /run/vpower/ac_status /run/vpower/battery_percent /run/vpower/battery_status /run/vpower/secs_until_battery_full /run/vpower/secs_until_shutdown_request
+Restart=always
+RestartSec=3
