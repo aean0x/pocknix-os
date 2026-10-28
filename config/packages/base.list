@@ -70,7 +70,7 @@ sbc                  # without a codec lib, BT headphones pair but give no audio
 libfreeaptx
 
 # --- power / battery ---
-upower               # Steam reads battery only via UPower, once at startup: keep it enabled
+upower               # Steam's battery source, queried once at startup (pocknix-vpower feeds game mode from it): keep it enabled
 
 # --- storage ---
 udisks2              # Steam lists formattable drives only via UDisks2, once at startup: keep it enabled

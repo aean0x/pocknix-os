@@ -103,7 +103,11 @@ while true; do
   case "${session}" in
     plasma|desktop) command -v pocknix-desktop >/dev/null 2>&1 && run pocknix-desktop
                     rm -f "${PIDFILE}" ;;  # a recycled PID must never be signalled as the session
-    *)              command -v pocknix-steam   >/dev/null 2>&1 && run pocknix-steam ;;
+    *)              if command -v pocknix-steam >/dev/null 2>&1; then
+                      # --no-block: a slow game-session unit must never hold up Steam.
+                      systemctl --user start --no-block pocknix-game-session.target
+                      run pocknix-steam
+                    fi ;;
   esac
   # Under 5s is a broken session, not a switch.
   if [ "$(( $(date +%s) - start ))" -lt 5 ]; then
