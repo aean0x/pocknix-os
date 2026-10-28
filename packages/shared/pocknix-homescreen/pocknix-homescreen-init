@@ -15,7 +15,7 @@ shell() {
     evaluateScript s "$1" 2>/dev/null | sed -n 's/^s "\(.*\)"$/\1/p' || true
 }
 
-# Same window as pocknix-branding-init: the bus name is up ~2s before any containment exists.
+# systemd starts this once plasmashell owns its bus name, ~2s before any containment exists.
 deadline=$(( SECONDS + 60 ))
 while n=$(shell 'print(desktops().length)'); [ "${n:-0}" = 0 ]; do
   [ "$SECONDS" -lt "$deadline" ] || exit 0
