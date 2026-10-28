@@ -52,7 +52,7 @@ picks it by the board's `POCKNIX_BOOT_STYLE`, so a new SoC adds no boot scripts.
 - **Needs a SoC-dir patch first**, or touches only one SoC's dtsi/driver:
   `kernel/<soc>/patches/30-<soc>/`, numbered 1000+.
 - **ROCKNIX's**: stays where `make sync` puts it; our edits to it are listed in `sync-keep`.
-- **A common patch that doesn't apply or isn't validated on one SoC**: one line in that SoC's
+- **A common patch that doesn't apply, isn't validated or regresses on one SoC**: one line in that SoC's
   `common-skip` (file name + `# why`). `make check` fails on a name that no longer exists.
 - **Config**: never edit `config/`; add a `scripts/config` delta (in build-kernel.sh for every
   SoC, in `config-delta` for one).

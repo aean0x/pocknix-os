@@ -64,7 +64,7 @@ fetch_source() {
 
 # kernel/common goes last: its patches sit on top of SoC-dir prerequisites
 # (1062 needs the SoC dir's 0504). kernel/<soc>/common-skip lists common patches a
-# SoC leaves out because they don't apply or aren't validated there; SoC-specific
+# SoC leaves out because they don't apply, aren't validated or regress there; SoC-specific
 # behaviour belongs gated inside the patch, the skip list is the fallback.
 apply_patches() {
   local d p n skip=""
