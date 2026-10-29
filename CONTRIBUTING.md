@@ -268,7 +268,13 @@ check it, which is the single biggest reason a PR stalls.
   `kernel/<soc>/kernel.conf` pins the stock version). A file ported from another project
   without a patch (a UCM profile, an InputPlumber map, an EQ curve, a vendored binary) records
   its source and our changes in a `README.provenance` in its package dir, listed in the root
-  `PATCHES.md`.
+  `PATCHES.md`. `make check` (`scripts/check-patches.py`) fails when a ledger and its patches
+  drift: a patch with no Carried entry, an entry with no file, a retired number back in use, a
+  number used twice (kernel numbers are one series across `kernel/common` and every SoC tree),
+  a `sync-keep` line the SoC ledger's Edits to synced files does not name, or an index row
+  missing or out of step with its ledger's first Base line. In a SoC's synced `30-<soc>` dir only
+  1000+ names count as ours; a ROCKNIX patch in that range goes on the ledger's
+  `ROCKNIX 1000+ (synced, not ours):` line.
 - **License**: a package you author for pocknix-os declares `license=('GPL-2.0-or-later')`.
   One that repackages third-party content keeps the upstream license and names it in a
   comment on the same line (`license=('zlib')   # Valve's DXVK build, repackaged`). `make check`

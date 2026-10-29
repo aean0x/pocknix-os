@@ -533,6 +533,12 @@ else note "chip ids self-test" "a stray chip id in shared code went unflagged (o
 if "${POCKNIX_ROOT}/scripts/check-docs.sh"; then note "docs match the tree" "ok"
 else note "docs match the tree" "see the lines above"; fail=1; fi
 
+# Each patch dir's PATCHES.md names exactly its patches; the self-test plants each kind of drift.
+if out="$(python3 "${POCKNIX_ROOT}/scripts/check-patches.py" 2>&1)"; then note "patch ledgers" "ok"
+else note "patch ledgers" "DRIFT"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
+if python3 "${POCKNIX_ROOT}/scripts/check-patches.py" --selftest >/dev/null 2>&1; then note "patch ledgers self-test" "ok"
+else note "patch ledgers self-test" "a planted drift went unflagged (or a clean ledger was flagged)"; fail=1; fi
+
 # --- kernel enablement present? (committed; refreshable via sync) -----------
 _npatch=$(find "${KERNEL_DIR}/patches" "${POCKNIX_ROOT}/kernel/common/patches" -name '*.patch' 2>/dev/null | wc -l | tr -d ' ')
 if [ "${_npatch:-0}" -gt 0 ]; then
