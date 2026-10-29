@@ -6,9 +6,8 @@
 -->
 <ruleList>
 
-  <!-- The bundled rule is systempath-only, and that PATH lookup comes up empty under the
-       Steam-launched ES-DE environment: every RetroArch system then fails to find an
-       emulator. The absolute path is what makes it resolve. -->
+  <!-- The bundled rule is systempath-only, which comes up empty under Steam-launched ES-DE, so
+       every RetroArch system fails to find an emulator: the absolute path makes it resolve. -->
   <emulator name="RETROARCH">
     <rule type="systempath">
       <entry>retroarch</entry>

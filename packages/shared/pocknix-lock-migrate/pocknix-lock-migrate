@@ -49,9 +49,8 @@ converge() {
   out="$(pacman -Syuu --noconfirm 2>&1)" || rc=$?
   printf '%s\n' "${out}"
   if [ "${rc}" -ne 0 ]; then
-    # Foreign compat splits (ALARM's mbedtls3) own the very files the downgrade restores
-    # and are orphaned by it: -Rdd exactly those and retry, since the same transaction
-    # puts the sonames back. Repo-owned conflicts stay fatal.
+    # Foreign compat splits (ALARM's mbedtls3) own files the downgrade restores and are orphaned by
+    # it: -Rdd those and retry (the transaction puts the sonames back). Repo-owned ones stay fatal.
     local owners
     owners="$(printf '%s\n' "${out}" \
       | sed -n 's/.*exists in filesystem (owned by \([^)]*\)).*/\1/p' | LC_ALL=C sort -u \

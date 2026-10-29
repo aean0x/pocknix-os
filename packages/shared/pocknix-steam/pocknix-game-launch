@@ -179,10 +179,8 @@ def apply_audio_latency(settings):
 
 
 def apply_mesa_version(settings, tool, args):
-    # Per-game Turnip pick: a SERIES value ("25.2") resolves to the installed point release for
-    # the Proton's arch (ARM Proton = native ARM Vulkan stack -> vk-arm; x86 Proton loads an x86
-    # driver under FEX -> vk-x86). VK_DRIVER_FILES replaces ICD enumeration, so a wrong-arch icd
-    # would strand the game driverless: any miss skips with a note.
+    # A SERIES ("25.2") resolves to the installed point release for the Proton's arch (ARM: vk-arm,
+    # x86 under FEX: vk-x86). VK_DRIVER_FILES replaces ICD enumeration: any miss skips, noted.
     value = str(settings.get("mesaVersion", "") or "").strip()
     m = re.fullmatch(r"(?:(arm|x86):)?([0-9][0-9.]*(?:rc[0-9]+)?)", value)
     if not m or tool is None:
@@ -219,9 +217,8 @@ def apply_mesa_version(settings, tool, args):
 
 
 def apply_game_modes(settings):
-    # Per-game fan curve / CPU scheduler, tagged with our pid: the launch chain execs in place, so
-    # the pid lives for the whole session and a dead pid reverts the pick with no cleanup.
-    # "-" = field not overridden.
+    # Fan curve / scheduler tagged with our pid: the launch chain execs in place, so a dead pid
+    # reverts the pick with no cleanup. "-" = field not overridden.
     fan = str(settings.get("fanMode", "") or "").strip()
     lavd = str(settings.get("lavdMode", "") or "").strip()
     fan = fan if fan in FAN_MODES else "-"
@@ -273,10 +270,8 @@ def apply_xalia(settings):
 
 
 def heal_arm_prefix(tool):
-    # Steam's first-time setup runs VC-redist installers that plant amd64 CRT DLLs (real files)
-    # into the prefix; wine's NATIVE arm64 services then die c000007b at boot, and
-    # WINEDLLOVERRIDES=b does not recover. Re-point to the tool's arm64X builtin every launch
-    # (verify/updates restore the file; a first launch converges on the second).
+    # Steam's VC-redist installs plant amd64 CRT DLLs that kill wine's arm64 services (c000007b,
+    # =b does not help): re-point to the arm64X builtin every launch, as updates restore the file.
     if not is_arm(tool):
         return
     compat = os.environ.get("STEAM_COMPAT_DATA_PATH", "").strip()

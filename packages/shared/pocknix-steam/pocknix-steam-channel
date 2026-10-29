@@ -2,9 +2,8 @@
 # installer. steamdeck_publicbeta is only the seed; the user picks the channel in Steam's settings.
 POCKNIX_STEAM_CHANNEL=steamdeck_publicbeta
 
-# Any other value is reset: Preview (steamdeck_beta) and Main (steamdeck_main) publish no linuxarm64
-# client, so Steam reads "installed version 0" and loops on "Installing update"; plain publicbeta
-# lacks the gamepadui font payload. Empty means no beta, which serves stable.
+# Other values reset: Preview/Main publish no linuxarm64 client (Steam loops on "Installing update")
+# and plain publicbeta lacks the gamepadui fonts. Empty = no beta = stable.
 pocknix_steam_channel_guard() {
   local f="$1/package/beta"
   case "$(cat "${f}" 2>/dev/null)" in

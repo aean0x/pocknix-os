@@ -2,9 +2,8 @@
 # (pocknix-steam-env), the emulator pin (emu-resolve.sh) and irq placement (pocknix-rt-ladder).
 # POSIX sh; every function runs in a subshell, so sourcing leaks no variables.
 
-# POCKNIX_BIG_CORES as a comma list ("3-7" -> "3,4,5,6,7"); empty if unset or malformed, since
-# pinning to the wrong cluster is worse than not pinning. With "guess", a board without the key
-# gets every core above the lowest capacity (all of them when they are equal).
+# POCKNIX_BIG_CORES as a comma list ("3-7" -> "3,4,5,6,7"); empty if unset or malformed (a wrong
+# pin is worse than none). With "guess", no key = every core above the lowest capacity.
 pocknix_big_cores() (
   spec="$(for f in /usr/lib/pocknix/device.conf /etc/pocknix/device.conf; do
     [ -r "${f}" ] && . "${f}"

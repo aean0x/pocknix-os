@@ -26,9 +26,8 @@ touch "${STEAM}/.cef-enable-remote-debugging" 2>/dev/null || true
 # Steam resolves legacy module paths (bin/vgui2_s.dll …) relative to getcwd.
 cd "${CLIENT_DIR}" 2>/dev/null || { echo "steam: missing ${CLIENT_DIR}" >&2; exit 1; }
 
-# The client is X11-only and dies "Unable to open a connection to X" without DISPLAY, leaving orphan
-# steam procs that wreck the next game session. Plasma does not reliably propagate DISPLAY into
-# app-grid launches, so derive it from the live XWayland socket instead of trusting the env.
+# The X11-only client dies without DISPLAY and leaves orphan procs that wreck the next game session;
+# Plasma app-grid launches may lack DISPLAY, so derive it from the live XWayland socket.
 if [ -z "${DISPLAY:-}" ]; then
   for _s in /tmp/.X11-unix/X*; do
     [ -S "${_s}" ] || continue

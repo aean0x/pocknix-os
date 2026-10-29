@@ -21,9 +21,8 @@ depends_of() {  # $1 package -> its depends, from the local db or, when not inst
     | awk -F' *: *' '/^Depends On/{f=1; print $2; next} /^[A-Z][A-Za-z ]+ *:/{f=0} f{print}' \
     | tr ' ' '\n' | sed 's/[<>=].*//' | grep -v -x -e '' -e None
 }
-# The emulators sit one level down, under the pocknix-emu-* packages, and devices fielded before
-# the layer metas have them explicitly installed. Only the emu packages' depends are walked:
-# steam-rom-manager's (gtk3, nss) are system libraries a remove must not mark.
+# Emulators sit under the pocknix-emu-* packages and pre-meta devices have them explicit. Walk only
+# the emu packages' depends: steam-rom-manager's (gtk3, nss) are system libs a remove must not mark.
 members() {
   local p q
   for p in $(depends_of "${META}"); do

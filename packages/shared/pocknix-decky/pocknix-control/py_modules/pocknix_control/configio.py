@@ -7,9 +7,8 @@ from pathlib import Path
 from .system import atomically_write
 from .tweaks import load_tweaks, save_tweaks
 
-# Per-game config export/import. Export writes one profile, but the schema keeps a "games"
-# map so a shared community pack carrying several still imports. Device-local settings (fan,
-# global defaults) are outside GAME_KEYS and so never travel between devices.
+# Export writes one profile, but the schema keeps a "games" map so a multi-game community pack still
+# imports. Device-local settings (fan, global defaults) are outside GAME_KEYS and never travel.
 EXPORT_DIR = Path("/home/deck/PocknixGameConfigs")
 STEAM_CONFIG_VDF = Path("/home/deck/.local/share/Steam/config/config.vdf")
 SCHEMA_VERSION = 1
@@ -154,9 +153,8 @@ def read_config(path):
 
 
 def apply_config(path, source_appid, target_appid, target_name):
-    # The target is chosen by the user, not keyed by the exporter's appid: a non-Steam copy
-    # carries its own shortcut appid. The compat tool must go back through Steam's own
-    # SpecifyCompatTool API, so it is returned to the frontend rather than written here.
+    # Target is the user's pick, not the exporter's appid (a non-Steam copy has its own). The compat
+    # tool must go through Steam's SpecifyCompatTool, so it is returned to the frontend.
     target_appid = str(target_appid)
     if not target_appid.isdigit():
         raise ValueError("invalid target game")

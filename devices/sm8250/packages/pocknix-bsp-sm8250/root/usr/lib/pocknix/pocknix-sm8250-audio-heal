@@ -14,10 +14,8 @@ card_up() { grep -q RetroidPocket /proc/asound/cards 2>/dev/null; }
 bound()   { [ -e "/sys/bus/platform/devices/$1/driver" ]; }
 reload()  { modprobe -r "$1" 2>/dev/null; modprobe "$1" 2>/dev/null; }
 
-# Plant the hardware mixer gains once the card exists: nothing on Arch runs the
-# UCM BootSequence and the speaker has no UCM volume element, so this is their
-# one setter. -D hw:0 bypasses the UCM ctl remap layer (name lookups fail on the
-# default device once the remap is up).
+# The one setter of the hardware mixer gains: nothing on Arch runs UCM BootSequence and the speaker
+# has no UCM volume element. -D hw:0 bypasses the UCM ctl remap (name lookups fail through it).
 apply_gains() {
   set_c() { amixer -D hw:0 cset "name=\"$1\"" "$2" >/dev/null 2>&1 || echo "audio-heal: cset '$1' failed" >&2; }
   # speakers: digital 0 dB (gain after the speaker limiter clips in the codec),

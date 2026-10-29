@@ -1,8 +1,7 @@
 [Unit]
 Description=pocknix game mode session
-# graphical-session.target refuses a manual start: binding to it is how a session brings it up,
-# and pocknix-session's stop of it at every switch then stops this. Members join via .wants/
-# and PartOf=this target.
+# graphical-session.target refuses a manual start, so bind to it; pocknix-session stops it at every
+# switch, which stops this too. Members join via .wants/ and PartOf=this target.
 BindsTo=graphical-session.target
 Before=graphical-session.target
 Wants=graphical-session-pre.target

@@ -15,9 +15,8 @@ CONTAINER_VK_LIST = Path("/usr/share/fex-emu/vk-x86-container.list")
 
 
 def mesa_versions():
-    # One entry per series ("25.2"); pocknix-game-launch resolves the point release per Proton
-    # flavor. x86 SLR captures graphics from the FEX rootfs, so an x86 payload not embedded in
-    # the image would be a pin it refuses at launch.
+    # One entry per series ("25.2"); pocknix-game-launch picks the point release per Proton flavor.
+    # An x86 payload not embedded in the FEX rootfs is a pin SLR refuses at launch.
     try:
         embedded = set(CONTAINER_VK_LIST.read_text().split())
     except OSError:

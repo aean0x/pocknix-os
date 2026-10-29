@@ -60,8 +60,7 @@ def _validate_overlay(keys):
 
 
 def load_factory(text, dropins=()):
-    """Parse the factory file plus the family BSP's drop-ins ((name, text) pairs). Any defect
-    raises FactoryError: it is a build-time bug."""
+    """Factory file + the BSP's (name, text) drop-ins; any defect raises FactoryError."""
     # Drop-ins carry only the SoC's hardware data, so a family BSP can never redefine a profile.
     for name, dtext in dropins:
         d = _parser()

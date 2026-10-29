@@ -1,13 +1,8 @@
-# proton-cachyos — CachyOS's official ARM64 Proton, shipped as a SYSTEM compat tool. This is the
-# reference for the other pocknix Proton packages (proton-ge, the *-dxvk2 variants).
-#
-# The tool dir and the compatibilitytool.vdf internal name must both stay CONSTANT across bumps:
-# Steam records that internal name in per-game config.vdf selections, so keeping it lets a
-# pacman -Syu swap the files underneath while every game already set to it keeps working. For the
-# same reason the dropdown label carries the MAJOR version only, never the release date.
-#
-# pocknix-proton-prep (pocknix-steam) does the user-dir registration, since the tool dir is
-# root-owned and cannot symlink itself into ~/.local/share/Steam/compatibilitytools.d.
+# CachyOS's ARM64 Proton as a SYSTEM compat tool; the reference for the other Proton packages.
+# Keep the tool dir and the compatibilitytool.vdf internal name CONSTANT across bumps: Steam stores
+# that name per game, so a -Syu swaps the files under every game set to it. Same reason the label
+# carries the MAJOR version only. pocknix-proton-prep (pocknix-steam) registers the user dir: the
+# root-owned tool dir cannot symlink itself into ~/.local/share/Steam/compatibilitytools.d.
 pkgname=proton-cachyos
 _srctag=11.0-20261005
 _build=slr

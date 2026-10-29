@@ -313,12 +313,19 @@ works against the locked base.
 - **Milestone granularity.** Squash the "try X", "revert X", "fix typo" churn before you
   submit. A commit should be a complete, verified change.
 - **Rebase on `main`** rather than merging it in, and re-test after the rebase.
-- **Code comments: 2 to 4 lines, and only the WHY.** Status, plan, and validation narrative do
-  not belong in comments or commit bodies. A comment is self-contained: it may point at a file
+- **Code comments: one line, and only the WHY.** Two lines only when a trap needs its cause;
+  longer only in a file's leading header. Before writing one, ask what a competent reader would
+  get wrong without it; if nothing, leave it out. Cut what the file's location or a key's name
+  already says, walk-throughs of a mechanism the reader can look up (state the trap instead), and
+  anything a ledger holds (the `PATCHES.md` row, the commit message). Status, plan, and
+  validation narrative do not belong in comments or commit bodies. A comment is self-contained: it may point at a file
   in this repo, never at anything outside it. `make check` enforces the mechanical part
   (`scripts/check-comments.py`): a repo path a comment names must exist, and a comment carries
   no lineage or validation wording, no version, pkgrel, commit hash or date, and no pointer to
-  documents outside the repo. An exception
+  documents outside the repo. It also fails a block of more than 2 adjacent comment lines
+  (`long comment`; a line over 100 characters counts as 2, a `# --- section ---` rule counts as
+  none). A file's leading header, starting on line 1 or after a shebang or `<?xml` line, is
+  exempt from that limit. An exception
   whose number or path IS the mechanism goes in `scripts/check-comments.allow`
   (`<glob> :: <regex>` or `<glob> :: <kind> :: <regex>`, one per line).
 - **CI must be green.** The `lint` job runs `bash -n` over every script and `PKGBUILD`,

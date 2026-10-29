@@ -7,9 +7,8 @@ _prune_superseded() {
         /var/lib/pocknix/extra-packages.snapshot
 }
 
-# Retrofits the [pocknix-shared] stanza. The URL derives from the installed [pocknix] one
-# (LAN-test devices point at their own host); pacman reads its config at transaction start,
-# so it goes live next transaction. The systemd guard keeps image chroots out.
+# Retrofits the [pocknix-shared] stanza, URL derived from the [pocknix] one (LAN-test devices point
+# at their own host). Live from the next transaction; the systemd guard skips image chroots.
 _add_shared_repo() {
   [ -d /run/systemd/system ] || return 0
   local conf=/etc/pacman.conf

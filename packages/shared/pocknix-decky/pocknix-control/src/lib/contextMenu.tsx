@@ -1,10 +1,8 @@
 import { MenuItem, afterPatch, fakeRenderComponent, findModuleChild, showModal } from "@decky/ui";
 import { GameSettingsModal } from "../components/GameSettingsModal";
 
-// LibraryContextMenu is not a module export, so it is reached by classname marker ->
-// `navigator:` wrapper -> fake-render, whose element type is the real class.
-// Steam UI internals are unversioned: every step is guarded so a shape change costs the
-// menu item, never the plugin.
+// LibraryContextMenu is not exported: reach it via classname marker -> `navigator:` wrapper ->
+// fake-render. Steam internals are unversioned: each step is guarded, so a change costs the item.
 export function patchLibraryContextMenu(): () => void {
   try {
     const menuModule = findModuleChild((mod: any) => {
