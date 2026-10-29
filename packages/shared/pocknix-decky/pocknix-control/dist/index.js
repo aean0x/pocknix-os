@@ -576,9 +576,8 @@ function registerDownloadWrapper(isGame) {
 // Drives the same state as Steam's own per-game compatibility dropdown (SpecifyCompatTool +
 // app details), so never store a shadow copy: the two UIs stay in sync by construction.
 
-// Steam's tool list is only reachable through its react-query hook, which throws
-// without Steam's QueryClient in context; a throwaway root under Steam's provider
-// works from any tree (QAM panel, modals, import flow).
+// Steam's tool list is only reachable via its react-query hook, which throws outside Steam's
+// QueryClient; a throwaway root under Steam's provider works from any tree.
 const steam = {
     hook: null,
     provider: null,
@@ -1324,10 +1323,8 @@ function GameSettingsModal({ appid, name, closeModal }) {
                 } }), enabled ? (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(PerfFields, { values: values, patch: patch }), SP_JSX.jsx(TweakFields, { config: config, appid: appid, values: values, patch: patch }), SP_JSX.jsx(ConfigSection, { game: { appid, name }, reload: () => getConfig().then(setConfig).catch(() => { }) })] })) : null] }));
 }
 
-// LibraryContextMenu is not a module export, so it is reached by classname marker ->
-// `navigator:` wrapper -> fake-render, whose element type is the real class.
-// Steam UI internals are unversioned: every step is guarded so a shape change costs the
-// menu item, never the plugin.
+// LibraryContextMenu is not exported: reach it via classname marker -> `navigator:` wrapper ->
+// fake-render. Steam internals are unversioned: each step is guarded, so a change costs the item.
 function patchLibraryContextMenu() {
     try {
         const menuModule = DFL.findModuleChild((mod) => {
@@ -1381,9 +1378,8 @@ function patchLibraryContextMenu() {
     }
 }
 
-// Reports game start/stop to the backend, which owns the touchscreen tweak (touch.py). Covers
-// every Steam launch, Proton or not, since the appid comes from Steam itself. Shortcut appids
-// are unsigned above 2^31, hence the >>> 0 (see nonSteamShortcuts).
+// Reports every Steam game start/stop to the backend, which owns the touchscreen tweak (touch.py).
+// Shortcut appids are unsigned above 2^31, hence the >>> 0.
 function registerTouchLifetime() {
     const report = (appid, running) => gameLifetime(appid, running).catch(() => { });
     // A plugin reload mid-game misses the start notification.
