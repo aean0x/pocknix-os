@@ -313,8 +313,12 @@ works against the locked base.
 - **Milestone granularity.** Squash the "try X", "revert X", "fix typo" churn before you
   submit. A commit should be a complete, verified change.
 - **Rebase on `main`** rather than merging it in, and re-test after the rebase.
-- **Code comments: 2 to 4 lines, and only the WHY.** Status, plan, and validation narrative do
-  not belong in comments or commit bodies. A comment is self-contained: it may point at a file
+- **Code comments: one line, and only the WHY.** Two lines only when a trap needs its cause;
+  longer only in a file's leading header. Before writing one, ask what a competent reader would
+  get wrong without it; if nothing, leave it out. Cut what the file's location or a key's name
+  already says, walk-throughs of a mechanism the reader can look up (state the trap instead), and
+  anything a ledger holds (the `PATCHES.md` row, the commit message). Status, plan, and
+  validation narrative do not belong in comments or commit bodies. A comment is self-contained: it may point at a file
   in this repo, never at anything outside it. `make check` enforces the mechanical part
   (`scripts/check-comments.py`): a repo path a comment names must exist, and a comment carries
   no lineage or validation wording, no version, pkgrel, commit hash or date, and no pointer to
