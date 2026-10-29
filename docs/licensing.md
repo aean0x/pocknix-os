@@ -49,7 +49,7 @@ not and cannot relicense them. The main ones:
 PKGBUILDs in `packages/` fetch pinned upstream sources; the resulting binary packages and
 OS images contain those projects under their own licenses. Provenance for vendored
 binaries is recorded next to them (for example
-`packages/soc/pocknix-bootloader-sm8250/README.provenance`) and in [PATCHES.md](../PATCHES.md).
+`packages/soc/pocknix-bootloader-sm8250/README.provenance`), indexed in [PATCHES.md](../PATCHES.md).
 
 ROCKNIX additionally licenses its distribution branding and artwork under CC BY-NC-SA.
 pocknix-os does not ship ROCKNIX branding; only their GPL-licensed software, scripts, and
@@ -59,5 +59,5 @@ patches are used.
 
 Published pocknix-os images and the pacman repo contain GPL-licensed binaries. The
 corresponding source is this repository plus the pinned upstream sources referenced by
-each PKGBUILD (exact tags and hashes are in the PKGBUILDs and PATCHES.md), which
+each PKGBUILD (exact tags and hashes are in the PKGBUILDs and each component's PATCHES.md), which
 satisfies the GPL source-offer requirement as long as this repo stays public.
