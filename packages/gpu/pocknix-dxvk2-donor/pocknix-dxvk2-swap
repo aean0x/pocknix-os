@@ -97,8 +97,7 @@ def probe_facts(path):
     return _probes[path][1]
 
 
-# DXVK names storageBuffer8BitAccess only once it requires it, and that floor landed before the
-# 3.0 tag, so the marker decides, not the version string; a pre-floor Valve 2.7 stays as shipped.
+# The storageBuffer8BitAccess marker decides, not the version string (a pre-floor Valve 2.7 stays).
 # A probe equal to the donor's is our swap, so any other dll off by size is a partial restore.
 def needs_swap(dxvk, dlls):
     probe = os.path.join(dxvk, PROBE)
@@ -134,9 +133,8 @@ def swap(dxvk):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-# The boot hook and the service's first pass start within a second of each other and share the
-# tmp dir; the lock also makes the hook wait out a swap in flight, so Steam never starts mid-swap.
-# Without a runtime dir there is no session, so nothing to serialise against.
+# The boot hook and the service's first pass start together and share the tmp dir; the lock also
+# makes the hook wait out a swap, so Steam never starts mid-swap. No runtime dir = no session.
 def take_lock():
     if not os.path.isdir(os.path.dirname(LOCK)):
         return contextlib.nullcontext()
