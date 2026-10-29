@@ -322,7 +322,10 @@ works against the locked base.
   in this repo, never at anything outside it. `make check` enforces the mechanical part
   (`scripts/check-comments.py`): a repo path a comment names must exist, and a comment carries
   no lineage or validation wording, no version, pkgrel, commit hash or date, and no pointer to
-  documents outside the repo. An exception
+  documents outside the repo. It also fails a block of more than 2 adjacent comment lines
+  (`long comment`; a line over 100 characters counts as 2, a `# --- section ---` rule counts as
+  none). A file's leading header, starting on line 1 or after a shebang or `<?xml` line, is
+  exempt from that limit. An exception
   whose number or path IS the mechanism goes in `scripts/check-comments.allow`
   (`<glob> :: <regex>` or `<glob> :: <kind> :: <regex>`, one per line).
 - **CI must be green.** The `lint` job runs `bash -n` over every script and `PKGBUILD`,
