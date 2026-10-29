@@ -10,8 +10,7 @@ Stock 7.2.10 + ROCKNIX `next` 6103571f67 (2026-10-11)
 Pins are in `kernel/sm8250/kernel.conf`. Stack: `patches/10-mainline`, `20-version`, `30-sm8250`
 (ROCKNIX's set: retroid-gamepad MCU, CH13726A + Visionox panels, pm8150b charger + PR swap + DP
 audio, wsa881x, jack-detect, SDE rotator + QSEED set from ROCKNIX PR #3377, 9998-gpu-tuning OC
-ladder + ACD + bw votes; plus our 1000+ numbers), then `kernel/common` less 1037
-(`kernel/sm8250/common-skip`).
+ladder + ACD + bw votes; plus our 1000+ numbers), then `kernel/common`.
 
 ROCKNIX 1000+ (synced, not ours): none.
 

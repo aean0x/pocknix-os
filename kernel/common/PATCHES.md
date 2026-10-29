@@ -7,9 +7,9 @@ What this dir carries and why, one entry per patch. How each patch works is in i
 Each SoC's kernel, after the SoC's own stack
 
 Applied in number order on the stock kernel that `kernel/<soc>/kernel.conf` pins. A SoC leaves
-a patch out by naming it in `kernel/<soc>/common-skip`.
+a patch out by naming it in its optional `common-skip` file.
 
-Last rebased: 2026-10-28 (iris low-latency decode).
+Last rebased: 2026-10-29 (iris gen1 HEVC Remote Play).
 
 ## Carried
 
@@ -92,9 +92,9 @@ Last rebased: 2026-10-28 (iris low-latency decode).
   Source: armada PR #752 (virtudude), verbatim.
 - **1037** Game streams decode with low latency by default: decoder sessions up to the macroblock
   count of 4096x2160 run in stage 1 at the top video clock; `qcom_iris.low_latency=0` restores the
-  computed clock and stage 2. Applies: not sm8250, which common-skips it (gen1 in stage 1 above
-  720p froze a 1728x1080 60 fps Remote Play stream on the RP5); drop the skip once that stall is
-  explained or gated. Source: armada PR #752 (virtudude), verbatim.
+  computed clock and stage 2. Applies: gen1 and gen2 (the RP5 Remote Play freeze once blamed on it
+  was Steam's frame-0 restart loop, which 1089 removes). Source: armada PR #752 (virtudude),
+  verbatim.
 - **1038** Steam's arm64 Remote Play client no longer restarts the decoder every frame: a
   resolution change's empty LAST buffer is no longer also flagged ERROR. Applies: gen2 only.
   Source: kettlelinux 1370 by gennro, via armada PR #752.
@@ -104,6 +104,11 @@ Last rebased: 2026-10-28 (iris low-latency decode).
   gen2 unchanged. Source: ours.
 - **1088** Remote Play on gen1 no longer stays green: capture setup waits for the first source
   change and finishes from a work item. Applies: gen1 (sm8250); gen2 unchanged. Source: ours.
+- **1089** HEVC Remote Play no longer falls back to H.264 on gen1, and H.264 streams no longer
+  start frozen: a decoded frame stamped 0 comes back stamped 1 us, since Steam's arm64 client reads
+  timestamp 0 as a failed decode and restarts without a keyframe, which gen1 cannot resume from.
+  Applies: gen1 (sm8250); gen2 unchanged. Source: ours. Drop: once Steam stops treating 0 as a
+  failure.
 
 ### GPU and display
 
