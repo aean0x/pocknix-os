@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# Build-time gate for code comments: a comment must stay true about the code next to it, so this
-# fails on the four ways they rot. (1) a repo path that no longer exists, (2) lineage or
-# validation-status wording, which belongs in PATCHES.md, (3) a version, pkgrel, commit hash or
-# date a ledger owns, (4) a pointer into the maintainer's notes: a comment is self-contained,
-# repo files are the only thing it may point at. Exceptions go in check-comments.allow as
-# "<path glob> :: <regex>" or "<path glob> :: <kind> :: <regex>", one per line.
+# Build-time gate for code comments: a comment must stay true about the code next to it and short,
+# so this fails on (1) a repo path that no longer exists, (2) lineage or validation-status wording,
+# which belongs in PATCHES.md, (3) a version, pkgrel, commit hash or date a ledger owns, (4) a
+# pointer into the maintainer's notes: repo files are the only thing a comment may point at, and
+# (5) a block over 2 lines outside the file's leading header. Exceptions go in check-comments.allow
+# as "<path glob> :: <regex>" or "<path glob> :: <kind> :: <regex>", one per line.
 import fnmatch
 import os
 import re
@@ -15,7 +15,11 @@ import tempfile
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 ALLOW_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "check-comments.allow")
-KINDS = ("dead path", "notes pointer", "provenance/status", "version")
+KINDS = ("dead path", "notes pointer", "provenance/status", "version", "long comment")
+LONG_CAP = 2   # lines per block; a line wider than WIDE counts as two
+WIDE = 100
+# Section rules ("# --- lockfile ---") are structure, not prose: they do not count toward the cap.
+DIVIDER = re.compile(r"^(#+|//)\s*[-=]{3,}")
 
 # Tracked text we author. Upstream or generated text is out: patch bodies, synced DTS/configs,
 # vendored binaries, built JS, build output, docs (check.sh's doc checks own those).
@@ -63,8 +67,7 @@ VERSION_RE = re.compile(
 
 
 def all_tracked(root):
-    """git's view when available; a plain walk (build/ excluded via EXCLUDE) when git is missing
-    or refuses the checkout, as under sudo in the VM."""
+    """git's view, or a plain walk when git is missing or refuses the checkout (sudo in the VM)."""
     if os.path.exists(os.path.join(root, ".git")):
         try:
             out = subprocess.run(["git", "-C", root, "ls-files", "-z"], check=True,
@@ -85,9 +88,8 @@ def tracked_files(root):
 
 
 def comment_lines(path, text):
-    """Yield (lineno, text) for full-line comments and python docstrings; code lines with trailing
-    comments are skipped (their comment is about the value beside it). Makefile `##` lines are
-    make-help, not comments."""
+    """Full-line comments and python docstrings as (lineno, text); Makefile `##` is make-help."""
+    # Trailing comments are skipped: they are about the value beside them.
     base = os.path.basename(path)
     first = text.split("\n", 1)[0]
     python = PYTHON.search(path) or (first.startswith("#!") and "python" in first)
@@ -101,10 +103,15 @@ def comment_lines(path, text):
         if "." not in base and not first.startswith("#") and base not in ("PKGBUILD", "Makefile"):
             return
         starts, block = ("#",), None
-    inside = False
+    inside = in_str = False
     for n, line in enumerate(text.splitlines(), 1):
         s = line.strip()
         if n == 1 and s.startswith("#!"):
+            continue
+        # A string opened mid-line (x = """) is code: without this its closing quote reads as
+        # the start of a docstring and the rest of the file as comment.
+        if in_str:
+            in_str = s.count('"""') % 2 == 0
             continue
         if block and inside:
             yield n, s
@@ -117,6 +124,8 @@ def comment_lines(path, text):
             if block and s.startswith(block[0]) and block[1] not in s[len(block[0]):]:
                 inside = True
             yield n, s
+        elif python and s.count('"""') % 2:
+            in_str = True
 
 
 def path_exists(root, token):
@@ -171,6 +180,26 @@ def allowed(rules, path, kind, text):
                for g, k, r in rules)
 
 
+def long_blocks(text, lines):
+    """(first lineno, its text, "N lines") per block of adjacent comment lines over LONG_CAP."""
+    raw = text.splitlines()
+    # The leading header may run long: it starts on line 1, or after a shebang / XML prolog.
+    header_at = 2 if raw and raw[0].startswith(("#!", "<?xml")) else 1
+    blocks = []
+    for n, s in lines:
+        if blocks and n == blocks[-1][-1][0] + 1:
+            blocks[-1].append((n, s))
+        else:
+            blocks.append([(n, s)])
+    for i, b in enumerate(blocks):
+        if i == 0 and b[0][0] <= header_at:
+            continue
+        weight = sum(0 if DIVIDER.match(s) else 2 if len(raw[n - 1].rstrip()) > WIDE else 1
+                     for n, s in b)
+        if weight > LONG_CAP:
+            yield b[0][0], b[0][1], "%d lines" % weight
+
+
 def scan(root, allow_rules):
     hits = []
     for rel in tracked_files(root):
@@ -179,7 +208,10 @@ def scan(root, allow_rules):
             text = open(full, encoding="utf-8").read()
         except (UnicodeDecodeError, OSError):
             continue
-        for n, s in comment_lines(rel, text):
+        lines = list(comment_lines(rel, text))
+        hits.extend((rel, n, "long comment", what) for n, s, what in long_blocks(text, lines)
+                    if not allowed(allow_rules, rel, "long comment", s))
+        for n, s in lines:
             found = []
             for m in PATH_RE.finditer(s):
                 if not path_exists(root, m.group(0)):
@@ -199,35 +231,43 @@ def scan(root, allow_rules):
 
 
 def selftest(allow_rules):
-    """Plant one comment of each kind in a scratch copy of the tree; each must fail, and the real
-    tree must pass."""
+    """Plant comments of each kind in a scratch copy of the tree: each must fail, nothing else."""
     tmp = tempfile.mkdtemp(prefix="check-comments-")
     try:
         for rel in all_tracked(ROOT):  # every file: the dead-path rule must see the whole tree
             dst = os.path.join(tmp, rel)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             shutil.copy2(os.path.join(ROOT, rel), dst)
-        target = os.path.join(tmp, "scripts/lib.sh")
         planted = [
             "# see scripts/does-not-exist.sh for the helper",
             "# the full story is in pocknix-notes dev/kernel.md",
             "# ported from ROCKNIX's SM8550 quirk 096-cpuidle",
             "# pinned at mesa 26.2.3 until the base moves",
         ]
-        with open(target, "a", encoding="utf-8") as f:
+        with open(os.path.join(tmp, "scripts/lib.sh"), "a", encoding="utf-8") as f:
             f.write("\n" + "\n".join(planted) + "\n")
+        # New files (an existing one may be allowed). Long hits expected: the 3-line block (7) and
+        # the wide pair (15), never the header, the ruled pair or the python string.
+        long_sh = ["#!/bin/sh", "# header", "# runs", "# long", "# fine", "true",
+                   "# a body comment", "# that runs to", "# three lines", "true",
+                   "# --- section ---", "# two lines under a rule", "# pass", "true",
+                   "# " + "wide " * 20, "# second line", "true"]
+        tpl_py = ["X = \"\"\"", "# inside a string", "\"\"\"", "", "", "def f():", "    pass"]
+        for rel, body in (("scripts/selftest-long.sh", long_sh),
+                          ("scripts/selftest_tpl.py", tpl_py)):
+            with open(os.path.join(tmp, rel), "w", encoding="utf-8") as f:
+                f.write("\n".join(body) + "\n")
         hits = scan(tmp, allow_rules)
-        kinds = sorted({h[2] for h in hits if h[0] == "scripts/lib.sh" and h[3] in
-                        ("scripts/does-not-exist.sh", "pocknix-notes", "ported from", "26.2.3",
-                         "mesa 26.2")})
         for h in hits:
             print("  planted -> %s:%d: %s: %s" % h)
-        if kinds != list(KINDS):
-            print("selftest FAILED: caught %s, wanted %s" % (kinds, list(KINDS)))
-            return 1
-        stray = [h for h in hits if h[0] != "scripts/lib.sh"]
-        if stray:
-            print("selftest FAILED: unplanted hits in the copy: %s" % stray)
+        caught = ("scripts/does-not-exist.sh", "pocknix-notes", "ported from", "26.2.3", "mesa 26.2")
+        kinds = {h[2] for h in hits if h[0] == "scripts/lib.sh" and h[3] in caught}
+        kinds |= {h[2] for h in hits if h[0] == "scripts/selftest-long.sh"}
+        longs = sorted(h[1] for h in hits if h[0] == "scripts/selftest-long.sh")
+        stray = [h for h in hits if h[0] not in ("scripts/lib.sh", "scripts/selftest-long.sh")]
+        if kinds != set(KINDS) or longs != [7, 15] or stray:
+            print("selftest FAILED: caught %s at long lines %s, wanted %s at [7, 15]; stray %s"
+                  % (sorted(kinds), longs, list(KINDS), stray))
             return 1
         print("selftest: each planted comment caught, nothing else flagged")
         return 0

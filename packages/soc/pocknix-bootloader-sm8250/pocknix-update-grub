@@ -18,10 +18,8 @@ if [ -f "$BL/EFI/BOOT/bootaa64.efi" ]; then
   cp -f "$BL/EFI/BOOT/bootaa64.efi" "$FLASH/EFI/BOOT/bootaa64.efi"
 fi
 if [ -f "$BL/boot/grub/grub.cfg" ]; then
-  # Resolve the PARTUUID BEFORE touching /flash: the packaged cfg carries the fixed SD GUID, so
-  # copying it without re-pinning points a non-SD install at a root that does not exist, and that
-  # looks fine until the next reboot. sed strips btrfs's "[/subvol]", which blkid cannot open;
-  # `|| true` keeps set -e from killing the script before the guard below reacts.
+  # Re-pin the PARTUUID BEFORE touching /flash: the packaged SD GUID is a dead root on a non-SD
+  # install from the next reboot. sed drops btrfs's "[/subvol]"; || true lets the guard react.
   ROOT_SRC="$(findmnt -no SOURCE / 2>/dev/null | sed 's/\[.*//' || true)"
   ROOT_PU="$(blkid -s PARTUUID -o value "$ROOT_SRC" 2>/dev/null || true)"
   if [ -n "$ROOT_PU" ]; then

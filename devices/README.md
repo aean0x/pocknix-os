@@ -80,7 +80,8 @@ devices/<soc>/
                                   #   (usr/share/steamos-manager/devices/pocknix-family.toml:
                                   #   the boards, then a qcom,<soc> catch-all), pocknix-perfd's
                                   #   underclock tables (usr/share/pocknix/power-profiles.d/
-                                  #   family.conf, checked against freqs.txt).
+                                  #   family.conf, checked against freqs.txt), speaker DSP
+                                  #   profiles (usr/share/pocknix/speaker-dsp/<name>.conf).
                                   #   No kernel-cmdline: the build renders it from the profile.
                                   #   MUST: depends=(pocknix-bsp-common)
                                   #   provides/conflicts=(pocknix-bsp)   <- wrong-device guard
@@ -162,6 +163,8 @@ leaves it unset); otherwise it says what a board without the key gets. Keys:
 | `POCKNIX_PANEL2_OUTPUT`, `POCKNIX_PANEL2_W` / `POCKNIX_PANEL2_H`, `POCKNIX_DESKTOP2_SCALE` | pocknix-desktop, pocknix-desktop-rotate, pocknix-desktop-touchpin | single screen (second scale: the main one's) | second panel (dual-screen boards): enabled, rotated like the main one, scaled, placed below it |
 | `POCKNIX_TOUCH_NAME` / `POCKNIX_TOUCH2_NAME` | pocknix-desktop, pocknix-desktop-touchpin, pocknix-second-screen, pocknix-steam (second) | no touch mapping, no second-screen handling | evdev names of the main/second touchscreen: kwin maps each to its output (kcminputrc before launch, re-pinned over D-Bus at login); the second is libinput-ignored outside the desktop session (udev rule in the board BSP + pocknix-second-screen) |
 | `POCKNIX_BIG_CORES` | via cores.sh: pocknix-steam-env (-> pocknix-game-launch), pocknix-rt-ladder, emulator launchers | required | cores games and emulators are pinned to; the cores left out are the small cores irq work goes to (on a SoC with no little cluster, leave two mids out) |
+| `POCKNIX_SPEAKER_SINK` | pocknix-speaker-dsp-render | no speaker DSP | `node.name` of the UCM speaker sink the speaker DSP sits in front of; the same on every board of a family, so it lives in family.conf |
+| `POCKNIX_SPEAKER_PROFILE` | pocknix-speaker-dsp-render | no speaker DSP | the board's speaker profile: `usr/share/pocknix/speaker-dsp/<name>.conf` in the family BSP (see "Speaker DSP profiles") |
 | `POCKNIX_BOOT_STYLE` | pocknix-install-internal, pocknix-boot-deploy (the kernel hook, pocknix-rollback, pocknix-cmdline-sync) | required | qcom-abl or arm-efi (rendered from the profile's `BOOTLOADER`): selects the /flash kernel deploy (`pocknix-build-bootimg` or `pocknix-update-boot`) and the internal-install boot-file handling (arm-efi pins grub.cfg + fstab to internal PARTUUIDs) |
 | `POCKNIX_INTERNAL_DISK` | pocknix-install/uninstall-internal, installer-gui, pocknix-tools, pocknix-rollback, pocknix-internal-boot-rename | required | internal disk |
 | `POCKNIX_BOOT_GPT_NAME` / `POCKNIX_BOOT_FAT_LABEL`, `POCKNIX_ROOT_LABEL` | pocknix-install/uninstall-internal, pocknix-tools (root label), pocknix-rollback, pocknix-internal-boot-rename (root label) | required | internal-install boot contract (the two labels are rendered from `SD_FAT_LABEL` / `ROOT_LABEL`, config/pocknix.conf defaults a profile may override) |
@@ -189,6 +192,33 @@ on an arm-efi board's internal storage.)
 fallback is the RP6 value, an optional key's is 0 or empty, and `scripts/fallbacks.allow` lists
 the exceptions with a reason.
 
+## Speaker DSP profiles
+
+`pocknix-bsp-common` runs the speaker DSP: `pocknix-speaker-dsp.service`, a user unit started
+with PipeWire, renders high-pass + EQ -> stereo widening -> post gain + lookahead limiter as a
+WirePlumber smart filter on `POCKNIX_SPEAKER_SINK`, so headphones, DisplayPort and Bluetooth
+bypass it. It is its own PipeWire client: `pocknix-speaker-dsp on|off` (as root) starts or
+stops it without restarting PipeWire. A board without `POCKNIX_SPEAKER_PROFILE` gets no DSP.
+
+A profile is `KEY=value` lines plus `PK`, `LSC` or `HSC` filter lines as REW and AutoEQ write them
+(drop an export's `Preamp:` line and unused `None` slots):
+
+```
+HIGHPASS=<Hz>      # the speakers' floor; absent = no high-pass
+WIDTH=<w>          # mid/side width; absent or 1 = no widening
+POST_GAIN=<dB>     # into the limiter; absent = 0
+LIMIT=<dBFS>       # limiter ceiling; absent = -0.1
+RELEASE=<s>        # limiter release; absent = 0.5
+Filter 1: ON PK Fc <Hz> Hz Gain <dB> dB Q <q>
+```
+
+`scripts/fit-graphiceq.py "<Hz dB; Hz dB; ...>"` turns a JamesDSP GraphicEQ string into filter
+lines. Rules: the codec's digital gain stays at 0 dB (gain after the limiter clips in the
+codec); a board with no measured or published curve gets no EQ and no post gain; an imported
+curve gets an entry in its BSP's README.provenance and a docs/licensing.md row. `make check`
+(`scripts/check-speaker-dsp.py`) fails a board naming a missing profile, a profile the renderer
+rejects or no board uses, and a key list above out of step with the renderer.
+
 ## Bring-up checklist for a new board
 
 1. Confirm the board's dtb is in `kernel/<soc>/dts` (re-`make sync` if ROCKNIX added it)
@@ -204,6 +234,8 @@ the exceptions with a reason.
    Dual-screen board: the `POCKNIX_PANEL2_*`/`POCKNIX_TOUCH*` keys plus a udev rule
    ignoring the second touchscreen unless `/run/pocknix/second-screen` exists (see
    the sm8550 BSP's Thor rule); gamescope blanks the second panel by itself.
+   Speakers: `POCKNIX_SPEAKER_SINK` in family.conf plus `POCKNIX_SPEAKER_PROFILE` and a
+   profile only with a measured or published curve; otherwise leave both unset.
 5. `make check` (board keys, models table, grub menuentries); bump pkgrels; `make build DEVICE=<soc>`.
    No shared file should need editing; if one does, the boundary has a hole: fix the
    boundary, not the device.

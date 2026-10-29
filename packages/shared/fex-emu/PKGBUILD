@@ -19,9 +19,8 @@ makedepends=('git' 'clang' 'lld' 'llvm' 'cmake' 'ninja' 'pkgconf'
              'qt6-base' 'qt6-declarative'
              'libepoxy' 'sdl2-compat'
              'alsa-lib' 'libdrm' 'libglvnd' 'libx11' 'libxrandr' 'openssl' 'wayland' 'zlib')
-# FEX falls back to its pinned External/ submodules only when find_package misses, and Arch's
-# rolling fmt v11 rejects FEX's join_view<std::byte*> format calls — hence the
-# CMAKE_DISABLE_FIND_PACKAGE_* forcing below, and no fmt/xxhash/Catch2 in makedepends.
+# FEX uses its pinned External/ submodules only when find_package misses, and Arch's rolling fmt
+# rejects FEX's join_view<std::byte*> calls: hence CMAKE_DISABLE_FIND_PACKAGE_* and no fmt makedep.
 options=('!lto')   # FEX manages its own LTO; let the upstream build decide.
 
 # pinned x86 dev sysroot (build-time only; for compiling the x86 guest thunks)
@@ -76,9 +75,8 @@ build() {
   cd "${srcdir}/fex"
   # FEX requires clang as the host compiler; makepkg defaults to gcc, so force it.
   export CC=clang CXX=clang++
-  # TUNE_CPU tunes only FEX's own engine (the JIT output is tuned to the real CPU at runtime),
-  # so the one shared build targets the weakest little core of any supported device (an A55,
-  # armv8.2). Never an armv9 core: the build runs its own host tools and would SIGILL.
+  # TUNE_CPU tunes only FEX's own engine (JIT output is tuned at runtime), so target the weakest
+  # little core of any device (A55, armv8.2): on an armv9 target the build's host tools SIGILL.
   cmake -G Ninja -S . -B build \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr \
@@ -96,9 +94,8 @@ build() {
     -DCMAKE_DISABLE_FIND_PACKAGE_fmt=ON \
     -DCMAKE_DISABLE_FIND_PACKAGE_xxhash=ON \
     -DCMAKE_DISABLE_FIND_PACKAGE_Catch2=ON
-  # FEXCore's OpcodeDispatcher TUs peak at ~2-3 GB RSS each, so an unbounded ninja OOMs the
-  # build VM — systemd-oomd reaps the cgroup and makepkg reports "subcommand failed" with no
-  # compiler error. -j2 fits ~7-8 GB; raise FEX_NINJA_JOBS on a bigger host.
+  # OpcodeDispatcher TUs peak at ~2-3 GB RSS each: an unbounded ninja gets oomd-reaped with no
+  # compiler error ("subcommand failed"). -j2 fits ~7-8 GB; raise FEX_NINJA_JOBS on bigger hosts.
   ninja -C build -j"${FEX_NINJA_JOBS:-2}"
 }
 
@@ -109,8 +106,7 @@ package() {
   install -dm0755 "${pkgdir}/usr/share/fex-emu/RootFS"
   install -dm0755 "${pkgdir}/usr/share/fex-emu/overlays"
 
-  # Config.json ships ThunksDB all-zero: a non-zero entry makes pressure-vessel's graphics
-  # capture copy guest thunk stubs into the SLR container, which FEX then refuses to bless
-  # ("NoExec instruction in entry block"). Re-enable per-app via FEX_APP_CONFIG, not here.
+  # ThunksDB ships all-zero: a non-zero entry makes pressure-vessel copy guest thunk stubs into the
+  # SLR container, which FEX refuses ("NoExec instruction"). Re-enable per-app via FEX_APP_CONFIG.
   install -Dm0644 "${srcdir}/Config.json" "${pkgdir}/usr/share/fex-emu/Config.json"
 }

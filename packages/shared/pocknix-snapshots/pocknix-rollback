@@ -63,14 +63,14 @@ if [ -n "${internal}" ]; then
   mkdir -p "${TOP}" "${INT_FLASH}"
   mount -o subvolid=5 "${int_root}" "${TOP}" || die "cannot mount internal root ${int_root}"
   SNAPS="${TOP}/@snapshots"
-  [ -d "${SNAPS}" ] || die "internal install has no snapshots (pre-btrfs install?)"
+  [ -d "${SNAPS}" ] || die "internal install has no snapshots subvolume"
   mount "${int_boot}" "${INT_FLASH}" || die "cannot mount internal boot ${int_boot}"
   FLASH="${INT_FLASH}"
   # kernel-diff reference: what the internal install would boot today.
   cur_default="$(btrfs subvolume get-default "${TOP}" | sed -n 's/.* path //p')"
   KERNEL_REF="${TOP}/${cur_default}/boot/Image"
 else
-  pocknix_snap_supported || die "root is not btrfs — snapshots unsupported on this install (reflash to migrate)"
+  pocknix_snap_supported || die "root is not btrfs — snapshots unsupported here"
   mountpoint -q "${FLASH}" || die "${FLASH} not mounted — cannot guarantee kernel/rootfs coherence"
   mkdir -p "${TOP}"
   mount -o subvolid=5 "$(snap_root_dev)" "${TOP}"
@@ -131,9 +131,8 @@ jq -n --arg from "${target}" --arg prev "$(btrfs subvolume get-default "${TOP}" 
   '{schema:1, from_snapshot:$from, previous_default:$prev, ts:$ts}' \
   > "${TOP}/${new}/var/lib/pocknix/rollback-info.json"
 
-# The kernel lives on the FAT boot partition, outside btrfs, so it cannot ride the
-# subvolume switch: stage *.new first, where a failure still aborts before the commit.
-# cmp, not the transaction flag: a rollback can span several kernel bumps.
+# The kernel is on the FAT boot partition, outside the subvolume switch: stage *.new first, where a
+# failure still aborts before the commit. cmp, not the flag: a rollback can span kernel bumps.
 staged=""
 if ! cmp -s "${KERNEL_REF}" "${TOP}/${new}/boot/Image"; then
   regen=/usr/lib/pocknix/pocknix-boot-deploy

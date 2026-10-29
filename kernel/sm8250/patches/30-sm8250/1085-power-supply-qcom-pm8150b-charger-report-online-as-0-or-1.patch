@@ -1,0 +1,18 @@
+From: shuuri-labs <61762328+shuuri-labs@users.noreply.github.com>
+Subject: [PATCH] power: supply: qcom_pm8150b_charger: report online as 0 or 1
+
+ONLINE returned the raw USBIN_PLUGIN_RT_STS bit, so a plugged-in charger
+read online=16. UPower rejects anything but 0/1 for its boolean, keeps the
+charger offline and reports the battery as discharging while it charges.
+---
+--- a/drivers/power/supply/qcom_pm8150b_charger.c
++++ b/drivers/power/supply/qcom_pm8150b_charger.c
+@@ -400,7 +400,7 @@
+ 		return rc;
+ 	}
+ 
+-	*val = (stat & USBIN_PLUGIN_RT_STS_BIT);
++	*val = !!(stat & USBIN_PLUGIN_RT_STS_BIT);
+ 	return 0;
+ }
+ 

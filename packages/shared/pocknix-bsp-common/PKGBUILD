@@ -3,14 +3,15 @@
 # live in devices/<name>/packages/pocknix-bsp-<name>, which depends on this package.
 pkgname=pocknix-bsp-common
 pkgver=0.1.0
-pkgrel=27
-pkgdesc="pocknix shared board support: sleep.d dispatcher, suspend hooks, power-key policy, session udev rules, wheel sudo, fan/scheduler daemons, ABL updater, second-screen touch policy, power profiles daemon, realtime priority ladder, deck session limits, kernel /flash deploy"
+pkgrel=29
+pkgdesc="pocknix shared board support: sleep.d dispatcher, suspend hooks, power-key policy, session udev rules, wheel sudo, fan/scheduler daemons, ABL updater, second-screen touch policy, power profiles daemon, realtime priority ladder, deck session limits, kernel /flash deploy, coredump storage cap, speaker DSP"
 arch=('any')
 url="https://github.com/shuuri-labs/pocknix-os"
 license=('GPL-2.0-or-later')
 # pocknix-core rides along so a plain -Syu delivers the mandatory layer to devices that
 # predate it: a new package name only reaches installed devices via a dep edge.
-depends=('sudo' 'pocknix-core' 'python' 'python-gobject' 'cpio')
+# swh-plugins: the LADSPA lookahead limiter at the end of the speaker DSP chain.
+depends=('sudo' 'pocknix-core' 'python' 'python-gobject' 'cpio' 'swh-plugins')
 # Older kernels own the /flash deploy files: the versioned conflict makes pacman upgrade the
 # kernel in the same transaction instead of failing on file conflicts.
 conflicts=('linux-pocknix-sm8550<7.2.10-3' 'linux-pocknix-sm8250<7.2.10-4')
@@ -20,7 +21,7 @@ backup=('etc/security/limits.d/60-pocknix-deck.conf')
 source=('pocknix-sleep' 'sdam-debug-pre' 'sdam-debug-post'
         'drain-log-pre' 'drain-log-post'
         'usb-role-sleep-pre' 'usb-role-sleep-post'
-        '20-pocknix-powerkey.conf'
+        '20-pocknix-powerkey.conf' '50-pocknix-coredump.conf'
         '90-pocknix-backlight.rules' '60-pocknix-controllers.rules'
         '10-pocknix-wheel'
         'pocknix-fancontrol' 'pocknix-fan-mode' 'pocknix-lavd-mode'
@@ -36,13 +37,14 @@ source=('pocknix-sleep' 'sdam-debug-pre' 'sdam-debug-post'
         'pocknix-rt-ladder' 'pocknix-rt-ladder.service' 'rtkit-limits.conf'
         '60-pocknix-deck.conf'
         'pocknix-cmdline-sync' '91-pocknix-cmdline.hook' 'cores.sh'
-        'pocknix-boot-deploy' 'pocknix-build-bootimg' 'pocknix-update-boot' '90-linux-pocknix.hook')
+        'pocknix-boot-deploy' 'pocknix-build-bootimg' 'pocknix-update-boot' '90-linux-pocknix.hook'
+        'pocknix-speaker-dsp' 'pocknix-speaker-dsp-render' 'pocknix-speaker-dsp.service')
 sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
             'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP'
-            'SKIP' 'SKIP')
+            'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
   install -Dm755 "${srcdir}/pocknix-sleep" \
@@ -64,6 +66,8 @@ package() {
 
   install -Dm644 "${srcdir}/20-pocknix-powerkey.conf" \
     "${pkgdir}/usr/lib/systemd/logind.conf.d/20-pocknix-powerkey.conf"
+  install -Dm644 "${srcdir}/50-pocknix-coredump.conf" \
+    "${pkgdir}/usr/lib/systemd/coredump.conf.d/50-pocknix-coredump.conf"
 
   install -Dm644 "${srcdir}/90-pocknix-backlight.rules" \
     "${pkgdir}/usr/lib/udev/rules.d/90-pocknix-backlight.rules"
@@ -137,4 +141,13 @@ package() {
   install -Dm755 "${srcdir}/pocknix-cmdline-sync" "${pkgdir}/usr/lib/pocknix/pocknix-cmdline-sync"
   install -Dm644 "${srcdir}/91-pocknix-cmdline.hook" \
     "${pkgdir}/usr/share/libalpm/hooks/91-pocknix-cmdline.hook"
+
+  # Speaker DSP: started with the user's PipeWire; boards opt in through device.conf.
+  install -Dm755 "${srcdir}/pocknix-speaker-dsp" "${pkgdir}/usr/bin/pocknix-speaker-dsp"
+  install -Dm755 "${srcdir}/pocknix-speaker-dsp-render" "${pkgdir}/usr/lib/pocknix/pocknix-speaker-dsp-render"
+  install -Dm644 "${srcdir}/pocknix-speaker-dsp.service" \
+    "${pkgdir}/usr/lib/systemd/user/pocknix-speaker-dsp.service"
+  install -d "${pkgdir}/usr/lib/systemd/user/pipewire.service.wants"
+  ln -sf "../pocknix-speaker-dsp.service" \
+    "${pkgdir}/usr/lib/systemd/user/pipewire.service.wants/pocknix-speaker-dsp.service"
 }

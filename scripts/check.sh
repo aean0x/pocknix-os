@@ -135,6 +135,10 @@ done
 if out="$(python3 "${POCKNIX_ROOT}/scripts/check-power-profiles.py" 2>&1)"; then note "power profiles" "ok"
 else note "power profiles" "BROKEN"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
 
+# --- speaker DSP profiles: every board's profile exists, parses and renders ---
+if out="$(python3 "${POCKNIX_ROOT}/scripts/check-speaker-dsp.py" 2>&1)"; then note "speaker DSP profiles" "ok"
+else note "speaker DSP profiles" "BROKEN"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
+
 # --- code comments: no dead repo paths, provenance or ledger facts ------------
 if out="$(python3 "${POCKNIX_ROOT}/scripts/check-comments.py" 2>&1)"; then note "code comments" "ok"
 else note "code comments" "STALE"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
@@ -376,7 +380,7 @@ check_family() {  # $1 = SoC
     esac
   fi
   [ -f "${dev}/profile.conf" ] || return
-  grep -q "^| kernel (${soc}" "${POCKNIX_ROOT}/PATCHES.md" || echo "no PATCHES.md kernel row"
+  [ -f "${POCKNIX_ROOT}/kernel/${soc}/PATCHES.md" ] || echo "missing kernel/${soc}/PATCHES.md"
   for p in DEVICE_BSP_PKG DEVICE_META_PKG; do
     [ -f "${dev}/packages/$(profile_get "${dev}" "${p}")/PKGBUILD" ] || echo "${p} has no package under devices/${soc}/packages/"
   done
@@ -514,7 +518,7 @@ check_soc_ids() {  # $1 = allow file
 # docs and packages/soc/<name>-<soc>/ are where chip names belong.
 _allow="${POCKNIX_ROOT}/scripts/soc-ids.allow"
 _bad="$(git -C "${POCKNIX_ROOT}" grep -n -I -i -E "${SOC_ID_RE}" -- . ':!devices/' ':!kernel/' \
-          ':!PATCHES.md' ':!CONTRIBUTING.md' ':!README.md' ':!docs/' ':(exclude,glob)**/*.allow' \
+          ':(exclude,glob)**/PATCHES.md' ':!CONTRIBUTING.md' ':!README.md' ':!docs/' ':(exclude,glob)**/*.allow' \
           ':(exclude,glob)packages/soc/*-sm[0-9][0-9][0-9][0-9]/**' | check_soc_ids "${_allow}" | paste -sd ';' -)"
 if [ -z "${_bad}" ]; then note "chip ids outside chip trees" "ok"
 else note "chip ids outside chip trees" "${_bad}"; fail=1; fi
@@ -528,6 +532,12 @@ else note "chip ids self-test" "a stray chip id in shared code went unflagged (o
 # Docs name only what the tree has; structural READMEs follow their dirs and keep no versions.
 if "${POCKNIX_ROOT}/scripts/check-docs.sh"; then note "docs match the tree" "ok"
 else note "docs match the tree" "see the lines above"; fail=1; fi
+
+# Each patch dir's PATCHES.md names exactly its patches; the self-test plants each kind of drift.
+if out="$(python3 "${POCKNIX_ROOT}/scripts/check-patches.py" 2>&1)"; then note "patch ledgers" "ok"
+else note "patch ledgers" "DRIFT"; printf '%s\n' "${out}" | sed 's/^/    /'; fail=1; fi
+if python3 "${POCKNIX_ROOT}/scripts/check-patches.py" --selftest >/dev/null 2>&1; then note "patch ledgers self-test" "ok"
+else note "patch ledgers self-test" "a planted drift went unflagged (or a clean ledger was flagged)"; fail=1; fi
 
 # --- kernel enablement present? (committed; refreshable via sync) -----------
 _npatch=$(find "${KERNEL_DIR}/patches" "${POCKNIX_ROOT}/kernel/common/patches" -name '*.patch' 2>/dev/null | wc -l | tr -d ' ')

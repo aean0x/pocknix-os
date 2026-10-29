@@ -1,0 +1,103 @@
+#!/usr/bin/python3
+# pocknix-steam-storage - lives as long as the pocknix-steam launcher. Every Steam UI start asks
+# for the storage service ~3 s before it is up and caches the "no" for good, hiding Format: refetch
+# until yes. Storage also lists only drives format-device.sh would format (a microSD, not the boot
+# disk): btrfs gives /home an anonymous st_dev, so Steam offers the system disk as a new drive.
+import os
+import sys
+import time
+
+sys.path.insert(0, "/usr/lib/pocknix")
+from pocknix_cdp import evaluate, target  # noqa: E402
+
+# Steam's react-query client is reachable only through its webpack registry, and the filter
+# re-applies on every State update since Steam replaces the data on each storage event.
+JS = r"""(() => {
+  const K = "SystemStorageService";
+  let qc = window.__pocknixQueryClient;
+  if (!qc) {
+    if (!window.webpackChunksteamui) return "wait";
+    let req;
+    window.webpackChunksteamui.push([[Symbol("pocknix")], {}, r => { req = r; }]);
+    scan: for (const id of Object.keys(req.m)) {
+      let ex; try { ex = req(id); } catch { continue; }
+      if (!ex || typeof ex !== "object") continue;
+      for (const k of Object.keys(ex)) {
+        let v; try { v = ex[k]; } catch { continue; }
+        if (v && typeof v.getQueryCache === "function" && typeof v.refetchQueries === "function") {
+          qc = v;
+          break scan;
+        }
+      }
+    }
+    if (!qc) return "wait";
+    window.__pocknixQueryClient = qc;
+    const strip = d => {
+      if (!Array.isArray(d?.drives) || !Array.isArray(d.block_devices)) return d;
+      const sd = new Set(), boot = new Set();
+      for (const b of d.block_devices) {
+        if (/^\/dev\/mmcblk\d+/.test(b.path)) sd.add(b.drive_id);
+        if (b.mount_paths?.some(m => m === "/" || m === "/flash")) boot.add(b.drive_id);
+      }
+      const keep = d.drives.filter(x => sd.has(x.id) && !boot.has(x.id));
+      return keep.length === d.drives.length ? d : {...d, drives: keep};
+    };
+    qc.getQueryCache().subscribe(ev => {
+      const key = ev.query.queryKey;
+      if (ev.type !== "updated" || key[0] !== K || key[1] !== "State") return;
+      const s = strip(ev.query.state.data);
+      if (s !== ev.query.state.data) qc.setQueryData(key, s);
+    });
+    const cur = qc.getQueryData([K, "State"]);
+    if (cur) qc.setQueryData([K, "State"], strip(cur));
+  }
+  const q = qc.getQueryCache().find({queryKey: [K, "IsServiceAvailable"]});
+  if (!q) return "wait";
+  if (q.state.data === true) return "ok";
+  qc.refetchQueries({queryKey: [K]});
+  return "wait";
+})()"""
+
+
+def log(msg: str) -> None:
+    print(f"[pocknix-steam-storage] {msg}", file=sys.stderr, flush=True)
+
+
+# No deadline: a slow first start (SD boot, client update) can bring the query up minutes late.
+def settle(url: str, parent: int) -> None:
+    start, last, warned = time.monotonic(), None, False
+    while os.getppid() == parent and target() == url:
+        try:
+            if evaluate(url, JS, timeout=10) == "ok":
+                return
+        except (OSError, RuntimeError, ValueError) as e:
+            last = e
+        if not warned and time.monotonic() - start > 60:
+            log(f"storage service still down after 60 s, still trying (last error: {last})")
+            warned = True
+        time.sleep(1)
+
+
+def main() -> int:
+    parent = os.getppid()
+    done = None
+    error = None
+    while os.getppid() == parent:
+        # A malformed /json/list answer mid-restart must not end the watcher for the session.
+        try:
+            url = target()
+            if url != done:
+                if url:
+                    settle(url, parent)
+                done = url
+            error = None
+        except Exception as e:
+            if repr(e) != error:
+                log(f"{type(e).__name__}: {e}")
+                error = repr(e)
+        time.sleep(2)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -3,15 +3,16 @@
 
 SNAP_DIR=/.snapshots
 SNAP_CONF=/etc/pocknix/snapshots.conf
+SNAP_SESSION_DIR=/run/pocknix/snapshot-session
 
 # defaults; ${SNAP_CONF} documents each one and overrides it
-POCKNIX_SNAPSHOT_KEEP=5
+POCKNIX_SNAPSHOT_KEEP=2
 POCKNIX_SNAPSHOT_MIN_FREE_MIB=1024
 POCKNIX_SNAPSHOT_WARN_FREE_MIB=5120
 [ -f "${SNAP_CONF}" ] && . "${SNAP_CONF}"
 
-# Both conditions are false in the image-build chroot and on pre-btrfs installs, which
-# is how every hook and CLI silently no-ops there instead of failing.
+# Both conditions are false in the image-build chroot, which is how every hook and CLI
+# silently no-ops there instead of failing.
 pocknix_snap_supported() {
   [ "$(findmnt -no FSTYPE / 2>/dev/null)" = btrfs ] || return 1
   mountpoint -q "${SNAP_DIR}" || return 1

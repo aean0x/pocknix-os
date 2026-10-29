@@ -55,10 +55,8 @@ def setvol(delta):
         pass
 
 def in_game_mode():
-    # Game mode == gamescope is the running compositor. In the Plasma session (kwin_wayland),
-    # plasma-pa owns the rocker, so we do nothing. Scan /proc/*/comm (no subprocess). PREFIX match:
-    # gamescope's compositor process comm is 'gamescope-wl' (NOT 'gamescope' — an exact match broke
-    # volume entirely), plus 'gamescopereaper'; both start with 'gamescope'.
+    # Game mode = gamescope compositing; under kwin plasma-pa owns the rocker. PREFIX match on
+    # /proc/*/comm: the compositor is 'gamescope-wl' (an exact 'gamescope' match broke volume).
     try:
         for pid in os.listdir("/proc"):
             if not pid.isdigit():

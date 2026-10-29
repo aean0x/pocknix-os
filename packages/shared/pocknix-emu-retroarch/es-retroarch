@@ -13,9 +13,8 @@ bfi="$(sed -n 's/^video_black_frame_insertion = "\([0-9]*\)"/\1/p' "${racfg}" 2>
 sub="$(sed -n 's/^video_shader_subframes = "\([0-9]*\)"/\1/p' "${racfg}" 2>/dev/null)"
 if [ "${bfi:-0}" -gt 0 ] 2>/dev/null || [ "${sub:-1}" -gt 1 ] 2>/dev/null; then si=1; fi
 
-# GL+vsync under gamescope paces at an irregular ~47fps; audio-paced GL without vsync holds 60.
-# glcore, not gl: gl loads only GLSL presets and ours are slang. flycast is named because our
-# build lacks Vulkan though its info file claims it, and it fails to load on a Vulkan context.
+# GL+vsync under gamescope paces at ~47fps; audio-paced GL without vsync holds 60. glcore: gl loads
+# only GLSL and our presets are slang. flycast: our build lacks Vulkan though its info claims it.
 driver=vulkan; vsync=true
 core=""; prev=""
 for a in "$@"; do [ "${prev}" = "-L" ] && core="${a}"; prev="${a}"; done

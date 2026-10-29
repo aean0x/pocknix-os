@@ -35,12 +35,13 @@ not and cannot relicense them. The main ones:
 | ROCKNIX patches, scripts, BSP material | `kernel/*/patches`, various packages | GPL-2.0 |
 | ROCKNIX-built GRUB binary | `packages/soc/pocknix-bootloader-sm8250` | GPL-3.0-or-later (GRUB) |
 | ROCKNIX ABL (fetched, pinned) | `packages/soc/pocknix-bootloader-*` | BSD-3-Clause (Qualcomm edk2 LinuxLoader) |
-| gamescope + patch set | `packages/soc/gamescope` | BSD-2-Clause (the patch set: GPL-2.0; origins in PATCHES.md) |
+| gamescope + patch set | `packages/soc/gamescope` | BSD-2-Clause (the patch set: GPL-2.0; origins in its PATCHES.md) |
 | Mesa | `packages/soc/mesa` | MIT |
 | Mesa for Android + Fossilize layer | `packages/shared/pocknix-mesa-android` | MIT (Mesa, Fossilize), Apache-2.0 WITH LLVM-exception (static libc++, NDK compiler-rt) |
 | MangoHud | `packages/shared/mangohud` | MIT |
 | FEX-Emu | `packages/shared/fex-emu` | MIT |
 | alsa-ucm-conf material | `devices/*` BSPs | BSD-3-Clause |
+| Speaker EQ curves | `devices/*` BSPs, `usr/share/pocknix/speaker-dsp/` | each curve author's terms, named in the profile header (RP5, Flip 2: kokoko3k's jdsp4rp5, GPL-2.0; RP6: Ryan Retro, used with his permission) |
 | Valve DXVK build (fetched, pinned) | `packages/gpu/pocknix-dxvk2-donor` | zlib |
 | Proton-GE, Proton-CachyOS | `packages/gpu/proton-*-dxvk2` | BSD-3-Clause (Proton) plus each bundled component's own |
 | Packaged emulators, tools, and libraries | `packages/*` | each project's own license |
@@ -48,7 +49,7 @@ not and cannot relicense them. The main ones:
 PKGBUILDs in `packages/` fetch pinned upstream sources; the resulting binary packages and
 OS images contain those projects under their own licenses. Provenance for vendored
 binaries is recorded next to them (for example
-`packages/soc/pocknix-bootloader-sm8250/README.provenance`) and in [PATCHES.md](../PATCHES.md).
+`packages/soc/pocknix-bootloader-sm8250/README.provenance`), indexed in [PATCHES.md](../PATCHES.md).
 
 ROCKNIX additionally licenses its distribution branding and artwork under CC BY-NC-SA.
 pocknix-os does not ship ROCKNIX branding; only their GPL-licensed software, scripts, and
@@ -58,5 +59,5 @@ patches are used.
 
 Published pocknix-os images and the pacman repo contain GPL-licensed binaries. The
 corresponding source is this repository plus the pinned upstream sources referenced by
-each PKGBUILD (exact tags and hashes are in the PKGBUILDs and PATCHES.md), which
+each PKGBUILD (exact tags and hashes are in the PKGBUILDs and each component's PATCHES.md), which
 satisfies the GPL source-offer requirement as long as this repo stays public.

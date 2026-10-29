@@ -1,7 +1,7 @@
 #!/bin/bash
-# pocknix-snapshots — inspect and prune the pre-update btrfs snapshots. Retention is
-# ${POCKNIX_SNAPSHOT_KEEP} snapshots plus one abandoned root subvol; prune runs from
-# the post-update hook and from pocknix-rollback.
+# pocknix-snapshots — inspect and prune the pre-update btrfs snapshots, and run a
+# multi-transaction update as one snapshot session. prune runs from the post-update hook
+# and from pocknix-rollback.
 set -euo pipefail
 
 . /usr/lib/pocknix/snapshot-lib.sh
@@ -13,7 +13,7 @@ snap_fmt_date() {  # stored ISO-8601 UTC -> local DD-MM-YYYY HH:MM
 }
 
 cmd_list() {
-  pocknix_snap_supported || die "snapshots unsupported here (root is not btrfs — pre-snapshot install; reflash to migrate)"
+  pocknix_snap_supported || die "snapshots unsupported here (root is not btrfs)"
   printf '%-6s %-17s %-4s %-8s %s\n' "ID" "CREATED" "OK" "KERNEL" "TARGETS"
   local info id created ok kern targets
   for info in "${SNAP_DIR}"/[0-9][0-9][0-9][0-9]/info.json; do
@@ -31,13 +31,18 @@ cmd_status() {
   local fstype; fstype="$(findmnt -no FSTYPE /)"
   echo "root filesystem : ${fstype}"
   if ! pocknix_snap_supported; then
-    echo "snapshots       : unsupported (pre-snapshot install; reflash to migrate)"
+    echo "snapshots       : unsupported (root is not btrfs)"
     return 0
   fi
   local mounted default
-  mounted="$(snap_mounted_subvol)"; default="$(snap_default_subvol)"
+  # get-default needs root; under set -e + pipefail its failure would end status here
+  mounted="$(snap_mounted_subvol)"; default="$(snap_default_subvol || true)"
   echo "running root    : ${mounted:-?}"
-  echo "boots next      : ${default:-?} $([ "${mounted}" = "${default}" ] && echo '(same)' || echo '(REBOOT PENDING: differs from running root)')"
+  if [ -z "${default}" ]; then
+    echo "boots next      : ? (run as root to read it)"
+  else
+    echo "boots next      : ${default} $([ "${mounted}" = "${default}" ] && echo '(same)' || echo '(REBOOT PENDING: differs from running root)')"
+  fi
   if [ -f /var/lib/pocknix/rollback-info.json ]; then
     echo "rolled back     : yes (from snapshot $(jq -r '.from_snapshot' /var/lib/pocknix/rollback-info.json), $(snap_fmt_date "$(jq -r '.ts' /var/lib/pocknix/rollback-info.json)"))"
   fi
@@ -63,16 +68,14 @@ cmd_prune() {
     done
   fi
 
-  # One abandoned root subvol (@ / @rb-*) is kept for post-mortem after a rollback;
-  # the default and the running root are never candidates.
-  local top=/run/pocknix/prune-top mounted default roots keepable r
+  # Roots a rollback left behind (@ / @rb-*) pin every file replaced since, so none is kept; the
+  # running root is never a candidate, so the one rolled away from lives until the reboot.
+  local top=/run/pocknix/prune-top mounted default roots r
   mounted="$(snap_mounted_subvol)"; default="$(snap_default_subvol)"
   mkdir -p "${top}"
   if mount -o subvolid=5 "$(snap_root_dev)" "${top}" 2>/dev/null; then
-    roots="$(cd "${top}" && ls -d @ @rb-* 2>/dev/null | grep -vx "${mounted}" | grep -vx "${default}" | sort || true)"
-    keepable="$(tail -n 1 <<<"${roots}")"   # lexically newest ("@" sorts before "@rb-<ts>")
+    roots="$(cd "${top}" && ls -d @ @rb-* 2>/dev/null | grep -vx "${mounted}" | grep -vx "${default}" || true)"
     for r in ${roots}; do
-      [ "${r}" = "${keepable}" ] && continue
       btrfs subvolume delete "${top}/${r}" >/dev/null 2>&1 && say "pruned abandoned root ${r}" || true
     done
     umount "${top}" 2>/dev/null || true
@@ -80,9 +83,20 @@ cmd_prune() {
   rmdir "${top}" 2>/dev/null || true
 }
 
+# pocknix-snapshot-pre keys on the variable; the state file it names dies with the session.
+cmd_session() {
+  [ "$#" -gt 0 ] || die "usage: pocknix-snapshots session <command> [args...]"
+  local token rc=0
+  token="$(cat /proc/sys/kernel/random/uuid)"
+  POCKNIX_SNAPSHOT_SESSION="${token}" "$@" || rc=$?
+  rm -f "${SNAP_SESSION_DIR}/${token}" 2>/dev/null || true
+  return "${rc}"
+}
+
 case "${1:-list}" in
-  list)   cmd_list ;;
-  status) cmd_status ;;
-  prune)  cmd_prune "${2:-}" ;;
-  *) echo "usage: pocknix-snapshots [list|status|prune [--quiet]]" >&2; exit 1 ;;
+  list)    cmd_list ;;
+  status)  cmd_status ;;
+  prune)   cmd_prune "${2:-}" ;;
+  session) shift; cmd_session "$@" ;;
+  *) echo "usage: pocknix-snapshots [list|status|prune [--quiet]|session <command> [args...]]" >&2; exit 1 ;;
 esac

@@ -1,0 +1,67 @@
+# pocknix-bsp-sm8250 provenance
+
+Files under root/ that started from another project: the source, how ours differs, and when it
+was last synced. make sync covers none of them; re-diff by hand on a ROCKNIX pin bump.
+
+
+# alsa-ucm (RetroidPocket)
+
+Source: ROCKNIX alsa-ucm-conf patches/SM8250/0002, hand-ported into
+usr/share/alsa/ucm2/ (conf.d symlink names from 0002, plus the RP5 legacy-loader name from
+their 0003).
+
+Ours:
+  - the wsa881x stereo remap INLINED into RetroidPocket.conf (upstream file-conflict avoidance)
+  - no PlaybackMixerElem on the Speaker device: PipeWire must not drive the PA as volume
+  - the DisplayPort device in HiFi-RP.conf borrows the speaker's MultiMedia2: a separate DP PCM
+    fails PipeWire's probe and drops the HiFi profile
+  - the DP sink pinned to S16LE by wireplumber.conf.d/52-retroid-pocket-5-hdmi.conf: a 24-bit
+    DP port start times out
+
+Last synced: 2026-07 (initial port).
+
+
+# speaker DSP profile (RP5): usr/share/pocknix/speaker-dsp/rp5.conf
+
+Source: kokoko3k/jdsp4rp5.app README GraphicEQ (measured: calibration mic + REW)
+  480 0; 600 -5; 700 -16; 1000 -18; 1200 -10; 1670 -10; 2160 -18; 2800 -18; 3800 -28; 5000 -7; 7000 0
+
+Ours:
+  - the GraphicEQ fitted to 8 cut-only peaking bands by scripts/fit-graphiceq.py
+  - high-pass 400 Hz added just under the speakers' floor, picked by ear
+  - width 2.0 and limiter -0.1 dB / 500 ms as published
+  - post gain +12 dB by ear on Linux, not the published +15 dB (that ran on Android's +16 dB
+    digital gain)
+
+Last synced: 2026-10-27.
+
+
+# speaker DSP profile (Flip 2): usr/share/pocknix/speaker-dsp/rpflip2.conf
+
+Source: kokoko3k/jdsp4rp5.app README Flip 2 base GraphicEQ (measured)
+  347 0; 450 -4.5; 500 -8; 600 -4.5; 1015 -17.5; 1500 -13; 2300 -8; 4000 -8.5; 6000 -13.5;
+  7000 -16.5; 8500 -22.5; 11000 -12; 12000 -4; 16000 0
+
+Ours:
+  - the base curve (not the "sparkling" variants) fitted to 8 cut-only peaking bands by
+    scripts/fit-graphiceq.py
+  - high-pass 350 Hz at the speakers' floor
+  - width 2.0 and limiter -0.1 dB / 500 ms as published
+  - post gain +10 dB = the EQ's pink-noise level loss, not the published +15 dB (no one has
+    listened on Linux)
+
+Last synced: 2026-10-27.
+
+
+# InputPlumber maps: usr/share/inputplumber/
+
+Source: ROCKNIX devices/SM8250 01-retroid-controller.yaml + their shared retroid_mcu capability
+map.
+
+Ours:
+  - rp5-gamepad.yaml = retroid_mcu minus LeftPaddle1/RightPaddle1, BTN_BACK -> QuickAccess
+    (theirs: KeyF1), target deck (theirs: ds5)
+  - 01-retroid-flip2-controller.yaml + rpflip2-gamepad.yaml = our fork with the Guide+A
+    QuickAccess chord (the Flip 2 has no back button)
+
+Last synced: never (hand-ported).

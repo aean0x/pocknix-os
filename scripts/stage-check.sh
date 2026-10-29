@@ -339,10 +339,8 @@ if [ -f "${MARKER}" ]; then
 fi
 
 # --- publish order for versioned conflicts= ----------------------------------
-# A device that -Syu's the conflicter while it still holds X in the range gets a conflict prompt
-# that --noconfirm refuses, so every live SoC that sees this stage must already serve X past the
-# range. A <name>-<soc> package its own live tree no longer serves stays on its devices; any
-# other absent name is one we never ship. Unversioned entries are mutual exclusion, not order.
+# A device that -Syu's the conflicter while holding X in the range gets a prompt --noconfirm
+# refuses, so every live SoC seeing this stage must already serve X past the range.
 log "publish order (versioned conflicts=)"
 if [ "${POCKNIX_REPO_SCOPE}" = "shared" ]; then order_socs=("${LIVE_SOCS[@]}"); else order_socs=("${SOC}"); fi
 for n in "${!staged[@]}"; do

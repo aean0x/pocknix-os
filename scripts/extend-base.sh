@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# extend-base.sh — host dep-light ALARM extras in the LIVE base without a re-cut
-# (make extend-base PKG="samba ..."). Additive: nothing published changes bytes, the
-# base is not rotated, the id gets a suffix (20260826.1 -> .2). User, in the VM.
-# POCKNIX_SNAPSHOT_NO_UPLOAD=1 = dry run (nothing uploaded or pinned).
+# Host dep-light ALARM extras in the LIVE base without a re-cut (make extend-base PKG="samba ...").
+# Additive: nothing published changes bytes, the base is not rotated, the id gets a suffix
+# (20260826.1 -> .2). User, in the VM. POCKNIX_SNAPSHOT_NO_UPLOAD=1 = dry run.
 
 source "$(dirname "$0")/lib.sh"
 [ "$(id -u)" -ne 0 ] || die "run as the user, no sudo (rclone lives in the user account)"

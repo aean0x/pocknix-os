@@ -26,6 +26,30 @@ write_last_transaction() {
     > "${RUN}/.lt.tmp" && mv "${RUN}/.lt.tmp" "${RUN}/last-transaction.json"
 }
 
+# In a `pocknix-snapshots session` later transactions fold into the first snapshot: it alone is the
+# pre-update state, and one per transaction would push older updates out of the retention.
+session="${POCKNIX_SNAPSHOT_SESSION:-}"
+case "${session}" in *[!0-9a-f-]*) session="" ;; esac
+session_file="${session:+${SNAP_SESSION_DIR}/${session}}"
+if [ -n "${session_file}" ] && [ -s "${session_file}" ]; then
+  id="$(cat "${session_file}")"
+  info="${SNAP_DIR}/${id}/info.json"
+  if [ -f "${info}" ]; then
+    jq --argjson kin "${kernel_in}" \
+      --argjson count "$(wc -l <<<"${targets}" | tr -d ' ')" \
+      --argjson new "$(jq -R . <<<"${targets}" | jq -s .)" \
+      '.kernel_in_transaction = (.kernel_in_transaction or $kin)
+       | .targets_count += $count
+       | .targets_head = (reduce (.targets_head + $new)[] as $t ([];
+           if any(.[]; . == $t) then . else . + [$t] end) | .[:8])
+       | .transaction_ok = false | .finished = null' \
+      "${info}" > "${SNAP_DIR}/${id}/.info.tmp" && mv "${SNAP_DIR}/${id}/.info.tmp" "${info}"
+    write_last_transaction "${id}" false
+    echo "pocknix-snapshot-pre: same update session, snapshot ${id} still covers it"
+    exit 0
+  fi
+fi
+
 free_mib="$(snap_free_mib)"; free_mib="${free_mib:-0}"
 if [ "${free_mib}" -lt "${POCKNIX_SNAPSHOT_MIN_FREE_MIB}" ]; then
   echo "pocknix-snapshot-pre: only ${free_mib} MiB free (< ${POCKNIX_SNAPSHOT_MIN_FREE_MIB}) — SKIPPING pre-update snapshot; the update still proceeds" >&2
@@ -55,6 +79,11 @@ jq -n \
     targets_count:$count, targets_head:$head,
     transaction_ok:false, finished:null, low_space:false}' \
   > "${dir}/.info.tmp" && mv "${dir}/.info.tmp" "${dir}/info.json"
+
+if [ -n "${session_file}" ]; then
+  mkdir -p "${SNAP_SESSION_DIR}"
+  printf '%s\n' "${id}" > "${session_file}"
+fi
 
 write_last_transaction "${id}" false
 echo "pocknix-snapshot-pre: snapshot ${id} created (${free_mib} MiB free)"

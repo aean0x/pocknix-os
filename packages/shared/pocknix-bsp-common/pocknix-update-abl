@@ -138,9 +138,8 @@ WARN
   [ "${ans}" = "FLASH" ] || die "aborted."
 fi
 
-# Never overwritten: on an Android-provisioned device these are the STOCK ABL.
-# Kit filenames so restore_backup_abl.sh finds them; whole partition, not
-# ELF_SIZE — a larger factory ABL would otherwise restore truncated.
+# Never overwritten: on an Android-provisioned device these are the STOCK ABL. Kit filenames for
+# restore_backup_abl.sh; whole partition, as an ELF_SIZE copy truncates a larger factory ABL.
 BACKED_UP=0
 # mountpoint, not -d: /flash is a nofail fstab mount, so the directory exists
 # either way and backups would land shadowed on the root fs.

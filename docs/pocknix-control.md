@@ -11,7 +11,7 @@ tapping the icons:
 | Tab | What it does |
 |---|---|
 | 🎮 Games | Fan curve, CPU scheduler and game tweaks, globally or per game |
-| 📚 Library | Add non-Steam games, share your files over the network, format a microSD card for Steam |
+| 📚 Library | Add non-Steam games, share your files over the network |
 | 🕹️ Controller | Stick and trigger calibration, stick lights |
 | 🔄 Updater | Check for and install system updates, roll back the last update |
 
@@ -94,24 +94,6 @@ The same toggle is in **Pocknix Tools** on the desktop side.
 > turn it off when you are done. See
 > [copying files over the network](emulation-setup.md#copying-files-over-the-network) for how to
 > connect.
-
-### SD card
-
-Formats a microSD card so Steam can use it as game storage.
-
-On a Steam Deck this lives in Steam itself (**Settings → Storage → Format SD Card**). Steam's
-native format button can work on these devices too, but I have not figured out how to wire it
-up yet, so Pocknix Control provides the option here in the meantime.
-
-The section shows the detected card (label, size, current filesystem); set a label if you like
-and press **Format SD Card**.
-
-> **Formatting erases everything on the card.** The confirmation dialog makes you type
-> `format` before it will run, so you cannot trigger it by accident.
-
-The card is formatted the same way a Steam Deck would (ext4 with casefolding), mounts
-automatically, and gets added to Steam as a library folder - Steam offers it as an install
-target right away, and cards formatted here also work in a real Steam Deck (and vice versa).
 
 ## Controller
 

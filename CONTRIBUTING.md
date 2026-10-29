@@ -138,9 +138,10 @@ systemctl restart <the-unit-you-touched>      # if applicable
 journalctl -b -u <the-unit-you-touched>       # check it came up clean
 ```
 
-**Keep a rollback.** The previous package is still in `/var/cache/pacman/pkg/`; reinstall it
-with `pacman -U /var/cache/pacman/pkg/<old-file>` if the new one misbehaves. A reboot back
-into a known-good state beats debugging a wedged session.
+**Keep a rollback.** Every `pacman -U` takes a snapshot first, and the package cache is emptied
+afterwards, so the way back is `sudo pocknix-rollback` and a reboot (see
+[docs/snapshots.md](docs/snapshots.md)). A reboot back into a known-good state beats debugging a
+wedged session.
 
 Notes that will save you an hour:
 
@@ -251,12 +252,29 @@ check it, which is the single biggest reason a PR stalls.
   byte-identical with the pinned toolchain (`npm ci && npm run build`), and `npx tsc --noEmit`
   should be clean. Commit `dist/index.js` and `dist/index.js.map` alongside the `src/` change.
 - **Patch series**: numbered files in the package directory, added to `source=()` with
-  matching checksums, applying cleanly against the pinned base. If you touch a component
-  with a row in `PATCHES.md`, update that row: what it carries now, plus anything
-  deliberately not taken (one-clause reason). A dropped patch gets no entry beyond its
-  number on the row's retired list (kept when the PKGBUILD says numbers are never reused)
-  and, only where a sync or rebase would bring it back, a one-clause "stays dropped" note;
-  the commit message says why.
+  matching checksums, applying cleanly against the pinned base. Each patched component keeps
+  a `PATCHES.md` next to its patches, listed in the root `PATCHES.md`. A patch you add gets an
+  entry under Carried: the symptom it fixes in plain words, then `Applies:`, `Needs:`,
+  `Trap:`, `Source:` and `Drop:` where they say something. How the patch works goes in its
+  own header. Anything deliberately not taken goes under Not taken with a one-clause reason.
+  A dropped patch loses its entry; its number goes under Retired numbers (kept when the
+  PKGBUILD says numbers are never reused) and, only where a sync or rebase would bring it
+  back, a one-clause Not taken note; the commit message says why. Plain history
+  (upstreamed, replaced, renamed, moved) lives in git: `git log --follow -- <patch>` and the
+  ledger's own log. A ledger never restates another project's state (what armada or ROCKNIX
+  pin or carry, who is ahead): it goes stale the day they move and nobody re-checks. Read
+  theirs live: armada = `packages/kernel/PATCHES.md` + `patches/series` in armada-os/armada;
+  ROCKNIX = the `vendor/rocknix-<soc>` sync (the kernel ledgers record the synced commit,
+  `kernel/<soc>/kernel.conf` pins the stock version). A file ported from another project
+  without a patch (a UCM profile, an InputPlumber map, an EQ curve, a vendored binary) records
+  its source and our changes in a `README.provenance` in its package dir, listed in the root
+  `PATCHES.md`. `make check` (`scripts/check-patches.py`) fails when a ledger and its patches
+  drift: a patch with no Carried entry, an entry with no file, a retired number back in use, a
+  number used twice (kernel numbers are one series across `kernel/common` and every SoC tree),
+  a `sync-keep` line the SoC ledger's Edits to synced files does not name, or an index row
+  missing or out of step with its ledger's first Base line. In a SoC's synced `30-<soc>` dir only
+  1000+ names count as ours; a ROCKNIX patch in that range goes on the ledger's
+  `ROCKNIX 1000+ (synced, not ours):` line.
 - **License**: a package you author for pocknix-os declares `license=('GPL-2.0-or-later')`.
   One that repackages third-party content keeps the upstream license and names it in a
   comment on the same line (`license=('zlib')   # Valve's DXVK build, repackaged`). `make check`
@@ -312,12 +330,19 @@ works against the locked base.
 - **Milestone granularity.** Squash the "try X", "revert X", "fix typo" churn before you
   submit. A commit should be a complete, verified change.
 - **Rebase on `main`** rather than merging it in, and re-test after the rebase.
-- **Code comments: 2 to 4 lines, and only the WHY.** Status, plan, and validation narrative do
-  not belong in comments or commit bodies. A comment is self-contained: it may point at a file
+- **Code comments: one line, and only the WHY.** Two lines only when a trap needs its cause;
+  longer only in a file's leading header. Before writing one, ask what a competent reader would
+  get wrong without it; if nothing, leave it out. Cut what the file's location or a key's name
+  already says, walk-throughs of a mechanism the reader can look up (state the trap instead), and
+  anything a ledger holds (the component's `PATCHES.md` entry, the commit message). Status, plan, and
+  validation narrative do not belong in comments or commit bodies. A comment is self-contained: it may point at a file
   in this repo, never at anything outside it. `make check` enforces the mechanical part
   (`scripts/check-comments.py`): a repo path a comment names must exist, and a comment carries
   no lineage or validation wording, no version, pkgrel, commit hash or date, and no pointer to
-  documents outside the repo. An exception
+  documents outside the repo. It also fails a block of more than 2 adjacent comment lines
+  (`long comment`; a line over 100 characters counts as 2, a `# --- section ---` rule counts as
+  none). A file's leading header, starting on line 1 or after a shebang or `<?xml` line, is
+  exempt from that limit. An exception
   whose number or path IS the mechanism goes in `scripts/check-comments.allow`
   (`<glob> :: <regex>` or `<glob> :: <kind> :: <regex>`, one per line).
 - **CI must be green.** The `lint` job runs `bash -n` over every script and `PKGBUILD`,

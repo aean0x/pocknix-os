@@ -1,8 +1,0 @@
-{
-    "KPlugin": {
-        "Id": "PocknixOS",
-        "Name": "Pocknix OS",
-        "Authors": [{ "Name": "meodai" }],
-        "License": "GPL-2.0-or-later"
-    }
-}

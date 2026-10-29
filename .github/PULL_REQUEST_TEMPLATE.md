@@ -56,6 +56,6 @@ Rollback: `pacman -U /var/cache/pacman/pkg/<previous>.pkg.tar.xz`
 - [ ] Reaches existing installs through `pacman -U` / `-Syu`, not only a fresh image (or noted as image-only)
 - [ ] Degrades quietly on devices without the hardware it drives
 - [ ] Gamepad-navigable, if it adds UI to the Steam session
-- [ ] Docs that describe what changed (a README, `CONTRIBUTING.md`, `PATCHES.md`, `docs/`) are updated in this PR
+- [ ] Docs that describe what changed (a README, `CONTRIBUTING.md`, the component's `PATCHES.md` or `README.provenance`, `docs/`) are updated in this PR
 - [ ] CI lint is green (it includes `make check`), commits follow `area: summary`
 - [ ] AI assistance disclosed, if used

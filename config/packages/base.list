@@ -37,9 +37,14 @@ libdrm
 mesa-utils
 vulkan-tools
 
-# --- GPU firmware (Adreno) ---
-# The Adreno sqe/zap blobs ship .zst here: the kernel needs FW_LOADER_COMPRESS_ZSTD.
+# --- firmware ---
+# The image removes the tarball's linux-firmware meta (build-image.sh), so every split a
+# device loads is listed here. The Adreno sqe/zap blobs ship .zst: the kernel needs
+# FW_LOADER_COMPRESS_ZSTD.
 linux-firmware-qcom
+linux-firmware-atheros   # wifi, bluetooth
+linux-firmware-realtek   # USB Ethernet docks (rtl_nic)
+linux-firmware-mediatek  # USB wifi dongles
 
 # --- audio ---
 pipewire
@@ -49,8 +54,7 @@ wireplumber
 rtkit               # deck has no blanket rtprio, so PipeWire's realtime goes through rtkit
 alsa-utils
 alsa-ucm-conf
-swh-plugins         # sm8250-only dep, listed here: `make snapshot` harvests from whichever SoC
-                    #   built last, so a per-SoC dep would go missing from the base
+swh-plugins         # pocknix-bsp-common dep (speaker DSP limiter)
 
 # --- utilities ---
 sudo
@@ -66,7 +70,7 @@ sbc                  # without a codec lib, BT headphones pair but give no audio
 libfreeaptx
 
 # --- power / battery ---
-upower               # Steam reads battery only via UPower, once at startup: keep it enabled
+upower               # Steam's battery source, queried once at startup (pocknix-vpower feeds game mode from it): keep it enabled
 
 # --- storage ---
 udisks2              # Steam lists formattable drives only via UDisks2, once at startup: keep it enabled

@@ -1,7 +1,8 @@
 [Unit]
 Description=pocknix: create ~/ROMs tree and seed emulator configs on first login
 After=graphical-session-pre.target
-PartOf=graphical-session.target
+# Never PartOf= the session target: pocknix-session stops it before every compositor start,
+# boot included, and that stop would kill this mid-seed.
 
 [Service]
 Type=oneshot

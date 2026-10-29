@@ -1,9 +1,7 @@
 [Unit]
 Description=pocknix sm8250 LPASS audio probe heal
-# The script does its own waiting (adsp remoteproc, then retry loop); it only
-# needs modules/udev to exist, so start it with basic system bring-up. Audio
-# consumers (deck session PipeWire/WirePlumber) pick the card up via hotplug
-# whenever it appears — no ordering against them is needed.
+# The script waits for the adsp itself and only needs modules/udev; audio consumers pick the card
+# up via hotplug, so no ordering against them.
 After=basic.target
 
 [Service]

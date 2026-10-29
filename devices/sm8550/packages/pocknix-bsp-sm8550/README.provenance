@@ -1,0 +1,41 @@
+# pocknix-bsp-sm8550 provenance
+
+Files under root/ that started from another project: the source, how ours differs, and when it
+was last synced. make sync covers none of them; re-diff by hand on a ROCKNIX pin bump.
+
+
+# alsa-ucm (AYN-Odin2 + AYN-Thor): usr/share/alsa/ucm2/AYN/Odin2/ and AYN/Thor/
+
+Source: ROCKNIX alsa-ucm-conf patches/SM8550/0001_Add-AYN-Odin2 + 0005_Add-AYN-Thor,
+hand-ported; author credits kept in the files.
+
+Last synced: never (hand-ported).
+
+
+# speaker DSP profile (RP6): usr/share/pocknix/speaker-dsp/rp6.conf
+
+Source: Ryan Retro, "Retroid Pocket 6 Speakers Fixed" (YouTube, 2026-02-18) description GraphicEQ
+  62 -11.5; 125 -9.8; 250 -0.1; 500 -9.9; 1000 -16.1; 2000 -16.9; 4000 -10.8; 8000 0.0; 16000 -3.5
+
+Ours:
+  - the GraphicEQ fitted to 8 cut-only peaking bands by scripts/fit-graphiceq.py (200 Hz-16 kHz),
+    plus a -6 dB Q 1.4 band at 3.5 kHz (harshness)
+  - high-pass 200 Hz, width 2.0 and the 3.5 kHz band picked by ear on Linux
+  - limiter -0.1 dB / 500 ms as on the RP5
+  - post gain +9 dB by ear on Linux, 3 dB over the chain's level loss measured on game audio
+    (no published value)
+
+Last synced: 2026-10-27.
+
+
+# InputPlumber maps: usr/share/inputplumber/
+
+Source: ROCKNIX devices/SM8550 02-ayn-controller.yaml pattern + armada ayn_mcu capability map.
+
+Ours:
+  - 01-rsinput-controller.yaml adds the gpio-keys grab (back paddles as L4/L5, volume-up
+    re-emitted on the keyboard target) and the Nova match
+  - sm8550-gamepad.yaml = ayn_mcu adapted
+  - 02-ayn-thor-controller.yaml + thor-gamepad.yaml are ours
+
+Last synced: never (hand-ported).

@@ -7,16 +7,16 @@ _pocknix_set_plymouth_theme() {
   sed -i 's/^Theme=spinner$/Theme=pocknix/' "${conf}"
 }
 
-# 0.1.0-1 stamped before any desktop existed, so its stamps are false. Drop them where no
-# wallpaper was ever set; a user's own pick has an Image= line and keeps its stamp.
-_pocknix_drop_false_stamps() {
-  local home stamp rc
-  for home in ${POCKNIX_HOME_ROOT:-/home}/*; do
-    stamp="${home}/.config/pocknix/branding-seeded"
-    [ -e "${stamp}" ] || continue
-    rc="${home}/.config/plasma-org.kde.plasma.mobileshell-appletsrc"
-    grep -qs '^Image=' "${rc}" && continue
-    rm -f "${stamp}"
+# The retired wallpaper seed wrote this path: a dangling Image= paints Plasma's white fill on every
+# desktop start. Only that exact line goes; a user's own pick names another path.
+_pocknix_drop_seeded_wallpaper() {
+  local rc line='Image=file:///usr/share/wallpapers/PocknixOS'
+  for rc in ${POCKNIX_HOME_ROOT:-/home}/*/.config/plasma-org.kde.plasma.mobileshell-appletsrc; do
+    # sed -i would replace a symlinked (dotfile-managed) config with a plain file.
+    [ -f "${rc}" ] && [ ! -L "${rc}" ] || continue
+    # Checked first so a config without the line is never rewritten.
+    grep -qxF "${line}" "${rc}" || continue
+    sed -i "\\|^${line}\$|d" "${rc}"
   done
 }
 
@@ -26,5 +26,7 @@ post_install() {
 
 post_upgrade() {
   _pocknix_set_plymouth_theme
-  case "${2:-}" in 0.1.0-1) _pocknix_drop_false_stamps ;; esac
+  if [ "$(vercmp "$2" 0.1.0-4)" -lt 0 ]; then
+    _pocknix_drop_seeded_wallpaper
+  fi
 }
