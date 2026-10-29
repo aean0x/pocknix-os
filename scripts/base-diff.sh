@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
-# base-diff.sh: vet a base snapshot before it goes live (make base-diff).
-#
-# Diffs the committed lockfile (HEAD) against the working-tree one a snapshot dry
-# run just wrote, then prints two advisory lists:
-#   1. watchlist moves (config/packages/base-watch.list) + open upstream issues
-#   2. upstream bumps built within POCKNIX_FRESH_DAYS (default 3) of the snapshot:
-#      regressions surface within days of a release, so fresh = hold back or wait
-# Never fails the run; the call is yours. Knobs: BASE_DIFF_OLD/BASE_DIFF_NEW
+# Vet a base snapshot before it goes live: diff the committed lockfile against the one a snapshot
+# dry run just wrote, then list (1) watchlist moves (config/packages/base-watch.list) with open
+# upstream issues and (2) upstream bumps built within POCKNIX_FRESH_DAYS (default 3): regressions
+# surface within days of a release. Advisory, never fails. Knobs: BASE_DIFF_OLD/BASE_DIFF_NEW
 # (lockfile paths), GITHUB_TOKEN (lifts the 10/min unauthenticated search limit).
 
 source "$(dirname "$0")/lib.sh"

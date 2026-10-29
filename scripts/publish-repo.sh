@@ -1,47 +1,25 @@
 #!/usr/bin/env bash
-# publish-repo.sh — sign a repo tree and publish it as a public repo: the per-SoC
-# [pocknix] or the SoC-neutral [pocknix-shared] (POCKNIX_REPO_SCOPE, lib.sh).
-#
-# The publish SOURCE is ${REPO_STAGE_DIR} (`make stage`): a mirror of the live repo with
-# only the intended packages swapped in. The raw localrepo is shared mutable build output
-# and is not publishable by default (why: see scripts/stage-repo.sh). `make stage` first.
-#
-# Publishing is: detach-sign every package, re-add them to a signed database,
-# export the public key alongside, and sync the directory to the host (rclone
-# remote, e.g. Cloudflare R2). Devices with the [pocknix] stanza + the lsigned
-# key then update with plain `pacman -Syu`. Sigs of unchanged packages came down
-# with the staging mirror and are reused; only new files get signed.
+# Sign and publish a repo tree: the per-SoC [pocknix] or the SoC-neutral [pocknix-shared]
+# (POCKNIX_REPO_SCOPE, lib.sh). The source is ${REPO_STAGE_DIR} from `make stage`, never the raw
+# localrepo (scripts/stage-repo.sh says why); unchanged packages reuse the sigs staging mirrored.
 #
 # Config (config/pocknix.conf or env):
 #   POCKNIX_REPO_GPG_KEY        signing key id/email (required unless --unsigned)
 #   POCKNIX_REPO_RCLONE_REMOTE  rclone destination (optional: skip upload if empty)
-#
 # Modes:
-#   (default)    publish ${REPO_STAGE_DIR}: sign + repo-add --sign + upload.
-#                Requires the .staged-ok marker from `make stage`; the marker is
-#                consumed on success, so the next publish needs a fresh staging.
-#   --serve      LAN testing: prepare build/localrepo/<soc> and serve it over
-#                http :8000 (foreground). NEVER uploads — point the device at
-#                http://<this-host>:8000/<soc>.
-#   --unsigned   skip signing; only valid with --serve (pair with SigLevel
-#                Optional TrustAll on the device).
-#
-# Escape hatch: POCKNIX_PUBLISH_FROM=localrepo publishes the raw localrepo (first-ever
-# publish of a new SoC, disaster recovery). It signs + syncs + PRUNES the bucket with
-# whatever the dir holds; diff against the live db before using it.
-#
-# Run as the user who owns the GPG key + rclone remote — NO sudo.
-# Never republish the same package filename with different bytes — bump pkgrel
-# instead (client caches + signatures break otherwise).
+#   (default)    publish ${REPO_STAGE_DIR}; needs the .staged-ok marker, consumed on success
+#   --serve      LAN testing: serve build/localrepo/<soc> on http :8000, NEVER uploads
+#   --unsigned   skip signing; --serve only (device needs SigLevel = Optional TrustAll)
+# POCKNIX_PUBLISH_FROM=localrepo publishes the raw localrepo (a new SoC's first publish, disaster
+# recovery): it signs, syncs and PRUNES the bucket to whatever the dir holds.
+# Run as the owner of the GPG key and rclone remote, NO sudo. Never republish a filename with
+# different bytes (client caches and signatures break): bump pkgrel.
 
 source "$(dirname "$0")/lib.sh"
 
 REPO_DB="${REPO_NAME}.db.tar.gz"
-# Scope (lib.sh): each SoC's [pocknix] repo is a self-contained tree published
-# under <remote>/<soc> (tuned packages share pkgnames across SoCs with
-# different binaries) — run once per SoC: `make stage` + `make publish
-# DEVICE=<target of that soc>`. The SoC-neutral [pocknix-shared] tree lives
-# under <remote>/shared — run ONCE: `make stage-shared` + `make publish-shared`.
+# Each SoC's tree is its own <remote>/<soc> (tuned packages share pkgnames across SoCs), published
+# once per SoC; [pocknix-shared] is <remote>/shared, published once.
 RCLONE_DEST="${POCKNIX_REPO_RCLONE_REMOTE:+${POCKNIX_REPO_RCLONE_REMOTE}/${REPO_SEG}}"
 unsigned=0 serve=0
 for a in "$@"; do
@@ -54,7 +32,7 @@ done
 [ "${unsigned}" -eq 0 ] || [ "${serve}" -eq 1 ] \
   || die "--unsigned is LAN-testing only — pair it with --serve (an unsigned upload would break every device)"
 
-# --- publish source selection (the heart of the staging workflow) ------------
+# --- publish source selection ------------------------------------------------
 MARKER=""
 if [ "${serve}" -eq 1 ]; then
   # LAN testing serves the raw build output (test packages are the point) and
@@ -110,11 +88,8 @@ fi
 if [ -n "${RCLONE_DEST}" ]; then
   need_tool rclone
   log "syncing -> ${RCLONE_DEST}"
-  # order matters for a window-free publish: packages+sigs first, database last, so a
-  # client never sees a db entry whose package isn't uploaded yet.
-  # -L/--copy-links: repo-add makes pocknix.db / pocknix.files (the exact names pacman
-  # fetches) SYMLINKS to the .tar.gz; without -L rclone skips them and the device 404s
-  # on the db. --exclude '*.old*': repo-add's local backups are not for publishing.
+  # packages+sigs first, db last: a client never sees a db entry whose package isn't up yet.
+  # -L: pocknix.db/.files are repo-add symlinks that rclone otherwise skips (the device 404s).
   rclone copy --include '*.pkg.tar.*' --exclude '*.old*' "${SRC}" "${RCLONE_DEST}"
   rclone copy -L --include "${REPO_NAME}.db*" --include "${REPO_NAME}.files*" --include 'pocknix-repo.gpg' \
     --exclude '*.old*' "${SRC}" "${RCLONE_DEST}"

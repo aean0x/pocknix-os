@@ -142,9 +142,8 @@ def main():
     # Seeded: the same curve always fits to the same lines, so a refit is a clean diff.
     random.seed(1)
 
-    # Greedy: each new band starts on the largest remaining in-band error, then all bands are refit.
-    # Cut-only bands start where the most cut is still missing: a band placed on an over-cut spot
-    # pins at 0 dB and is wasted.
+    # Greedy: each band starts on the largest in-band error, then all are refit. A cut-only band
+    # starts where most cut is missing: on an over-cut spot it pins at 0 dB and is wasted.
     x = []
     for _ in range(args.bands):
         model = response(x, cos_w, cut_only)

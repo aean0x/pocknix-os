@@ -1,24 +1,15 @@
 #!/usr/bin/env bash
-# stage-repo.sh — build the publish source (build/stage/<soc> or build/stage/shared) FROM the LIVE repo.
-#
-# build/localrepo is shared mutable build output: parallel sessions drop test
-# packages, downgrades, and half-finished work into it, so publishing it
-# wholesale can ship unvalidated packages (and the publish sync PRUNES the
-# bucket to match). Staging inverts the direction of trust: mirror what is
-# currently LIVE (known good), swap in ONLY the packages named on the command
-# line, then verify the delta against live is exactly those names.
-# publish-repo.sh publishes this dir and refuses to run without the .staged-ok
-# marker written here on success.
+# Build the publish source (build/stage/<soc> or build/stage/shared) FROM the LIVE repo.
+# build/localrepo is shared mutable output (parallel sessions drop test packages and downgrades
+# in it) and publish PRUNES the bucket to match, so staging mirrors live, swaps in ONLY the named
+# packages and checks the delta is exactly those. publish-repo.sh refuses to run without the
+# .staged-ok marker written here.
 #
 # Usage:  make stage DEVICE=<target> PKG="pocknix-steam ..."   (as USER, no sudo)
-#   - PKG names are ARTIFACT names: a split PKGBUILD's siblings are staged
-#     individually (PKG="mesa vulkan-freedreno").
-#   - DROP="<name>" retires a live package; the delta gate accepts only named
-#     drops as deletions. Needed because pacman honors replaces= only for names
-#     absent from every sync db — a package left live blocks its own migration.
-#   - re-run freely: the mirror refresh is incremental (seconds after the first
-#     run) and every run starts over from live, so a failed/abandoned staging
-#     can never leak into the next one.
+#   - PKG names are ARTIFACT names: stage each split sibling (PKG="mesa vulkan-freedreno").
+#   - DROP="<name>" retires a live package: pacman honors replaces= only for names absent from
+#     every sync db, so a package left live blocks its own migration.
+#   - re-run freely: every run starts over from live, so an abandoned staging never leaks.
 
 source "$(dirname "$0")/lib.sh"
 need_tool rclone
@@ -43,9 +34,8 @@ mkdir -p "${REPO_STAGE_DIR}" 2>/dev/null \
   || die "cannot create ${REPO_STAGE_DIR} (root-owned build/? fix once: sudo install -d -o $(id -un) ${BUILD_DIR}/stage)"
 rm -f "${MARKER}"
 
-# sync (not copy): also deletes local leftovers, so stage snaps back to
-# exactly-live before this run's swap — a previously staged-but-unpublished
-# package cannot survive into this release.
+# sync, not copy: local leftovers go too, so a staged-but-unpublished package from an earlier run
+# cannot survive into this release.
 log "refreshing staging mirror from live: ${REMOTE} -> ${REPO_STAGE_DIR}"
 rclone sync "${REMOTE}" "${REPO_STAGE_DIR}" \
   || die "rclone sync from ${REMOTE} failed (first-ever publish of this tree? seed with: POCKNIX_PUBLISH_FROM=localrepo make publish)"

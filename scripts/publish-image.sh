@@ -1,20 +1,10 @@
 #!/usr/bin/env bash
-# publish-image.sh — compress, checksum, and upload the SD image for public download.
-#
-# The pacman repo ships updates (publish-repo.sh); the image is only for first
-# installs, so publishing one is: zstd-compress it under a DATE-STAMPED name,
-# write a sha256, and rclone the pair to the public bucket. Date-stamped because
-# a public filename must never change bytes (CDN caches would mix chunks of two
-# different disk images — a corrupted flash for the downloader).
-#
-# Config (config/pocknix.conf or env):
-#   POCKNIX_IMAGE_RCLONE_REMOTE  rclone destination, e.g. r2:pocknix/images
-#                                (optional: skip upload if empty)
-#   POCKNIX_IMAGE_URL            public base URL for that destination, only used
-#                                to print the final download link
-#
-# NB: build/ is root-owned after sudo builds; run with sudo -E if the compressed
-# output can't be written next to the image.
+# Compress, checksum and upload the SD image for first installs (updates ship via the repo).
+# The name is date-stamped because a public filename must never change bytes: CDN caches would
+# mix chunks of two images into a corrupt flash. Config (config/pocknix.conf or env):
+#   POCKNIX_IMAGE_RCLONE_REMOTE  rclone destination, e.g. r2:pocknix/images (empty = no upload)
+#   POCKNIX_IMAGE_URL            public base URL, only used to print the download link
+# build/ is root-owned after sudo builds: run with sudo -E if the output can't be written.
 
 source "$(dirname "$0")/lib.sh"
 

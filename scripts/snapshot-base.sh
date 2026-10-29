@@ -1,41 +1,26 @@
 #!/usr/bin/env bash
-# snapshot-base.sh — freeze the ALARM package base into [pocknix-base] (make snapshot).
+# Freeze the ALARM package base into [pocknix-base] (make snapshot): harvest the union of every
+# ALARM package a build installed (image rootfs + every SoC's build chroot) plus the extras in
+# config/packages/base-extras.list, collect those files + .sig (build caches first, the ALARM
+# mirror for the residue), build a pocknix-base.db over only them, and publish it.
 #
-# Reproducible builds need a recorded, re-fetchable input set. This harvests the
-# GROUND-TRUTH union of every ALARM package a build actually installed (the image
-# rootfs + every SoC's build chroot) plus the opt-in extras in
-# config/packages/base-extras.list, collects exactly those files + their .sig
-# (build caches first, ALARM mirror for the residue), builds a fresh
-# pocknix-base.db covering only them, and publishes it.
-#
-# ONE repo at a STABLE url ([pocknix-base]): "frozen" means it never moves on its
-# own, not that it is immutable — it moves exactly when a release moves it, so
-# devices pick up a bumped base with a plain -Syu and need no repointing. The
-# outgoing base is rotated to <remote>-prev first, which is what keeps the
-# PREVIOUS release rebuildable (ALARM keeps no archive of old versions); older
-# bases are not retained, by decision.
-#
-# Run RIGHT AFTER a fresh `sudo make build`: cache-sourced files are race-free,
-# but the residue (tarball-era packages) comes from the mirror, which only
-# serves current versions. As the user, no sudo (rclone remote lives in the
-# user account; output must stay user-owned).
-#
-# To rebuild the PREVIOUS release, point both pins at the rotated copy:
+# One repo at a STABLE url: it moves only when a release moves it, so devices take a new base with
+# a plain -Syu. The outgoing base is rotated to <remote>-prev first; ALARM keeps no old versions,
+# so that copy is the only way to rebuild the PREVIOUS release (point both pins at it by hand):
 #   POCKNIX_BASE_URL=<repo>/base-prev \
 #   POCKNIX_ALARM_TARBALL_URL=<repo>/base-prev/<its dated tarball> sudo -E make build
-# (nothing does that automatically — the live pins always name the current base.)
 #
-# Knobs: POCKNIX_SNAPSHOT_ID (default UTC date; the id is a LABEL — it names the
-# pocknix-base-lock package version, not a url), POCKNIX_SNAPSHOT_NO_UPLOAD=1
-# (dry run: build the snapshot dir + lockfile, skip rclone + conf pins).
+# Run RIGHT AFTER a fresh `sudo make build`: the mirror serves only current versions, so the
+# residue goes stale. As the user, no sudo (the rclone remote and output are user-owned).
+# Knobs: POCKNIX_SNAPSHOT_ID (default UTC date; a label naming the pocknix-base-lock version, not
+# a url), POCKNIX_SNAPSHOT_NO_UPLOAD=1 (dry run: snapshot dir + lockfile, no rclone or pins).
 
 source "$(dirname "$0")/lib.sh"
 [ "$(id -u)" -ne 0 ] || die "run as the user, no sudo (rclone + gpg live in the user account)"
 for t in curl tar awk sha256sum repo-add; do need_tool "$t"; done
 
-# A pinned build's sync dbs are [pocknix-base], not core/extra/alarm/aur, so the
-# harvest below would drop the shadowed ALARM copies and point residue downloads
-# at a repo path the ALARM mirror does not serve. Only a live-ALARM build is harvestable.
+# A pinned build's sync dbs are [pocknix-base]: the harvest would drop the shadowed ALARM copies
+# and fetch residue from paths the mirror does not serve. Only a live-ALARM build is harvestable.
 [ -z "${POCKNIX_BASE_SNAPSHOT}" ] || die "POCKNIX_BASE_SNAPSHOT=${POCKNIX_BASE_SNAPSHOT} — a snapshot can only be harvested from an UNPINNED (live ALARM) build.
 Blank POCKNIX_BASE_SNAPSHOT in config/pocknix.conf, re-run 'sudo make build' + 'make packages', then snapshot."
 
@@ -60,11 +45,8 @@ for b in "${BUILD_DIR}"/pkgbuild-root-*; do
 done
 log "harvest sources: ${sources[*]#"${BUILD_DIR}/"}"
 
-# Names owned by [pocknix]/[pocknix-shared] (all SoCs' localrepos + the shared
-# one): ours, never part of the ALARM base — mesa/gamescope replace ALARM
-# copies under the same name, so filter by NAME, not version.
-# Their provides are kept apart (ours_prov): a meta may depend on a virtual only our
-# packages provide (pocknix-desktop-flavour), and the dep guards must accept it.
+# Our names are never base material: mesa/gamescope replace ALARM copies under the same name, so
+# filter by NAME. ours_prov: a meta may depend on a virtual only ours provide (desktop-flavour).
 declare -A ours ours_prov
 for db in "${BUILD_DIR}"/localrepo/*/pocknix.db.tar.gz \
           "${BUILD_DIR}"/localrepo/shared/pocknix-shared.db.tar.gz; do
@@ -104,15 +86,13 @@ ${conflicts}"
 log "union manifest: ${#want[@]} ALARM packages"
 
 # --- SoC completeness --------------------------------------------------------
-# The union covers every SoC's BUILD chroot but only ONE runtime rootfs, so a
-# runtime-only dep of another SoC's BSP silently misses the snapshot and that
-# SoC's images then fail to resolve. Fail rather than ship a one-SoC base.
+# The union has every SoC's build chroot but ONE runtime rootfs: another SoC's runtime-only BSP
+# dep would silently miss the snapshot, so fail rather than ship a one-SoC base.
 soc_missing=""
 for _bsp in "${POCKNIX_ROOT}"/devices/*/packages/pocknix-bsp-*/PKGBUILD; do
   [ -f "${_bsp}" ] || continue
-  # source the PKGBUILD rather than grepping: a depends=() wrapped over several
-  # lines would silently yield nothing, and a guard that quietly stops guarding
-  # is worse than none.
+  # source, don't grep: a depends=() wrapped over lines would silently yield nothing, and a
+  # guard that quietly stops guarding is worse than none.
   _deps="$(bash -c 'depends=(); source "$1" >/dev/null 2>&1; printf "%s\n" "${depends[@]}"' _ "${_bsp}" 2>/dev/null)"
   [ -n "${_deps}" ] || die "cannot read depends= from ${_bsp} — the SoC-completeness guard would be vacuous"
   while read -r _dep; do
@@ -158,9 +138,8 @@ for src in "${sources[@]}"; do
                   /^%NAME%$/{getline name} /^%VERSION%$/{getline ver}
                   /^%FILENAME%$/{getline fn} /^%SHA256SUM%$/{getline sha}
                   ENDFILE{if(name!="")print name"|"ver"|"fn"|"sha}' "${tmp}/${repo}"/*/desc)
-    # ALARM dbs only, once each: our repo-add'd dbs keep deps inside desc (no depends
-    # file) and ours are served via the ours map anyway. Provides matter: a dep may
-    # name a soname/virtual, and a name-only check would refuse installable extras.
+    # ALARM dbs only (ours keep deps inside desc and are served via the ours map). Provides
+    # count: a dep may name a soname/virtual, and a name-only check refuses installable extras.
     case "${repo}" in core|extra|alarm|aur) alarm_repo=1 ;; *) alarm_repo="" ;; esac
     if [ -n "${alarm_repo}" ] && [ -z "${seen_repo[${repo}]:-}" ] && [ "${#extras[@]}" -gt 0 ]; then
       seen_repo["${repo}"]=1
@@ -183,13 +162,8 @@ for src in "${sources[@]}"; do
   done
 done
 
-# Shadowed ALARM copies: bootstrap installs ALARM's mesa/vulkan-freedreno from
-# base.list and our epoch'd [pocknix] builds upgrade over them, so the snapshot
-# must carry the ALARM copies too or a pinned build dies at "target not found".
-# Cache presence alone can NOT identify them — pacman caches file:// installs
-# too, so once a [pocknix] package lands in a chroot as a makepkg dep its own
-# file appears here. The sync dbs are the discriminator: only a version that an
-# ALARM repo actually carries is base material.
+# Host the ALARM copies ours upgrade over (mesa, vulkan-freedreno) or a pinned build hits "target
+# not found". Only versions an ALARM sync db carries count: pacman caches our file:// installs too.
 for src in "${sources[@]}"; do
   for f in "${src}"/var/cache/pacman/pkg/*.pkg.tar.*; do
     case "${f}" in *.sig) continue ;; esac
@@ -246,9 +220,8 @@ belongs in the image instead, add it to base.list (ALARM bootstrap) or to a
 layer metapackage's depends= (packages/shared/pocknix-*), then re-run."
 
 # --- layer completeness ------------------------------------------------------
-# A layer's ALARM deps reach the base only if the image installs that layer or
-# base-extras.list hosts them; a layer the image leaves out (emulation) would
-# otherwise silently lose its deps from the snapshot.
+# A layer's ALARM deps reach the base only if the image installs it or base-extras.list hosts
+# them; a layer the image leaves out (emulation) would silently lose them.
 layer_missing=""
 _pkgbuild_deps() { bash -c 'depends=(); source "$1" >/dev/null 2>&1; printf "%s\n" "${depends[@]}"' _ "$1" 2>/dev/null; }
 # $1 PKGBUILD, $2 layer, $3 1 = also scan the shared packages it names: a meta whose
@@ -290,10 +263,8 @@ Re-run the build so installed versions match the refreshed dbs, then snapshot ag
 ${missing}"
 
 # --- gather files: build caches first, mirror for the residue ----------------
-# The pacman caches in the rootfs + chroots hold the EXACT bytes pacman verified
-# and installed — harvesting them closes the build-to-snapshot race (a mirror
-# re-download 404s if ALARM bumps a package in between). Only packages that
-# never hit a cache (tarball-preinstalled, never upgraded) come from the mirror.
+# Cached files are the exact bytes pacman verified, so ALARM bumping a package mid-run cannot 404
+# the harvest; only never-cached (tarball-preinstalled) packages come from the mirror.
 mkdir -p "${OUT}" 2>/dev/null || die "${OUT} not creatable — one-time: sudo install -d -o $(id -un) ${BUILD_DIR}/snapshot"
 cachedirs=()
 for src in "${sources[@]}"; do cachedirs+=("${src}/var/cache/pacman/pkg"); done
@@ -365,9 +336,8 @@ log "building ${BASE_DB} (repo-add over ${#want[@]} packages)"
   || die "repo-add failed"
 
 # --- lockfile ----------------------------------------------------------------
-# Header is machine-read: pocknix-base-lock's PKGBUILD takes its pkgver from the
-# snapshot id here, so the device's "which base am I on" answer can never
-# disagree with the manifest it ships.
+# Header is machine-read: pocknix-base-lock's PKGBUILD takes its pkgver from the snapshot id, so
+# the device's "which base am I on" answer always matches the manifest it ships.
 {
   printf '# pocknix-base.lock - ALARM base snapshot %s (%d packages)\n' "${ID}" "${#want[@]}"
   printf '# Generated by scripts/snapshot-base.sh (make snapshot); shipped by pocknix-base-lock.\n'
@@ -378,9 +348,8 @@ log "building ${BASE_DB} (repo-add over ${#want[@]} packages)"
 # this snapshot" from "the live base is the previous release" (see the rotation).
 printf '%s\n' "${ID}" > "${OUT}/SNAPSHOT_ID"
 
-# Same id, different contents would republish pocknix-base-lock-<id>-1 with new
-# bytes: devices never see the upgrade (same version) and the package that IS
-# the device's record of its base would report one it isn't on. Suffix instead.
+# Same id, new contents would republish pocknix-base-lock-<id>-1 with new bytes that devices never
+# upgrade to, so their record of the base lies. Suffix instead.
 if [ -f "${LOCKFILE}" ] \
    && [ "$(sed -n 's/^#.*snapshot \([0-9][0-9.]*\).*/\1/p' "${LOCKFILE}" | head -1)" = "${ID}" ] \
    && ! diff -q <(grep -v '^#' "${LOCKFILE}") <(grep -v '^#' "${OUT}/pocknix-base.lock") >/dev/null; then
@@ -400,9 +369,8 @@ fi
 [ -n "${RCLONE_DEST}" ] || die "POCKNIX_BASE_RCLONE_REMOTE unset — cannot upload"
 need_tool rclone
 if [ -n "$(rclone lsf --max-depth 1 "${RCLONE_DEST}" 2>/dev/null | head -1)" ]; then
-  # A re-run after a failed publish must NEVER rotate: the live base is then this
-  # same (half-written) snapshot, and copying it over -prev destroys the previous
-  # release's only rebuild source. Equal ids = resume; unknown/older id = real rotation.
+  # A re-run after a failed publish must NEVER rotate: copying this half-written snapshot over
+  # -prev destroys the previous release's only rebuild source. Equal ids = resume.
   live_id="$(rclone cat "${RCLONE_DEST}/SNAPSHOT_ID" 2>/dev/null | head -1 | tr -d '[:space:]')"
   if [ "${live_id}" = "${ID}" ]; then
     warn "live base is ALREADY snapshot ${ID} — resuming a previous publish, NOT rotating (${RCLONE_PREV} keeps the last release)"
@@ -412,12 +380,8 @@ if [ -n "$(rclone lsf --max-depth 1 "${RCLONE_DEST}" 2>/dev/null | head -1)" ]; 
   fi
 fi
 log "publishing -> ${RCLONE_DEST} ($(du -sh "${OUT}" | cut -f1))"
-# packages + tarball first, db + lock LAST: a client syncing mid-publish sees
-# either the old db (its packages all still present) or the new one (ditto).
-# -L: repo-add's pocknix-base.db is a symlink. The closing sync prunes the
-# superseded package versions, which by then no live db references.
-# SNAPSHOT_ID goes up FIRST, before anything else is mutated: from here on any
-# interruption leaves the remote id equal to ours, so a re-run skips the rotation.
+# SNAPSHOT_ID first, so any interruption leaves the ids equal and a re-run skips the rotation; then
+# packages + tarball, db + lock LAST (-L: the db is a symlink), so a client never sees a gap.
 rclone copy --include 'SNAPSHOT_ID' "${OUT}" "${RCLONE_DEST}"
 rclone copy --include '*.pkg.tar.*' "${OUT}" "${RCLONE_DEST}"
 rclone copy --include "${DATED_TARBALL}" "${OUT}" "${RCLONE_DEST}"
