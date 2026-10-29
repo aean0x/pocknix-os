@@ -7,7 +7,7 @@ What this dir carries and why, one entry per patch. How each patch works is in i
 Each SoC's kernel, after the SoC's own stack
 
 Applied in number order on the stock kernel that `kernel/<soc>/kernel.conf` pins. A SoC leaves
-a patch out by naming it in `kernel/<soc>/common-skip`.
+a patch out by naming it in its optional `common-skip` file.
 
 Last rebased: 2026-10-29 (iris gen1 HEVC Remote Play).
 
@@ -92,9 +92,9 @@ Last rebased: 2026-10-29 (iris gen1 HEVC Remote Play).
   Source: armada PR #752 (virtudude), verbatim.
 - **1037** Game streams decode with low latency by default: decoder sessions up to the macroblock
   count of 4096x2160 run in stage 1 at the top video clock; `qcom_iris.low_latency=0` restores the
-  computed clock and stage 2. Applies: not sm8250, which common-skips it (gen1 in stage 1 above
-  720p froze a 1728x1080 60 fps Remote Play stream on the RP5); drop the skip once that stall is
-  explained or gated. Source: armada PR #752 (virtudude), verbatim.
+  computed clock and stage 2. Applies: gen1 and gen2 (the RP5 Remote Play freeze once blamed on it
+  was Steam's frame-0 restart loop, which 1089 removes). Source: armada PR #752 (virtudude),
+  verbatim.
 - **1038** Steam's arm64 Remote Play client no longer restarts the decoder every frame: a
   resolution change's empty LAST buffer is no longer also flagged ERROR. Applies: gen2 only.
   Source: kettlelinux 1370 by gennro, via armada PR #752.
