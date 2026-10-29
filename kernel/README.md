@@ -7,8 +7,9 @@ selects the SoC; every board on a SoC shares its tree and every board's dtb ship
 picks one by board id, arm-efi by the grub.cfg `devicetree` line).
 
 This file describes the layout and the rules. What is carried and why (patch by patch, the
-pinned versions, the ROCKNIX commit we synced to) lives in one place only: the kernel rows of
-[PATCHES.md](../PATCHES.md), with the pins themselves in `kernel/<soc>/kernel.conf`. Keep it
+pinned versions, the ROCKNIX commit we synced to) lives in one place only: the
+ledgers [common/PATCHES.md](common/PATCHES.md) and `kernel/<soc>/PATCHES.md`, with the pins
+themselves in `kernel/<soc>/kernel.conf`. Keep it
 that way: a list or a version copied into this file goes stale at the next sync.
 
 ## Layout
@@ -16,7 +17,9 @@ that way: a list or a version copied into this file goes stale at the next sync.
 ```
 kernel/
   common/patches/        ours, SoC-neutral, applied to every SoC after its own stack
+  common/PATCHES.md      ledger: what common carries and why
   <soc>/                 one per SoC family (devices/README.md lists them)
+    PATCHES.md           ledger: base, our patches, edits to synced files, guards
     kernel.conf          source pin (version + sha256), package release, ROCKNIX dirs to sync from
     patches/10-mainline/ ROCKNIX generic backports              <- make sync
     patches/20-version/  ROCKNIX patches for the kernel version <- make sync
@@ -73,4 +76,4 @@ upstream file), `+path` (our own file) or `-path` (an upstream file we delete), 
 patch of ours the sync removed comes back on its own. Each warning it prints is a merge to do
 by hand: diff ours against upstream's new copy, and drop a `sync-keep` line only when the two
 are identical. The source pin in `kernel.conf` never moves with a sync; bump it by hand and
-record the new base in PATCHES.md.
+record the new base in `kernel/<soc>/PATCHES.md`.

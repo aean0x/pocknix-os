@@ -215,7 +215,7 @@ Filter 1: ON PK Fc <Hz> Hz Gain <dB> dB Q <q>
 `scripts/fit-graphiceq.py "<Hz dB; Hz dB; ...>"` turns a JamesDSP GraphicEQ string into filter
 lines. Rules: the codec's digital gain stays at 0 dB (gain after the limiter clips in the
 codec); a board with no measured or published curve gets no EQ and no post gain; an imported
-curve gets a PATCHES.md row and a docs/licensing.md row. `make check`
+curve gets an entry in its BSP's README.provenance and a docs/licensing.md row. `make check`
 (`scripts/check-speaker-dsp.py`) fails a board naming a missing profile, a profile the renderer
 rejects or no board uses, and a key list above out of step with the renderer.
 

@@ -1,0 +1,10 @@
+# format-device.sh provenance
+
+Source: Valve jupiter-hw-support /usr/lib/hwsupport/format-device.sh, hand-ported.
+
+Ours:
+  - mmcblk only (sda is the internal UFS disk)
+  - owner 1000:1000 kept, so a card stays writable on a SteamOS device
+  - pocknix-steamos-shim's steamos-format-device fronts it
+
+Last synced: never (hand-ported).
