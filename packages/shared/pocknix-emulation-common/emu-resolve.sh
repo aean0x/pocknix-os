@@ -6,9 +6,8 @@ EMU_DROP="${HOME}/Emulation/emulators"
 export PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}"
 EMU_NAMES="armsx2 eden ryujinx rpcs3 vita3k xemu dolphin cemu azahar ppsspp"
 
-# Heavy emulators pin to the board's game cores: scx_lavd otherwise parks the critical thread
-# on a little core (chop + audio crackle). Unlike the game pin, a board without the key still
-# pins, to the cores cores.sh guesses from capacity.
+# Heavy emulators pin to the board's game cores, or scx_lavd parks the critical thread on a little
+# core (chop, audio crackle). Unlike the game pin, a board without the key pins to cores.sh's guess.
 . /usr/lib/pocknix/cores.sh
 big_cores() { pocknix_big_cores guess; }
 

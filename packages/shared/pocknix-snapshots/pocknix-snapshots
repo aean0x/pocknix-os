@@ -68,9 +68,8 @@ cmd_prune() {
     done
   fi
 
-  # A root a rollback left behind (@ / @rb-*) pins every file the updates since have
-  # replaced, so none is kept: undoing a rollback means updating again. The running root
-  # is never a candidate, so the one rolled away from lives until the reboot.
+  # Roots a rollback left behind (@ / @rb-*) pin every file replaced since, so none is kept; the
+  # running root is never a candidate, so the one rolled away from lives until the reboot.
   local top=/run/pocknix/prune-top mounted default roots r
   mounted="$(snap_mounted_subvol)"; default="$(snap_default_subvol)"
   mkdir -p "${top}"

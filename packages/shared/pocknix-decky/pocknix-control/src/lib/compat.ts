@@ -20,9 +20,8 @@ interface SteamCompatQuery {
 }
 type SteamCompatHook = (appid: number) => [SteamCompatQuery, (tool: string) => void];
 
-// Steam's tool list is only reachable through its react-query hook, which throws
-// without Steam's QueryClient in context; a throwaway root under Steam's provider
-// works from any tree (QAM panel, modals, import flow).
+// Steam's tool list is only reachable via its react-query hook, which throws outside Steam's
+// QueryClient; a throwaway root under Steam's provider works from any tree.
 const steam = {
   hook: null as SteamCompatHook | null,
   provider: null as any,

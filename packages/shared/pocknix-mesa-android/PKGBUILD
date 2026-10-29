@@ -85,10 +85,8 @@ cpu = 'aarch64'
 endian = 'little'
 END
 
-  # makepkg's glibc CFLAGS/LDFLAGS must not reach the bionic objects. gbm-backends-path is
-  # baked in: gralloc dlopens dri_gbm from there, and the default path makes it fail to init.
-  # nodownload: optional fallbacks (expat, the decode tools' libxml2/libarchive) stay unfound
-  # instead of being fetched mid-build.
+  # makepkg's glibc flags must not reach the bionic objects. gbm-backends-path: gralloc dlopens
+  # dri_gbm from there. nodownload: optional fallbacks stay unfound instead of fetched mid-build.
   env -u CFLAGS -u CXXFLAGS -u CPPFLAGS -u LDFLAGS \
   meson setup build-android "mesa-${_srcver}" --cross-file "${srcdir}/android-cross.ini" \
     --wrap-mode=nodownload \

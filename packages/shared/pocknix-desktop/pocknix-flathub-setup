@@ -18,9 +18,8 @@ flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.f
 # A reboot mid-seed (Steam's OOBE forces one on first boot) leaves a ref that looks
 # installed but cannot be read; only repair drops it, so a plain retry fails forever.
 seed_firefox || { flatpak repair --system; seed_firefox; }
-# Retire the pacman browsers only once the flatpak is present, never leaving a device
-# browserless. Fail hard: under RemainAfterExit=yes a swallowed error leaves the unit
-# active(exited), so the dispatcher's `systemctl start` no-ops and the retry never happens.
+# Retire the pacman browsers only once the flatpak is present. Fail hard: under RemainAfterExit=yes
+# a swallowed error leaves the unit active(exited), so the retry never happens.
 if flatpak info org.mozilla.firefox >/dev/null 2>&1; then
   stale="$(pacman -Qq firefox angelfish 2>/dev/null || true)"
   if [ -n "${stale}" ]; then

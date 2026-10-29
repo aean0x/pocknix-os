@@ -7,9 +7,8 @@
 pkgname=fex-rootfs
 _rootfsdate=2026-01-08             # pinned dated image from FEX's rootfs CDN (immutable path)
 _mesaver=26.2.4-1                  # x86_64 turnip dropped INTO the image (see repack below)
-# Per-game Mesa Version payloads (same pins as pocknix-turnip-x86) must live INSIDE the image:
-# pressure-vessel captures graphics against this rootfs, not the host, so host-only payloads are
-# invisible to it. vk-x86-container.list ships to the host as pocknix-game-launch's SLR pin gate.
+# Per-game Mesa payloads (same pins as pocknix-turnip-x86) must live INSIDE the image: SLR captures
+# graphics against this rootfs. vk-x86-container.list ships as pocknix-game-launch's pin gate.
 _vkvers=('25.2.7-1' '25.3.5-1' '26.0.6-1' '26.1.6-1' "${_mesaver}")
 pkgver=${_rootfsdate//-/}          # 20260108
 pkgrel=11
@@ -21,10 +20,8 @@ depends=('fex-emu' 'squashfuse' 'vulkan-freedreno')
 makedepends=('squashfs-tools')
 options=('!strip' '!debug')
 
-# Mesa overlay: the CDN image's bundled x86 turnip reports storageBuffer8BitAccess=false, which
-# DXVK 3.x hard-requires, so the sqsh is repacked with newer vulkan-freedreno plus the two deps
-# the image lacks. Overlay the LIBS only — the image's freedreno_icd.*.json already point at
-# /usr/lib/libvulkan_freedreno.so, and adding the pkgs' unsuffixed json double-enumerates it.
+# The image's x86 turnip lacks storageBuffer8BitAccess (DXVK hard-requires it), so overlay newer
+# vulkan-freedreno libs only: the image's icd json already names them, ours would double-enumerate.
 source=("ArchLinux-${_rootfsdate}.sqsh::https://rootfs.fex-emu.gg/ArchLinux/${_rootfsdate}/ArchLinux.sqsh"
         "vulkan-freedreno-${_mesaver}-x86_64.pkg.tar.zst::https://archive.archlinux.org/packages/v/vulkan-freedreno/vulkan-freedreno-1%3A${_mesaver}-x86_64.pkg.tar.zst"
         "libdisplay-info-0.3.0-1-x86_64.pkg.tar.zst::https://archive.archlinux.org/packages/l/libdisplay-info/libdisplay-info-0.3.0-1-x86_64.pkg.tar.zst"

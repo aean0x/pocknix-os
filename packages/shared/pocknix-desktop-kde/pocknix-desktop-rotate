@@ -32,9 +32,8 @@ SCALE2="${POCKNIX_DESKTOP2_SCALE:-${SCALE}}"
 have() { command -v "$1" >/dev/null 2>&1; }
 have kscreen-doctor || { echo "pocknix-desktop-rotate: kscreen-doctor not found (install kscreen)" >&2; exit 1; }
 
-# kscreen kded can take a moment after login to register outputs over D-Bus, hence the poll.
-# kscreen-doctor colorizes -o even when piped (ignores NO_COLOR): strip SGR escapes or the
-# ^Output: anchor below silently never matches.
+# kscreen kded registers outputs a moment after login, hence the poll. kscreen-doctor colorizes -o
+# even when piped: strip SGR or the ^Output: anchor silently never matches.
 outputs=""
 for _ in $(seq 1 30); do
   outputs="$(kscreen-doctor -o 2>/dev/null | sed $'s/\x1b\\[[0-9;]*m//g')" || outputs=""
@@ -66,9 +65,8 @@ if [ -z "${OUTPUT}" ]; then
   exit 1
 fi
 
-# One transaction so kwin applies rotation + scale together (avoids an intermediate bad mode).
-# Unknown boards get no rotation: kwin honours the DT panel-orientation hint and the
-# fallback token is a guess that fights it (#57).
+# One transaction so kwin applies rotation + scale together. Unknown boards get no rotation: kwin
+# honours the DT panel-orientation hint and a guessed token fights it (#57).
 args=("output.${OUTPUT}.scale.${SCALE}")
 [ -n "${OUTPUT2}" ] && args+=("output.${OUTPUT2}.enable" "output.${OUTPUT2}.scale.${SCALE2}")
 if [ "${POCKNIX_BOARD_UNKNOWN:-0}" != 1 ] || [ "${FORCE}" = 1 ]; then

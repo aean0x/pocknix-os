@@ -7,8 +7,8 @@ _pocknix_set_plymouth_theme() {
   sed -i 's/^Theme=spinner$/Theme=pocknix/' "${conf}"
 }
 
-# The wallpaper seed wrote this path and the wallpaper is gone: a dangling Image= paints Plasma's
-# white fill on every desktop start. Only that exact line goes; a user's own pick names another path.
+# The retired wallpaper seed wrote this path: a dangling Image= paints Plasma's white fill on every
+# desktop start. Only that exact line goes; a user's own pick names another path.
 _pocknix_drop_seeded_wallpaper() {
   local rc line='Image=file:///usr/share/wallpapers/PocknixOS'
   for rc in ${POCKNIX_HOME_ROOT:-/home}/*/.config/plasma-org.kde.plasma.mobileshell-appletsrc; do

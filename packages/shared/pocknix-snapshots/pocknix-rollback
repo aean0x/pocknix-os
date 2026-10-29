@@ -131,9 +131,8 @@ jq -n --arg from "${target}" --arg prev "$(btrfs subvolume get-default "${TOP}" 
   '{schema:1, from_snapshot:$from, previous_default:$prev, ts:$ts}' \
   > "${TOP}/${new}/var/lib/pocknix/rollback-info.json"
 
-# The kernel lives on the FAT boot partition, outside btrfs, so it cannot ride the
-# subvolume switch: stage *.new first, where a failure still aborts before the commit.
-# cmp, not the transaction flag: a rollback can span several kernel bumps.
+# The kernel is on the FAT boot partition, outside the subvolume switch: stage *.new first, where a
+# failure still aborts before the commit. cmp, not the flag: a rollback can span kernel bumps.
 staged=""
 if ! cmp -s "${KERNEL_REF}" "${TOP}/${new}/boot/Image"; then
   regen=/usr/lib/pocknix/pocknix-boot-deploy

@@ -7,10 +7,8 @@ if [ -n "${DISPLAY:-}" ] && [ -r "${XAUTHORITY:-}" ]; then
 elif [ -n "${WAYLAND_DISPLAY:-}" ]; then
   plat=(--ozone-platform=wayland)
 fi
-# SRM will not shrink below 800x600 logical, so Plasma Mobile's own 2-2.5 runs it off a 1080p
-# panel. Ours: the largest scale up to 1.7 that fits every connected screen, longer side as the
-# width, with 35 logical px spare for the title bar (1.7 at 1080p, 1.5 at 1280x960).
-# POCKNIX_SRM_SCALE overrides it.
+# SRM won't go below 800x600 logical, so Plasma Mobile's 2-2.5 runs it off a 1080p panel. Ours: the
+# largest scale up to 1.7 fitting every screen with 35 px for the title bar; POCKNIX_SRM_SCALE wins.
 scale="${POCKNIX_SRM_SCALE:-}"
 if [ -z "${scale}" ]; then
   scale="$(for c in /sys/class/drm/card*-*; do

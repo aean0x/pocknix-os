@@ -173,9 +173,8 @@ def cmd_repair(dev):
     if not (info["bak_ok"] and info["bak_ents_ok"]):
         sys.stderr.write("backup GPT is not usable as a source - refusing\n")
         return 1
-    # Only the header is rebuilt, so the primary's own entry array must already
-    # be intact - otherwise the new header would point at bytes that do not
-    # match the entries_crc it carries, and the kernel keeps rejecting it.
+    # Only the header is rebuilt, so the primary entry array must already be intact or the new
+    # header's entries_crc mismatches and the kernel keeps rejecting it.
     if not info["pri_ents_ok"]:
         sys.stderr.write("primary entry array does not match its CRC - refusing "
                          "(this tool rebuilds the header only)\n")
