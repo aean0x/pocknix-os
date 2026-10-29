@@ -7,9 +7,9 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "${ROOT}" || exit 1
 
-DOCS="$(git ls-files 'README.md' 'CONTRIBUTING.md' 'PATCHES.md' '*/README.md' 'docs/*.md' \
+DOCS="$(git ls-files 'README.md' 'CONTRIBUTING.md' 'PATCHES.md' '*/README.md' '*/PATCHES.md' 'docs/*.md' \
           '.github/PULL_REQUEST_TEMPLATE.md' '.github/ISSUE_TEMPLATE/*')"
-# Structure + rules only: their volatile facts belong in PATCHES.md, kernel.conf or a PKGBUILD.
+# Structure + rules only: their volatile facts belong in a PATCHES.md, kernel.conf or a PKGBUILD.
 STRUCTURAL="kernel/README.md devices/README.md docs/README.md CONTRIBUTING.md"
 # Backticked paths that name another tree's files, not ours (file:token).
 FOREIGN="PATCHES.md:packages/kernel/PATCHES.md kernel/README.md:scripts/config"

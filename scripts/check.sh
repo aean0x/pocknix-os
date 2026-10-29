@@ -380,7 +380,7 @@ check_family() {  # $1 = SoC
     esac
   fi
   [ -f "${dev}/profile.conf" ] || return
-  grep -q "^| kernel (${soc}" "${POCKNIX_ROOT}/PATCHES.md" || echo "no PATCHES.md kernel row"
+  [ -f "${POCKNIX_ROOT}/kernel/${soc}/PATCHES.md" ] || echo "missing kernel/${soc}/PATCHES.md"
   for p in DEVICE_BSP_PKG DEVICE_META_PKG; do
     [ -f "${dev}/packages/$(profile_get "${dev}" "${p}")/PKGBUILD" ] || echo "${p} has no package under devices/${soc}/packages/"
   done
