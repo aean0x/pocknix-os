@@ -518,7 +518,7 @@ check_soc_ids() {  # $1 = allow file
 # docs and packages/soc/<name>-<soc>/ are where chip names belong.
 _allow="${POCKNIX_ROOT}/scripts/soc-ids.allow"
 _bad="$(git -C "${POCKNIX_ROOT}" grep -n -I -i -E "${SOC_ID_RE}" -- . ':!devices/' ':!kernel/' \
-          ':!PATCHES.md' ':!CONTRIBUTING.md' ':!README.md' ':!docs/' ':(exclude,glob)**/*.allow' \
+          ':(exclude,glob)**/PATCHES.md' ':!CONTRIBUTING.md' ':!README.md' ':!docs/' ':(exclude,glob)**/*.allow' \
           ':(exclude,glob)packages/soc/*-sm[0-9][0-9][0-9][0-9]/**' | check_soc_ids "${_allow}" | paste -sd ';' -)"
 if [ -z "${_bad}" ]; then note "chip ids outside chip trees" "ok"
 else note "chip ids outside chip trees" "${_bad}"; fail=1; fi
