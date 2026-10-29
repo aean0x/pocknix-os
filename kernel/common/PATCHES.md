@@ -9,7 +9,7 @@ Each SoC's kernel, after the SoC's own stack
 Applied in number order on the stock kernel that `kernel/<soc>/kernel.conf` pins. A SoC leaves
 a patch out by naming it in `kernel/<soc>/common-skip`.
 
-Last rebased: 2026-10-28 (iris low-latency decode).
+Last rebased: 2026-10-29 (iris gen1 HEVC Remote Play).
 
 ## Carried
 
@@ -104,6 +104,11 @@ Last rebased: 2026-10-28 (iris low-latency decode).
   gen2 unchanged. Source: ours.
 - **1088** Remote Play on gen1 no longer stays green: capture setup waits for the first source
   change and finishes from a work item. Applies: gen1 (sm8250); gen2 unchanged. Source: ours.
+- **1089** HEVC Remote Play no longer falls back to H.264 on gen1, and H.264 streams no longer
+  start frozen: a decoded frame stamped 0 comes back stamped 1 us, since Steam's arm64 client reads
+  timestamp 0 as a failed decode and restarts without a keyframe, which gen1 cannot resume from.
+  Applies: gen1 (sm8250); gen2 unchanged. Source: ours. Drop: once Steam stops treating 0 as a
+  failure.
 
 ### GPU and display
 
