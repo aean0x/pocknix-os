@@ -2,6 +2,7 @@
 # keyboard-only, i.e. a dead controller. Face buttons match the printed letters of a Nintendo-layout
 # pad (A right, B bottom, X top, Y left). The xb360 pad reports by Xbox position, and its top and
 # left buttons as WEST and NORTH (the BTN_Y/BTN_X codes).
+# Dolphin's evdev backend has no hats: the D-pad is ABS_HAT0X/Y, numbered as Axis 6/7 after X..RZ.
 # The trailing " 0" belongs to the evdev device name — drop it and Dolphin binds nothing.
 [GCPad1]
 Device = evdev/0/Microsoft X-Box 360 pad 0
@@ -23,7 +24,7 @@ Triggers/L = `Axis 2+`
 Triggers/R = `Axis 5+`
 Triggers/L-Analog = `Axis 2+`
 Triggers/R-Analog = `Axis 5+`
-D-Pad/Up = `Hat 0 N`
-D-Pad/Down = `Hat 0 S`
-D-Pad/Left = `Hat 0 W`
-D-Pad/Right = `Hat 0 E`
+D-Pad/Up = `Axis 7-`
+D-Pad/Down = `Axis 7+`
+D-Pad/Left = `Axis 6-`
+D-Pad/Right = `Axis 6+`
