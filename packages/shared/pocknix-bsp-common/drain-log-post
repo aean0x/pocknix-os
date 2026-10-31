@@ -17,4 +17,8 @@ if [ -n "$c0" ] && [ -n "$c1" ]; then
 else
   secs=0; used="no charge sensor"
 fi
-echo "004-drain-log: slept ${secs}s, ${used}, woke by irq ${irq:-none} ${name}" > /dev/kmsg
+line="004-drain-log: slept ${secs}s, ${used}, woke by irq ${irq:-none} ${name}"
+echo "$line" > /dev/kmsg
+# kmsg does not survive a reboot and journald does not persist here; keep the history.
+echo "$(date -Is) ${line#004-drain-log: }" >> /var/log/pocknix-drain.log
+exit 0
